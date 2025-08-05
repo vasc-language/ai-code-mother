@@ -1,3 +1,7 @@
+<!--
+  全局底部组件
+  显示版权信息和作者链接
+-->
 <template>
   <a-layout-footer class="footer">
     <div class="footer-content">
@@ -16,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-// 无需额外的响应式数据
+// 静态组件，无需响应式数据
 </script>
 
 <style scoped>

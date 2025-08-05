@@ -1,3 +1,7 @@
+<!--
+  基础布局组件
+  定义应用的整体布局结构：头部 + 内容 + 底部
+-->
 <template>
   <a-layout class="basic-layout">
     <!-- 顶部导航栏 -->

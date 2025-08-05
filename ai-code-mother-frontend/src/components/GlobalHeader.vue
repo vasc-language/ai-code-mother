@@ -1,3 +1,7 @@
+<!--
+  全局头部导航组件
+  包含 Logo、导航菜单和用户操作区域
+-->
 <template>
   <a-layout-header class="header">
     <a-row :wrap="false">
@@ -35,14 +39,16 @@ import { useRouter } from 'vue-router'
 import type { MenuProps } from 'ant-design-vue'
 
 const router = useRouter()
-// 当前选中菜单
+
+// 当前选中的菜单项
 const selectedKeys = ref<string[]>(['/'])
-// 监听路由变化，更新当前选中菜单
+
+// 监听路由变化，同步更新菜单选中状态
 router.afterEach((to, from, next) => {
   selectedKeys.value = [to.path]
 })
 
-// 菜单配置项
+// 导航菜单配置项
 const menuItems = ref([
   {
     key: '/',
@@ -61,11 +67,11 @@ const menuItems = ref([
   },
 ])
 
-// 处理菜单点击
+// 处理菜单点击事件
 const handleMenuClick: MenuProps['onClick'] = (e) => {
   const key = e.key as string
   selectedKeys.value = [key]
-  // 跳转到对应页面
+  // 内部路由跳转
   if (key.startsWith('/')) {
     router.push(key)
   }
