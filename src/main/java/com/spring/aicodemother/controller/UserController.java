@@ -1,12 +1,16 @@
 package com.spring.aicodemother.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
+import com.spring.aicodemother.annotation.AuthCheck;
 import com.spring.aicodemother.common.BaseResponse;
+import com.spring.aicodemother.common.DeleteRequest;
 import com.spring.aicodemother.common.ResultUtils;
+import com.spring.aicodemother.constant.UserConstant;
+import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
-import com.spring.aicodemother.model.dto.UserLoginRequest;
-import com.spring.aicodemother.model.dto.UserRegisterRequest;
+import com.spring.aicodemother.model.dto.*;
 import com.spring.aicodemother.model.vo.LoginUserVO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +34,7 @@ public class UserController {
 
     /**
      * 用户注册
+     *
      */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
@@ -44,6 +49,7 @@ public class UserController {
 
     /**
      * 用户登录
+     *
      */
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
@@ -54,70 +60,135 @@ public class UserController {
         return ResultUtils.success(loginUserVO);
     }
 
-
     /**
-     * 保存用户。
+     * 获取登陆用户信息
      *
-     * @param user 用户
-     * @return {@code true} 保存成功，{@code false} 保存失败
      */
-    @PostMapping("save")
-    public boolean save(@RequestBody User user) {
-        return userService.save(user);
+    @GetMapping("/get/login")
+    public BaseResponse<LoginUserVO> getUserLogin(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        // 返回脱敏后的用户信息
+        return ResultUtils.success(userService.getLoginUserVO(loginUser));
     }
 
     /**
-     * 根据主键删除用户。
+     * 用户注销
      *
-     * @param id 主键
-     * @return {@code true} 删除成功，{@code false} 删除失败
+     * @param request
+     * @return
      */
-    @DeleteMapping("remove/{id}")
-    public boolean remove(@PathVariable Long id) {
-        return userService.removeById(id);
+    @PostMapping("/logout")
+    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+        ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR);
+        boolean result = userService.userLogout(request);
+        return ResultUtils.success(result);
+    }
+
+
+
+    /**
+     * 创建用户
+     */
+    @PostMapping("/add")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
+        ThrowUtils.throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
+        User user = new User();
+        BeanUtil.copyProperties(userAddRequest, user);
+        // 默认密码 12345678
+        final String DEFAULT_PASSWORD = "12345678";
+        String encryptPassword = userService.getEncryptPassword(DEFAULT_PASSWORD);
+        user.setUserPassword(encryptPassword);
+        boolean result = userService.save(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(user.getId());
     }
 
     /**
-     * 根据主键更新用户。
-     *
-     * @param user 用户
-     * @return {@code true} 更新成功，{@code false} 更新失败
+     * 根据 id 获取用户（仅管理员）
      */
-    @PutMapping("update")
-    public boolean update(@RequestBody User user) {
-        return userService.updateById(user);
+    @GetMapping("/get")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<UserVO> getUserById(long id) {
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        User user = userService.getById(id);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
+        // 返回脱敏用户信息
+        return ResultUtils.success(userService.getUserVO(user));
     }
 
     /**
-     * 查询所有用户。
-     *
-     * @return 所有数据
+     * 根据 id 获取包装类
      */
-    @GetMapping("list")
-    public List<User> list() {
-        return userService.list();
+    @GetMapping("/get/vo")
+    public BaseResponse<UserVO> getUserVOById(long id) {
+        // 权限交由 getUserById 方法校验
+        return getUserById(id);
     }
 
     /**
-     * 根据主键获取用户。
-     *
-     * @param id 用户主键
-     * @return 用户详情
+     * 删除用户
      */
-    @GetMapping("getInfo/{id}")
-    public User getInfo(@PathVariable Long id) {
-        return userService.getById(id);
+    @PostMapping("/delete")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+        if (deleteRequest == null || deleteRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 增加业务逻辑，禁止管理员删除自己
+        User loginUser = userService.getLoginUser(request);
+        if (deleteRequest.getId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "不能删除自己");
+        }
+        boolean b = userService.removeById(deleteRequest.getId());
+        return ResultUtils.success(b);
     }
 
     /**
-     * 分页查询用户。
-     *
-     * @param page 分页对象
-     * @return 分页对象
+     * 更新用户
      */
-    @GetMapping("page")
-    public Page<User> page(Page<User> page) {
-        return userService.page(page);
+    @PostMapping("/update")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
+        if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // 增加业务逻辑，禁止管理员修改自己的角色
+        User loginUser = userService.getLoginUser(request);
+        if (userUpdateRequest.getId().equals(loginUser.getId()) &&
+                userUpdateRequest.getUserRole() != null &&
+                !userUpdateRequest.getUserRole().equals(loginUser.getUserRole())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "不能修改自己的角色");
+        }
+
+        User user = new User();
+        BeanUtil.copyProperties(userUpdateRequest, user);
+        // 防止密码被意外更新
+        user.setUserPassword(null);
+        boolean result = userService.updateById(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 分页获取用户封装列表（仅管理员）
+     *
+     * @param userQueryRequest 查询请求参数
+     */
+    @PostMapping("/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
+        ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        long pageNum = userQueryRequest.getPageNum();
+        long pageSize = userQueryRequest.getPageSize();
+        Page<User> userPage = userService.page(Page.of(pageNum, pageSize),
+                userService.getQueryWrapper(userQueryRequest));
+        // 数据脱敏
+        Page<UserVO> userVOPage = new Page<>(pageNum, pageSize, userPage.getTotalRow());
+        List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
+        userVOPage.setRecords(userVOList);
+        return ResultUtils.success(userVOPage);
     }
 
 }

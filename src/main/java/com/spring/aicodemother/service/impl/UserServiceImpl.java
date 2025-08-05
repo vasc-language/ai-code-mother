@@ -1,19 +1,27 @@
 package com.spring.aicodemother.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
+import com.spring.aicodemother.model.dto.UserQueryRequest;
+import com.spring.aicodemother.model.dto.UserVO;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.mapper.UserMapper;
 import com.spring.aicodemother.model.enums.UserRoleEnum;
 import com.spring.aicodemother.model.vo.LoginUserVO;
 import com.spring.aicodemother.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.spring.aicodemother.constant.UserConstant.USER_LOGIN_STATE;
 
@@ -23,7 +31,7 @@ import static com.spring.aicodemother.constant.UserConstant.USER_LOGIN_STATE;
  * @author <a href="https://github.com/vasc-language">Join2049</a>
  */
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements UserService{
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -105,8 +113,100 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         return this.getLoginUserVO(user);
     }
 
+    /**
+     * 获取当前登陆对象
+     *
+     * @param request 根据用户ID查询
+     * @return
+     */
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        // 先判断是否已登录
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
 
-    private String getEncryptPassword(String userPassword) {
+        long userId = currentUser.getId();
+        currentUser = this.getById(userId);
+        if (currentUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        return currentUser;
+    }
+
+    /**
+     * 用户注销，将 isDelete 置为1
+     *
+     * @param request
+     * @return
+     */
+    @Override
+    public boolean userLogout(HttpServletRequest request) {
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (userObj == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return true;
+    }
+
+    /**
+     * 用户管理相关操作
+     * 个人用户信息脱敏
+     *
+     * @param user
+     * @return
+     */
+    @Override
+    public UserVO getUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        BeanUtil.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    /**
+     * 用户列表脱敏
+     *
+     * @param userList
+     * @return
+     */
+    @Override
+    public List<UserVO> getUserVOList(List<User> userList) {
+        if (CollUtil.isEmpty(userList)) {
+            return new ArrayList<>();
+        }
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        Long id = userQueryRequest.getId();
+        String userAccount = userQueryRequest.getUserAccount();
+        String userName = userQueryRequest.getUserName();
+        String userProfile = userQueryRequest.getUserProfile();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        return QueryWrapper.create()
+                .eq("id", id)
+                .eq("userRole", userRole)
+                .like("userAccount", userAccount)
+                .like("userName", userName)
+                .like("userProfile", userProfile)
+                .orderBy(sortField, "ascend".equals(sortOrder));
+    }
+
+
+    @Override
+    public String getEncryptPassword(String userPassword) {
         // 盐值，混淆视听
         final String SALT = "Join2049";
 

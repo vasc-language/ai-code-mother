@@ -22,6 +22,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!--spring AOP 切面-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
         <!--代码生成器 MyBaits Flux-->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
