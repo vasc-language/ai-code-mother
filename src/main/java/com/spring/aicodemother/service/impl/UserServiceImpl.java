@@ -15,7 +15,6 @@ import com.spring.aicodemother.model.enums.UserRoleEnum;
 import com.spring.aicodemother.model.vo.LoginUserVO;
 import com.spring.aicodemother.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 

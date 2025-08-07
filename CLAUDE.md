@@ -29,19 +29,24 @@ This is a full-stack web application with a Spring Boot 3.5.4 backend and Vue 3 
 ### Backend Development
 ```bash
 # Build the backend
-./mvnw clean compile
+mvnw.cmd clean compile    # Windows
+./mvnw clean compile      # Linux/Mac
 
 # Run tests
-./mvnw test
+mvnw.cmd test            # Windows
+./mvnw test              # Linux/Mac
 
 # Run the backend application
-./mvnw spring-boot:run
+mvnw.cmd spring-boot:run  # Windows
+./mvnw spring-boot:run    # Linux/Mac
 
 # Package as JAR
-./mvnw clean package
-```
+mvnw.cmd clean package    # Windows
+./mvnw clean package      # Linux/Mac
 
-**Note for Windows**: Use `mvnw.cmd` instead of `./mvnw` on Windows systems, or use `mvn` if Maven is installed globally.
+# Run code generator (for new database tables)
+mvnw.cmd compile exec:java -Dexec.mainClass="com.spring.aicodemother.generator.MyBatisCodeGenerator"
+```
 
 ### Frontend Development
 ```bash
@@ -54,33 +59,41 @@ npm install
 # Start development server with hot-reload
 npm run dev
 
-# Build for production
+# Build for production (includes type-check)
 npm run build
 
-# Type checking
+# Build only (skip type checking)
+npm run build-only
+
+# Type checking only
 npm run type-check
 
-# Lint and format code
+# Lint and auto-fix code
 npm run lint
+
+# Format code with Prettier
 npm run format
 
 # Generate API client from backend OpenAPI spec
 npm run openapi2ts
 ```
 
-### Full-Stack Development
-1. Start the backend: `./mvnw spring-boot:run`
+### Full-Stack Development Workflow
+1. Start the backend: `mvnw.cmd spring-boot:run` (Windows) or `./mvnw spring-boot:run` (Linux/Mac)
 2. In another terminal, start the frontend: `cd ai-code-mother-frontend && npm run dev`
 3. Backend runs on `http://localhost:8123/api`
 4. Frontend runs on `http://localhost:5173` (or next available port)
+5. After backend changes, regenerate frontend API client: `npm run openapi2ts`
 
 ### Testing
-- Single test: `./mvnw test -Dtest=ClassName#methodName`
-- Test class: `./mvnw test -Dtest=ClassName`
+- All tests: `mvnw.cmd test` (Windows) or `./mvnw test` (Linux/Mac)
+- Single test: `mvnw.cmd test -Dtest=ClassName#methodName`
+- Test class: `mvnw.cmd test -Dtest=ClassName`
 
-### API Testing
+### API Testing and Documentation
 - Health check: `curl -X GET "http://localhost:8123/api/health/" -H "accept: application/json"`
-- Swagger UI: `http://localhost:8123/api/doc.html`
+- Swagger UI: `http://localhost:8123/api/doc.html` (Chinese language)
+- OpenAPI JSON: `http://localhost:8123/api/v3/api-docs`
 
 ## Architecture Overview
 
@@ -96,28 +109,35 @@ ai-code-mother/
 ### Backend Package Structure (Spring Boot)
 - `com.spring.aicodemother` - Root package
   - `common/` - Shared utilities and response wrappers
-    - `BaseResponse<T>` - Standardized API response wrapper
+    - `BaseResponse<T>` - Standardized API response wrapper with Lombok @Data
     - `ResultUtils` - Utility for creating consistent responses
     - `PageRequest`, `DeleteRequest` - Common request DTOs
   - `controller/` - REST API endpoints
     - `HealthController` - Basic health check endpoint
-    - `UserController` - Complete user CRUD operations with registration
+    - `UserController` - Complete user CRUD operations with registration, login, and admin features
   - `service/` - Business logic layer
     - `UserService` - User service interface
-    - `impl/UserServiceImpl` - User service implementation with registration and MD5 password encryption
+    - `impl/UserServiceImpl` - User service implementation with MD5 password encryption and session management
   - `mapper/` - MyBatis-Flex data access layer
     - `UserMapper` - User database operations interface (auto-generated)
   - `model/` - Data models and DTOs
     - `entity/User` - User entity with MyBatis-Flex annotations and Snowflake ID generation
-    - `dto/UserRegisterRequest` - User registration request DTO
-    - `enums/UserRoleEnum` - User role enumeration
+    - `dto/` - Request/response DTOs (UserRegisterRequest, UserLoginRequest, UserQueryRequest, UserAddRequest, UserUpdateRequest, UserVO)
+    - `vo/LoginUserVO` - Login user view object for session data
+    - `enums/UserRoleEnum` - User role enumeration (USER/ADMIN)
   - `exception/` - Centralized error handling
     - `ErrorCode` - Enum with standardized error codes
     - `BusinessException` - Custom business exception
-    - `GlobalExceptionHandler` - Global exception handling
+    - `GlobalExceptionHandler` - Global exception handling with proper error responses
     - `ThrowUtils` - Utility for throwing exceptions
   - `generator/` - Code generation utilities
     - `MyBatisCodeGenerator` - MyBatis-Flex code generator for entities, mappers, and services
+  - `annotation/` - Custom annotations
+    - `AuthCheck` - Role-based authorization annotation
+  - `aop/` - Aspect-oriented programming
+    - `AuthInterceptor` - Authorization interceptor for role checking
+  - `constant/` - Application constants
+    - `UserConstant` - User-related constants (salt, session keys, etc.)
 
 ### Frontend Architecture (Vue 3)
 - **Components**: Reusable Vue components with TypeScript
@@ -224,6 +244,28 @@ This is a full-stack application with both backend and frontend infrastructure s
 - **Connection**: MySQL database `ai_code_mother` on localhost:3306
 - **Credentials**: Username `root`, password configured in `application.yml`
 - **Pool**: HikariCP for connection pooling and performance optimization
+- **Schema**: User table with logical delete support and complete user management fields
+- **Test Data**: Pre-populated with admin and user accounts (check `sql/create_table.sql`)
+
+### Authentication & Authorization System
+- **Password Security**: MD5 encryption with salt "Join2049" in `UserServiceImpl.getEncryptPassword()`
+- **Session Management**: Spring session-based authentication
+- **Role-based Access**: `@AuthCheck` annotation with AOP interceptor for method-level security
+- **User Roles**: Enumerated roles (USER/ADMIN) with different access levels
+- **Frontend Integration**: Automatic login redirect on 40100 error code
+
+### Code Generation & Development Tools
+- **MyBatis-Flex Generator**: Located in `MyBatisCodeGenerator.java` - run via Maven exec plugin
+- **Target Package**: Currently configured to generate to `com.yupi.yuaicodemother.genresult` (update if needed)
+- **Generated Components**: Entities, Mappers, Services, and Controllers with complete CRUD operations
+- **Database Connection**: Reads configuration from `application.yml` datasource settings
+
+### Key Development Patterns
+- **API Response Pattern**: All endpoints use `BaseResponse<T>` wrapper with standardized error codes
+- **Exception Handling**: Global exception handler converts all exceptions to consistent API responses
+- **Validation**: Request DTOs with validation annotations for parameter checking
+- **Pagination**: Built-in pagination support using `PageRequest` and MyBatis-Flex page queries
+- **Soft Delete**: Logical delete pattern using `isDelete` flag with MyBatis-Flex support
 
 ### Common Issues & Solutions
 - **HTTP 406 "Not Acceptable"**: Usually caused by missing getters in response objects. Ensure `@Data` or equivalent annotations are used
