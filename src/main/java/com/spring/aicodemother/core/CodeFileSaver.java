@@ -38,7 +38,7 @@ public class CodeFileSaver {
     /**
      * 构建唯一目录路径：tmp/code_output/bizType_雪花ID
      */
-    private static String buildUniqueDir(String bizType) {
+    public static String buildUniqueDir(String bizType) {
         String uniqueDirName = StrUtil.format("{}_{}", bizType, IdUtil.getSnowflakeNextIdStr());
         String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
         FileUtil.mkdir(dirPath);
