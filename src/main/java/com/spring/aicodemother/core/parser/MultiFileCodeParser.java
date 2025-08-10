@@ -24,10 +24,10 @@ public class MultiFileCodeParser implements CodeParser<MultiFileCodeResult> {
             result.setHtmlCode(htmlCode.trim());
         }
         if (cssCode != null && !cssCode.trim().isEmpty()) {
-            result.setHtmlCode(cssCode.trim());
+            result.setCssCode(cssCode.trim());
         }
         if (jsCode != null && !jsCode.trim().isEmpty()) {
-            result.setHtmlCode(jsCode.trim());
+            result.setJsCode(jsCode.trim());
         }
         return result;
     }

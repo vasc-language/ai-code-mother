@@ -21,7 +21,7 @@ public class HtmlCodeParser implements CodeParser<HtmlCodeResult> {
             // 如果没有找到代码块，将整个内容作为HTML
             result.setHtmlCode(codeContent);
         }
-        return null;
+        return result;
     }
 
     /**

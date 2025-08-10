@@ -84,24 +84,29 @@ public class AiCodeGeneratorFacade {
      * @return 流式响应
      */
     private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType) {
-        // 字符串拼接器，用于当流式返回所有的代码之后，再保存代码
-        StringBuilder codeBuilder = new StringBuilder();
-        return codeStream.doOnNext(chunk -> {
-            // 实时收集代码片段
-            codeBuilder.append(chunk);
-        }).doOnComplete(() -> {
-            // 流式返回完成后，保存代码
-            try {
-                String completeCode = codeBuilder.toString();
-                // 使用执行器解析代码
-                Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
-                // 使用执行器保存代码
-                File saveDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType);
-                log.info("保存成功，目录为：{}", saveDir.getAbsolutePath());
-            } catch (Exception e) {
-                log.error("保存失败: {}", e.getMessage());
-            }
-        });
+        // 使用cache()确保流可以被多次订阅
+        Flux<String> cachedStream = codeStream.cache();
+        
+        // 异步处理保存操作，不阻塞原流
+        cachedStream.collect(StringBuilder::new, StringBuilder::append)
+            .doOnSuccess(codeBuilder -> {
+                try {
+                    String completeCode = codeBuilder.toString();
+                    // 使用执行器解析代码
+                    Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
+                    // 使用执行器保存代码
+                    File saveDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType);
+                    log.info("保存成功，目录为：{}", saveDir.getAbsolutePath());
+                } catch (Exception e) {
+                    log.error("保存失败: {}", e.getMessage());
+                    // 注意：这里的异常不会传播到主流，如果需要可以考虑其他处理方式
+                }
+            })
+            .doOnError(error -> log.error("流处理失败: {}", error.getMessage()))
+            .subscribe(); // 启动异步处理
+        
+        // 返回缓存的流，保持流式特性
+        return cachedStream;
     }
 
 
