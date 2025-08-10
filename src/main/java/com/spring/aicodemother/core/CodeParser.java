@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
  * 解析和提取出被特定标记（如Markdown代码块）包裹的源代码。
  * </p>
  */
+@Deprecated
 public class CodeParser {
 
     /**
