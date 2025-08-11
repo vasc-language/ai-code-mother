@@ -1,15 +1,15 @@
-package com.spring.aicodemother.model.dto;
+package com.spring.aicodemother.model.dto.user;
 
 import lombok.Data;
 
 import java.io.Serializable;
 
 /**
- * 用户注册
+ * 用户登录
  * 接收请求参数类
  */
 @Data
-public class UserRegisterRequest implements Serializable {
+public class UserLoginRequest implements Serializable {
     private static final long serialVersionUID = 3191241716373120793L;
     /**
      * 账号
@@ -20,9 +20,4 @@ public class UserRegisterRequest implements Serializable {
      * 密码
      */
     private String userPassword;
-
-    /**
-     * 确认密码
-     */
-    private String checkPassword;
 }

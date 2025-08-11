@@ -1,6 +1,6 @@
 package com.spring.aicodemother.controller;
 
-import com.spring.aicodemother.model.dto.UserLoginRequest;
+import com.spring.aicodemother.model.dto.user.UserLoginRequest;
 import com.spring.aicodemother.service.UserService;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;

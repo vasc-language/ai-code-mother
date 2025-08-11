@@ -2,8 +2,8 @@ package com.spring.aicodemother.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
-import com.spring.aicodemother.model.dto.UserQueryRequest;
-import com.spring.aicodemother.model.dto.UserVO;
+import com.spring.aicodemother.model.dto.user.UserQueryRequest;
+import com.spring.aicodemother.model.dto.user.UserVO;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.model.vo.LoginUserVO;
 import jakarta.servlet.http.HttpServletRequest;

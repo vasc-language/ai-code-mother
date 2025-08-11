@@ -10,7 +10,7 @@ import com.spring.aicodemother.constant.UserConstant;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
-import com.spring.aicodemother.model.dto.*;
+import com.spring.aicodemother.model.dto.user.*;
 import com.spring.aicodemother.model.vo.LoginUserVO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
