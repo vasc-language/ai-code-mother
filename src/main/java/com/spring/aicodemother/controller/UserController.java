@@ -12,6 +12,7 @@ import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
 import com.spring.aicodemother.model.dto.user.*;
 import com.spring.aicodemother.model.vo.LoginUserVO;
+import com.spring.aicodemother.model.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;

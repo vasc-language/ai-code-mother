@@ -3,8 +3,11 @@ package com.spring.aicodemother.service;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.spring.aicodemother.model.dto.app.AppQueryRequest;
+import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.model.vo.AppVO;
 import com.spring.aicodemother.model.entity.App;
+import jakarta.servlet.http.HttpServletRequest;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -19,4 +22,6 @@ public interface AppService extends IService<App> {
     QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest);
 
     List<AppVO> getAppVOList(List<App> appList);
+
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser);
 }

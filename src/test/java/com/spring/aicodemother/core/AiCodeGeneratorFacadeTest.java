@@ -18,7 +18,7 @@ class AiCodeGeneratorFacadeTest {
 
     @Test
     void generateAndSaveCode() {
-        File file = aiCodeGeneratorFacade.generateAndSaveCode("任务记录网站，50行代码以内", CodeGenTypeEnum.HTML);
+        File file = aiCodeGeneratorFacade.generateAndSaveCode("任务记录网站，50行代码以内", CodeGenTypeEnum.HTML, 1L);
         Assertions.assertNotNull(file);
     }
 
@@ -26,7 +26,7 @@ class AiCodeGeneratorFacadeTest {
      * 测试流式生成和保存代码的功能。
      * <p>
      * 该测试方法会：
-     * 1. 调用 {@link AiCodeGeneratorFacade#generateAndSaveCodeStream(String, CodeGenTypeEnum)} 方法，
+     * 1. 调用 {@link AiCodeGeneratorFacade
      *    传入需求和生成类型，以获取一个反应式流 (Flux)。
      * 2. 订阅这个流，并阻塞等待所有代码块 (String) 都被发射完成。
      * 3. 将返回的所有代码块收集到一个列表中。
@@ -35,7 +35,7 @@ class AiCodeGeneratorFacadeTest {
      */
     @Test
     void generateAndSaveCodeStream() {
-        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream("任务记录网站，50行代码以内", CodeGenTypeEnum.MULTI_FILE);
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream("任务记录网站，50行代码以内", CodeGenTypeEnum.MULTI_FILE, 1L);
         // 阻塞等待所有数据收集完成
         List<String> result = codeStream.collectList().block();
         // 验证结果

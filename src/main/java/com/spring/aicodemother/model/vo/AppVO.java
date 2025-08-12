@@ -1,6 +1,5 @@
 package com.spring.aicodemother.model.vo;
 
-import com.spring.aicodemother.model.dto.user.UserVO;
 import lombok.Data;
 
 import java.io.Serializable;
