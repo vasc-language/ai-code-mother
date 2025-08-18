@@ -1,18 +1,14 @@
-<!--
-  全局底部组件
-  显示版权信息和作者链接
--->
 <template>
   <a-layout-footer class="footer">
     <div class="footer-content">
       <p class="copyright">
         <a
-          href="https://github.com/vasc-language/ai-code-mother"
+          href="https://www.codefather.cn"
           target="_blank"
           rel="noopener noreferrer"
           class="author-link"
         >
-          Github 项目仓库
+          编程导航原创项目 by 程序员鱼皮
         </a>
       </p>
     </div>
@@ -20,18 +16,17 @@
 </template>
 
 <script setup lang="ts">
-// 静态组件，无需响应式数据
+// 无需额外的响应式数据
 </script>
 
 <style scoped>
 .footer {
-  background: #efefef;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
   text-align: center;
   padding: 20px;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  margin-top: 40px;
+  border-top: 1px solid rgba(102, 126, 234, 0.1);
 }
 
 .copyright {
