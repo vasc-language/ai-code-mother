@@ -14,10 +14,7 @@ import com.spring.aicodemother.constant.UserConstant;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
-import com.spring.aicodemother.model.dto.app.AppAddRequest;
-import com.spring.aicodemother.model.dto.app.AppAdminUpdateRequest;
-import com.spring.aicodemother.model.dto.app.AppQueryRequest;
-import com.spring.aicodemother.model.dto.app.AppUpdateRequest;
+import com.spring.aicodemother.model.dto.app.*;
 import com.spring.aicodemother.model.vo.AppVO;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
@@ -38,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.beans.Beans;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -306,8 +303,28 @@ public class AppController {
         return ResultUtils.success(appService.getAppVO(app));
     }
 
+    /**
+     * 应用部署
+     *
+     * @param appDeployRequest 部署请求
+     * @param request          请求
+     * @return 部署 URL
+     */
+    @PostMapping("/deploy")
+    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务部署应用
+        String deployUrl = appService.deployApp(appId, loginUser);
+        return ResultUtils.success(deployUrl);
+    }
 
-    
+
+
+
 
     // /**
     //  * 保存应用。

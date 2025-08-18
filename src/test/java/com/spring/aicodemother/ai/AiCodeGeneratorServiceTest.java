@@ -21,7 +21,7 @@ class AiCodeGeneratorServiceTest {
 
     @Test
     void generateMultiFileCode() {
-        MultiFileCodeResult multiFileCode = aiCodeGeneratorService.generateMultiFileCode("做个Join2049的留言板，代码行数在50行内");
+        MultiFileCodeResult multiFileCode = aiCodeGeneratorService.generateMultiFileCode("做个Join2049的to do list，代码行数在50行内");
         Assertions.assertNotNull(multiFileCode);
     }
 }

@@ -35,7 +35,7 @@ class AiCodeGeneratorFacadeTest {
      */
     @Test
     void generateAndSaveCodeStream() {
-        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream("任务记录网站，50行代码以内", CodeGenTypeEnum.MULTI_FILE, 1L);
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream("做一个Join2049的 To Do List，50行代码以内", CodeGenTypeEnum.MULTI_FILE, 314995582680838144L);
         // 阻塞等待所有数据收集完成
         List<String> result = codeStream.collectList().block();
         // 验证结果

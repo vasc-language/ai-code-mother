@@ -4,15 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a full-stack web application with a Spring Boot 3.5.4 backend and Vue 3 frontend. The project is structured as a monorepo containing both components:
+This is a full-stack AI-powered code generation web application with a Spring Boot 3.5.4 backend and Vue 3 frontend. The project is structured as a monorepo containing both components and provides AI-driven code generation capabilities using LangChain4j:
 
 ### Backend (Spring Boot)
 - **Framework**: Spring Boot 3.5.4 with Spring Web and Java 21
+- **AI Integration**: LangChain4j 1.1.0 with OpenAI integration and streaming support via Reactor
+- **Code Generation**: AI-powered HTML and multi-file code generation with custom prompts
 - **Database Layer**: MyBatis-Flex 1.11.0 for ORM with code generation support
 - **Database**: MySQL 连接到 `ai_code_mother` 数据库
 - **Connection Pool**: HikariCP for database connection management
 - **API Documentation**: Integrated with Knife4j (Swagger UI) accessible at `/doc.html`
 - **Base URL**: Application runs on port 8123 with context path `/api`
+- **Streaming**: Server-Sent Events (SSE) support for real-time AI code generation
 - **Utilities**: Hutool library for common Java utilities and Lombok for boilerplate reduction
 - **Build Tool**: Maven with wrapper scripts (`mvnw` and `mvnw.cmd`)
 
@@ -94,6 +97,9 @@ npm run openapi2ts
 - Health check: `curl -X GET "http://localhost:8123/api/health/" -H "accept: application/json"`
 - Swagger UI: `http://localhost:8123/api/doc.html` (Chinese language)
 - OpenAPI JSON: `http://localhost:8123/api/v3/api-docs`
+- AI Code Generation (non-streaming): `curl -X POST "http://localhost:8123/api/app/generate/{id}" -H "accept: application/json"`
+- AI Code Generation (streaming): Connect to `http://localhost:8123/api/app/generate/sse/{id}` for Server-Sent Events
+- App Management: Full CRUD operations available at `http://localhost:8123/api/app/`
 
 ## Architecture Overview
 
@@ -108,6 +114,25 @@ ai-code-mother/
 
 ### Backend Package Structure (Spring Boot)
 - `com.spring.aicodemother` - Root package
+  - `ai/` - AI code generation services and models
+    - `AiCodeGeneratorService` - LangChain4j service interface for AI code generation
+    - `AiCodeGeneratorServiceFactory` - Factory for creating AI service instances
+    - `model/` - AI-specific models
+      - `HtmlCodeResult` - Result model for HTML code generation
+      - `MultiFileCodeResult` - Result model for multi-file code generation
+  - `core/` - Core business logic for code generation
+    - `AiCodeGeneratorFacade` - Main facade for AI code generation workflow
+    - `CodeParser` - Interface for parsing generated code
+    - `CodeFileSaver` - Interface for saving generated files
+    - `parser/` - Code parsing implementations
+      - `CodeParserExecutor` - Executor for code parsing
+      - `HtmlCodeParser` - Parser for HTML code
+      - `MultiFileCodeParser` - Parser for multi-file code
+    - `saver/` - File saving implementations
+      - `CodeFileSaverExecutor` - Executor for file saving
+      - `CodeFileSaverTemplate` - Template for file saving
+      - `HtmlCodeFileSaverTemplate` - Template for saving HTML files
+      - `MultiFileCodeSaverTemplate` - Template for saving multi-file projects
   - `common/` - Shared utilities and response wrappers
     - `BaseResponse<T>` - Standardized API response wrapper with Lombok @Data
     - `ResultUtils` - Utility for creating consistent responses
@@ -115,16 +140,29 @@ ai-code-mother/
   - `controller/` - REST API endpoints
     - `HealthController` - Basic health check endpoint
     - `UserController` - Complete user CRUD operations with registration, login, and admin features
+    - `AppController` - App management and AI code generation endpoints with SSE support
   - `service/` - Business logic layer
     - `UserService` - User service interface
+    - `AppService` - App service interface for application management
     - `impl/UserServiceImpl` - User service implementation with MD5 password encryption and session management
+    - `impl/AppServiceImpl` - App service implementation for CRUD operations
   - `mapper/` - MyBatis-Flex data access layer
     - `UserMapper` - User database operations interface (auto-generated)
+    - `AppMapper` - App database operations interface (auto-generated)
   - `model/` - Data models and DTOs
-    - `entity/User` - User entity with MyBatis-Flex annotations and Snowflake ID generation
-    - `dto/` - Request/response DTOs (UserRegisterRequest, UserLoginRequest, UserQueryRequest, UserAddRequest, UserUpdateRequest, UserVO)
-    - `vo/LoginUserVO` - Login user view object for session data
-    - `enums/UserRoleEnum` - User role enumeration (USER/ADMIN)
+    - `entity/` - Database entities
+      - `User` - User entity with MyBatis-Flex annotations and Snowflake ID generation
+      - `App` - App entity for storing application information and generation types
+    - `dto/` - Request/response DTOs
+      - `user/` - User-related DTOs (UserRegisterRequest, UserLoginRequest, UserQueryRequest, UserAddRequest, UserUpdateRequest)
+      - `app/` - App-related DTOs (AppAddRequest, AppUpdateRequest, AppAdminUpdateRequest, AppQueryRequest)
+    - `vo/` - View objects
+      - `LoginUserVO` - Login user view object for session data
+      - `UserVO` - User view object
+      - `AppVO` - App view object
+    - `enums/` - Enumerations
+      - `UserRoleEnum` - User role enumeration (USER/ADMIN)
+      - `CodeGenTypeEnum` - Code generation type enumeration (HTML/MULTI_FILE)
   - `exception/` - Centralized error handling
     - `ErrorCode` - Enum with standardized error codes
     - `BusinessException` - Custom business exception
@@ -138,6 +176,9 @@ ai-code-mother/
     - `AuthInterceptor` - Authorization interceptor for role checking
   - `constant/` - Application constants
     - `UserConstant` - User-related constants (salt, session keys, etc.)
+    - `AppConstant` - App-related constants
+  - `config/` - Configuration classes
+    - `CorsConfig` - CORS configuration for cross-origin requests
 
 ### Frontend Architecture (Vue 3)
 - **Components**: Reusable Vue components with TypeScript
@@ -169,11 +210,15 @@ Standardized error codes defined in `ErrorCode` enum:
 - `50001` - OPERATION_ERROR
 
 ### Current State
-This is a full-stack application with both backend and frontend infrastructure set up and basic user management functionality implemented. The project includes:
+This is a full-stack AI-powered code generation application with both backend and frontend infrastructure set up, including advanced AI code generation capabilities and user/app management functionality. The project includes:
 
 **Backend:**
+- **AI Code Generation System**: Complete LangChain4j integration with OpenAI for generating HTML and multi-file code projects
+- **Streaming Support**: Real-time code generation with Server-Sent Events (SSE) for live updates
+- **Code Processing Pipeline**: Sophisticated parsing and file saving system with template-based approach
+- **App Management**: Complete CRUD operations for applications with code generation type support
 - Complete user management system with registration, CRUD operations, and pagination
-- User entity with MyBatis-Flex annotations, Snowflake ID generation, and logical delete support
+- User and App entities with MyBatis-Flex annotations, Snowflake ID generation, and logical delete support
 - MD5 password encryption with salt ("Join2049") for security
 - MyBatis-Flex code generator for rapid development of entities, mappers, and services
 - Health check endpoint at `/api/health`
@@ -208,6 +253,39 @@ This is a full-stack application with both backend and frontend infrastructure s
 - CORS configuration may need adjustment for production deployment
 - Frontend proxy configuration handles API routing during development
 
+## AI Code Generation Features
+
+### LangChain4j Integration
+- **AI Service Interface**: `AiCodeGeneratorService` with structured output support
+- **Code Generation Types**: 
+  - `HTML` - Single HTML file generation with embedded CSS and JavaScript
+  - `MULTI_FILE` - Multi-file project generation with proper directory structure
+- **Streaming Support**: Real-time code generation using Reactor Flux for progressive updates
+- **Custom Prompts**: System prompts stored in `src/main/resources/prompt/` directory
+  - `codegen-html-system-prompt.txt` - Prompt for HTML generation
+  - `codegen-multi-file-system-prompt.txt` - Prompt for multi-file generation
+
+### Code Generation Architecture
+- **Facade Pattern**: `AiCodeGeneratorFacade` provides unified entry point for all generation operations
+- **Strategy Pattern**: Different parsers and savers for different code generation types
+- **Template Pattern**: `CodeFileSaverTemplate` provides base structure for file saving operations
+- **Parser Pipeline**: 
+  - `CodeParserExecutor` manages parsing workflow
+  - `HtmlCodeParser` and `MultiFileCodeParser` handle type-specific parsing
+- **Saver Pipeline**:
+  - `CodeFileSaverExecutor` manages file saving workflow
+  - Template-based savers handle different output formats
+
+### API Endpoints
+- **Non-streaming**: `/api/app/generate/{id}` - Generate code and return directory path
+- **Streaming**: `/api/app/generate/sse/{id}` - Real-time code generation with SSE
+- **App Management**: Full CRUD operations for managing generation apps
+
+### File Output Structure
+- Generated code saved to `tmp/` directory with timestamped subdirectories
+- Automatic directory creation and file organization
+- Support for complex project structures with multiple files and directories
+
 ## Important Implementation Details
 
 ### MyBatis-Flex Database Layer
@@ -230,6 +308,14 @@ This is a full-stack application with both backend and frontend infrastructure s
 - **User Roles**: Enumerated roles (USER/ADMIN) defined in `UserRoleEnum`
 - **API Endpoints**: Full REST API with registration (`/user/register`), CRUD operations, and pagination
 
+### App Management System
+- **App Entity**: Complete application model with code generation type support
+- **Code Generation Types**: Enumerated types (HTML/MULTI_FILE) in `CodeGenTypeEnum`
+- **CRUD Operations**: Full create, read, update, delete operations for apps
+- **User Association**: Apps are associated with users for ownership and access control
+- **Generation Integration**: Apps serve as templates/configurations for AI code generation
+- **API Endpoints**: Full REST API at `/api/app/` with pagination and admin features
+
 ### Backend (Lombok Usage)
 - `BaseResponse<T>` uses `@Data` annotation to automatically generate getters/setters
 - This is crucial for JSON serialization - without it, endpoints return HTTP 406 errors
@@ -244,8 +330,18 @@ This is a full-stack application with both backend and frontend infrastructure s
 - **Connection**: MySQL database `ai_code_mother` on localhost:3306
 - **Credentials**: Username `root`, password configured in `application.yml`
 - **Pool**: HikariCP for connection pooling and performance optimization
-- **Schema**: User table with logical delete support and complete user management fields
+- **Schema**: 
+  - User table with logical delete support and complete user management fields
+  - App table for storing application information and generation configurations
+  - Both tables use Snowflake ID generation for distributed uniqueness
 - **Test Data**: Pre-populated with admin and user accounts (check `sql/create_table.sql`)
+
+### LangChain4j Dependencies
+- **Core Library**: `dev.langchain4j:langchain4j:1.1.0` - Main LangChain4j functionality
+- **OpenAI Integration**: `dev.langchain4j:langchain4j-open-ai-spring-boot-starter:1.1.0-beta7` - OpenAI API integration with Spring Boot auto-configuration
+- **Streaming Support**: `dev.langchain4j:langchain4j-reactor:1.1.0-beta7` - Reactive streams for real-time AI interactions
+- **Structured Output**: Built-in support for structured AI responses using `@Description` annotations
+- **Custom Prompts**: System prompts loaded from classpath resources
 
 ### Authentication & Authorization System
 - **Password Security**: MD5 encryption with salt "Join2049" in `UserServiceImpl.getEncryptPassword()`
@@ -255,10 +351,13 @@ This is a full-stack application with both backend and frontend infrastructure s
 - **Frontend Integration**: Automatic login redirect on 40100 error code
 
 ### Code Generation & Development Tools
+- **AI Code Generator**: LangChain4j-powered service for generating HTML and multi-file projects
 - **MyBatis-Flex Generator**: Located in `MyBatisCodeGenerator.java` - run via Maven exec plugin
 - **Target Package**: Currently configured to generate to `com.yupi.yuaicodemother.genresult` (update if needed)
 - **Generated Components**: Entities, Mappers, Services, and Controllers with complete CRUD operations
 - **Database Connection**: Reads configuration from `application.yml` datasource settings
+- **Custom Prompts**: AI generation prompts can be customized in `src/main/resources/prompt/`
+- **File Output**: Generated files automatically saved to `tmp/` directory with organized structure
 
 ### Key Development Patterns
 - **API Response Pattern**: All endpoints use `BaseResponse<T>` wrapper with standardized error codes
@@ -266,9 +365,23 @@ This is a full-stack application with both backend and frontend infrastructure s
 - **Validation**: Request DTOs with validation annotations for parameter checking
 - **Pagination**: Built-in pagination support using `PageRequest` and MyBatis-Flex page queries
 - **Soft Delete**: Logical delete pattern using `isDelete` flag with MyBatis-Flex support
+- **Facade Pattern**: `AiCodeGeneratorFacade` provides unified interface for complex AI operations
+- **Strategy Pattern**: Pluggable parsers and savers for different code generation types
+- **Template Pattern**: Base templates for consistent file saving operations
+- **Streaming Pattern**: Server-Sent Events for real-time AI generation updates
 
 ### Common Issues & Solutions
 - **HTTP 406 "Not Acceptable"**: Usually caused by missing getters in response objects. Ensure `@Data` or equivalent annotations are used
 - **JSON Serialization**: All response DTOs must have accessible fields for Jackson serialization
 - **CORS Issues**: Configure CORS in Spring Boot if frontend and backend run on different ports
 - **API Client Sync**: Always regenerate frontend API clients after backend OpenAPI spec changes
+- **AI Generation Timeout**: Long-running AI operations may timeout; use streaming endpoints for better user experience
+- **File System Permissions**: Ensure `tmp/` directory has proper write permissions for generated files
+- **LangChain4j Configuration**: Verify OpenAI API key is properly configured in `application.yml`
+- **Structured Output Issues**: Ensure AI model classes use proper `@Description` annotations for reliable parsing
+
+### Performance Considerations
+- **Streaming vs Non-Streaming**: Use SSE endpoints for real-time feedback, non-streaming for simple operations
+- **File Management**: Implement cleanup mechanism for generated files in `tmp/` directory
+- **AI Rate Limiting**: Consider implementing rate limiting for AI generation endpoints
+- **Database Indexing**: Ensure proper indexes on frequently queried fields (userId, createTime, etc.)
