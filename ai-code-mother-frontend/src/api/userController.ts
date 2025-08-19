@@ -32,7 +32,7 @@ export async function getUserById(
   params: API.getUserByIdParams,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseUser>('/user/get', {
+  return request<API.BaseResponseUserVO>('/user/get', {
     method: 'GET',
     params: {
       ...params,
@@ -42,7 +42,7 @@ export async function getUserById(
 }
 
 /** 此处后端没有提供注释 GET /user/get/login */
-export async function getLoginUser(options?: { [key: string]: any }) {
+export async function getUserLogin(options?: { [key: string]: any }) {
   return request<API.BaseResponseLoginUserVO>('/user/get/login', {
     method: 'GET',
     ...(options || {}),

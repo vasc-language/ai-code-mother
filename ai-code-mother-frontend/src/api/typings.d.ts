@@ -4,14 +4,14 @@ declare namespace API {
   }
 
   type AppAdminUpdateRequest = {
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
     appName?: string
     cover?: string
     priority?: number
   }
 
   type AppDeployRequest = {
-    appId?: string  // 修改：ID使用字符串类型
+    appId?: number
   }
 
   type AppQueryRequest = {
@@ -19,23 +19,23 @@ declare namespace API {
     pageSize?: number
     sortField?: string
     sortOrder?: string
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
     appName?: string
     cover?: string
     initPrompt?: string
     codeGenType?: string
     deployKey?: string
     priority?: number
-    userId?: string  // 修改：ID使用字符串类型
+    userId?: number
   }
 
   type AppUpdateRequest = {
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
     appName?: string
   }
 
   type AppVO = {
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
     appName?: string
     cover?: string
     initPrompt?: string
@@ -43,7 +43,7 @@ declare namespace API {
     deployKey?: string
     deployedTime?: string
     priority?: number
-    userId?: string  // 修改：ID使用字符串类型
+    userId?: number
     createTime?: string
     updateTime?: string
     user?: UserVO
@@ -69,13 +69,25 @@ declare namespace API {
 
   type BaseResponseLong = {
     code?: number
-    data?: string  // 修改：Long类型ID现在以字符串形式返回，避免JavaScript精度丢失
+    data?: number
+    message?: string
+  }
+
+  type BaseResponseMapStringObject = {
+    code?: number
+    data?: Record<string, any>
     message?: string
   }
 
   type BaseResponsePageAppVO = {
     code?: number
     data?: PageAppVO
+    message?: string
+  }
+
+  type BaseResponsePageChatHistory = {
+    code?: number
+    data?: PageChatHistory
     message?: string
   }
 
@@ -91,16 +103,34 @@ declare namespace API {
     message?: string
   }
 
-  type BaseResponseUser = {
-    code?: number
-    data?: User
-    message?: string
-  }
-
   type BaseResponseUserVO = {
     code?: number
     data?: UserVO
     message?: string
+  }
+
+  type ChatHistory = {
+    id?: number
+    message?: string
+    messageType?: string
+    appId?: number
+    userId?: number
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  type ChatHistoryQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    message?: string
+    messageType?: string
+    appId?: number
+    userId?: number
+    lastCreateTime?: string
   }
 
   type chatToGenCodeParams = {
@@ -109,27 +139,46 @@ declare namespace API {
   }
 
   type DeleteRequest = {
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
+  }
+
+  type downloadCodeFilesParams = {
+    appId: number
   }
 
   type getAppVOByIdByAdminParams = {
-    id: string  // 修改：ID使用字符串类型
+    id: number
   }
 
   type getAppVOByIdParams = {
-    id: string  // 修改：ID使用字符串类型，避免JavaScript精度丢失
+    id: number
+  }
+
+  type getFileContentParams = {
+    appId: number
+    filePath: string
   }
 
   type getUserByIdParams = {
-    id: string  // 修改：ID使用字符串类型
+    id: number
   }
 
   type getUserVOByIdParams = {
-    id: string  // 修改：ID使用字符串类型
+    id: number
+  }
+
+  type listAppChatHistoryParams = {
+    appId: number
+    pageSize?: number
+    lastCreateTime?: string
+  }
+
+  type listCodeFilesParams = {
+    appId: number
   }
 
   type LoginUserVO = {
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
     userAccount?: string
     userName?: string
     userAvatar?: string
@@ -141,6 +190,15 @@ declare namespace API {
 
   type PageAppVO = {
     records?: AppVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+    optimizeCountQuery?: boolean
+  }
+
+  type PageChatHistory = {
+    records?: ChatHistory[]
     pageNumber?: number
     pageSize?: number
     totalPage?: number
@@ -163,20 +221,6 @@ declare namespace API {
     deployKey: string
   }
 
-  type User = {
-    id?: string  // 修改：ID使用字符串类型
-    userAccount?: string
-    userPassword?: string
-    userName?: string
-    userAvatar?: string
-    userProfile?: string
-    userRole?: string
-    editTime?: string
-    createTime?: string
-    updateTime?: string
-    isDelete?: number
-  }
-
   type UserAddRequest = {
     userName?: string
     userAccount?: string
@@ -195,7 +239,7 @@ declare namespace API {
     pageSize?: number
     sortField?: string
     sortOrder?: string
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
     userName?: string
     userAccount?: string
     userProfile?: string
@@ -209,7 +253,7 @@ declare namespace API {
   }
 
   type UserUpdateRequest = {
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
     userName?: string
     userAvatar?: string
     userProfile?: string
@@ -217,7 +261,7 @@ declare namespace API {
   }
 
   type UserVO = {
-    id?: string  // 修改：ID使用字符串类型
+    id?: number
     userAccount?: string
     userName?: string
     userAvatar?: string
