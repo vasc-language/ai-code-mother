@@ -72,3 +72,4 @@ public class StaticResourceController {
         return "application/octet-stream";
     }
 }
+
