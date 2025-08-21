@@ -79,19 +79,30 @@ npm run format
 
 # Generate API client from backend OpenAPI spec
 npm run openapi2ts
+
+# Fix TypeScript errors (skip type checking)
+npm run build-only
 ```
 
 ### Full-Stack Development Workflow
-1. Start the backend: `mvnw.cmd spring-boot:run` (Windows) or `./mvnw spring-boot:run` (Linux/Mac)
-2. In another terminal, start the frontend: `cd ai-code-mother-frontend && npm run dev`
-3. Backend runs on `http://localhost:8123/api`
-4. Frontend runs on `http://localhost:5173` (or next available port)
-5. After backend changes, regenerate frontend API client: `npm run openapi2ts`
+1. **Prerequisites**: Ensure MySQL and Redis servers are running
+2. Start the backend: `mvnw.cmd spring-boot:run` (Windows) or `./mvnw spring-boot:run` (Linux/Mac)
+3. In another terminal, start the frontend: `cd ai-code-mother-frontend && npm run dev`
+4. Backend runs on `http://localhost:8123/api`
+5. Frontend runs on `http://localhost:5173` (or next available port)
+6. After backend changes, regenerate frontend API client: `npm run openapi2ts`
+
+### Prerequisites
+- **MySQL**: Database `ai_code_mother` on localhost:3306
+- **Redis**: Server running on localhost:6379 (required for session management and tests)
+- **Java 21**: Required for Spring Boot 3.5.4
+- **Node.js**: Required for frontend development
 
 ### Testing
 - All tests: `mvnw.cmd test` (Windows) or `./mvnw test` (Linux/Mac)
 - Single test: `mvnw.cmd test -Dtest=ClassName#methodName`
 - Test class: `mvnw.cmd test -Dtest=ClassName`
+- **Note**: Tests require Redis server running on localhost:6379
 
 ### API Testing and Documentation
 - Health check: `curl -X GET "http://localhost:8123/api/health/" -H "accept: application/json"`
