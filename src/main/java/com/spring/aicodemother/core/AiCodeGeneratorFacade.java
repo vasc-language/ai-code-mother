@@ -1,17 +1,27 @@
 package com.spring.aicodemother.core;
 
+import cn.hutool.json.JSONUtil;
 import com.spring.aicodemother.ai.AiCodeGeneratorService;
 import com.spring.aicodemother.ai.AiCodeGeneratorServiceFactory;
 import com.spring.aicodemother.ai.model.HtmlCodeResult;
 import com.spring.aicodemother.ai.model.MultiFileCodeResult;
+import com.spring.aicodemother.ai.model.message.AiResponseMessage;
+import com.spring.aicodemother.ai.model.message.ToolExecutedMessage;
+import com.spring.aicodemother.ai.model.message.ToolRequestMessage;
 import com.spring.aicodemother.core.parser.CodeParserExecutor;
 import com.spring.aicodemother.core.saver.CodeFileSaverExecutor;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.service.GenericResponseService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.View;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
@@ -25,6 +35,10 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+    @Autowired
+    private GenericResponseService responseBuilder;
+    @Autowired
+    private View error;
 
     /**
      * 统一入口：根据类型生成并保存代码（非流式）
@@ -78,8 +92,8 @@ public class AiCodeGeneratorFacade {
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
             }
             case VUE_PROJECT -> {
-                Flux<String> codeStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
+                TokenStream codeTokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
+                yield processTokenStream(codeTokenStream);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -87,6 +101,39 @@ public class AiCodeGeneratorFacade {
             }
         };
     }
+
+    /**
+     * 将 TokenStream 转换为 Flux<String>，并传递工具调用信息
+     *
+     * @param tokenStream TokenStream 对象
+     * @return Flux<String> 流式响应
+     */
+    private Flux<String> processTokenStream(TokenStream tokenStream) {
+        return Flux.create(sink -> {
+            tokenStream.onPartialResponse((String partialResponse) -> {
+                        AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+                        sink.next(JSONUtil.toJsonStr(aiResponseMessage));
+                    })
+                    .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
+                        ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
+                        sink.next(JSONUtil.toJsonStr(toolRequestMessage));
+                    })
+                    .onToolExecuted((ToolExecution toolExecution) -> {
+                        ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
+                        sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
+                    })
+                    .onCompleteResponse((ChatResponse response) -> {
+                        sink.complete();
+                    })
+                    .onError((Throwable error) -> {
+                        error.printStackTrace();
+                        sink.error(error);
+                    })
+                    .start();
+        });
+    }
+
+
 
     /**
      * 通用流式代码处理方法
@@ -98,25 +145,25 @@ public class AiCodeGeneratorFacade {
     private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId) {
         // 使用cache()确保流可以被多次订阅
         Flux<String> cachedStream = codeStream.cache();
-        
+
         // 异步处理保存操作，不阻塞原流
         cachedStream.collect(StringBuilder::new, StringBuilder::append)
-            .doOnSuccess(codeBuilder -> {
-                try {
-                    String completeCode = codeBuilder.toString();
-                    // 使用执行器解析代码
-                    Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
-                    // 使用执行器保存代码
-                    File saveDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
-                    log.info("保存成功，目录为：{}", saveDir.getAbsolutePath());
-                } catch (Exception e) {
-                    log.error("保存失败: {}", e.getMessage());
-                    // 注意：这里的异常不会传播到主流，如果需要可以考虑其他处理方式
-                }
-            })
-            .doOnError(error -> log.error("流处理失败: {}", error.getMessage()))
-            .subscribe(); // 启动异步处理
-        
+                .doOnSuccess(codeBuilder -> {
+                    try {
+                        String completeCode = codeBuilder.toString();
+                        // 使用执行器解析代码
+                        Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
+                        // 使用执行器保存代码
+                        File saveDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
+                        log.info("保存成功，目录为：{}", saveDir.getAbsolutePath());
+                    } catch (Exception e) {
+                        log.error("保存失败: {}", e.getMessage());
+                        // 注意：这里的异常不会传播到主流，如果需要可以考虑其他处理方式
+                    }
+                })
+                .doOnError(error -> log.error("流处理失败: {}", error.getMessage()))
+                .subscribe(); // 启动异步处理
+
         // 返回缓存的流，保持流式特性
         return cachedStream;
     }

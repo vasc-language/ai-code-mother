@@ -21,8 +21,6 @@ import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
 import com.spring.aicodemother.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +31,6 @@ import com.spring.aicodemother.service.AppService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-
-import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -176,8 +172,11 @@ public class AppController {
             // 应用名称暂时为 initPrompt 前 12 位
             app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
             // 暂时设置为多文件生成
-            app.setCodeGenType(CodeGenTypeEnum.MULTI_FILE.getValue());
-            
+            // app.setCodeGenType(CodeGenTypeEnum.MULTI_FILE.getValue());
+            // 暂时设置为 VUE 工程生成
+            app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
+
+
             log.info("准备保存应用到数据库，应用信息: 名称={}, 用户ID={}, 代码类型={}", 
                     app.getAppName(), app.getUserId(), app.getCodeGenType());
             
