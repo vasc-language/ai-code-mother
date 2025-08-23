@@ -33,12 +33,13 @@ public class AiCodeGeneratorFacade {
 //    @Resource
 //    private AiCodeGeneratorService aiCodeGeneratorService; // 当前所有对话都使用一个 AI Service
 
+//    @Autowired
+//    private GenericResponseService responseBuilder;
+//    @Autowired
+//    private View error;
+
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
-    @Autowired
-    private GenericResponseService responseBuilder;
-    @Autowired
-    private View error;
 
     /**
      * 统一入口：根据类型生成并保存代码（非流式）
