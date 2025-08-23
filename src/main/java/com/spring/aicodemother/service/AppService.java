@@ -17,6 +17,8 @@ import java.util.List;
  * @author <a href="https://github.com/vasc-language">Join2049</a>
  */
 public interface AppService extends IService<App> {
+    void generateAppScreenshotAsync(Long appId, String appUrl);
+
     AppVO getAppVO(App app);
 
     QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest);
