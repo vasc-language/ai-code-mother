@@ -23,6 +23,11 @@ public class ScreenshotServiceImpl implements ScreenshotService {
     @Resource
     private CosManager cosManager;
 
+    /**
+     * 生成本地截图并上传到存储对象
+     * @param webUrl 网址
+     * @return 存储对象的 URL
+     */
     @Override
     public String generateAndUploadScreenshot(String webUrl) {
         ThrowUtils.throwIf(StrUtil.isBlank(webUrl), ErrorCode.PARAMS_ERROR, "网页URL不能为空");
@@ -86,4 +91,5 @@ public class ScreenshotServiceImpl implements ScreenshotService {
         }
     }
 }
+
 

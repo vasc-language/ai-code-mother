@@ -4,6 +4,9 @@
     <div class="header-bar">
       <div class="header-left">
         <h1 class="app-name">{{ appInfo?.appName || '网站生成器' }}</h1>
+        <a-tag v-if="appInfo?.codeGenType" color="blue" class="code-gen-type-tag">
+          {{ formatCodeGenType(appInfo.codeGenType) }}
+        </a-tag>
       </div>
       <div class="header-right">
         <a-button type="default" @click="showAppDetail">
@@ -12,11 +15,23 @@
           </template>
           应用详情
         </a-button>
+        <a-button
+          type="primary"
+          ghost
+          @click="downloadCode"
+          :loading="downloading"
+          :disabled="!isOwner"
+        >
+          <template #icon>
+            <DownloadOutlined />
+          </template>
+          下载代码
+        </a-button>
         <a-button type="primary" @click="deployApp" :loading="deploying">
           <template #icon>
             <CloudUploadOutlined />
           </template>
-          部署按钮
+          部署
         </a-button>
       </div>
     </div>
@@ -154,7 +169,7 @@ import {
   deleteApp as deleteAppApi,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
-import { CodeGenTypeEnum } from '@/utils/codeGenTypes'
+import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
 
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
@@ -168,6 +183,7 @@ import {
   SendOutlined,
   ExportOutlined,
   InfoCircleOutlined,
+  DownloadOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -558,6 +574,47 @@ const deleteApp = async () => {
   }
 }
 
+// 下载相关
+const downloading = ref(false)
+
+// 下载代码
+const downloadCode = async () => {
+  if (!appId.value) {
+    message.error('应用ID不存在')
+    return
+  }
+  downloading.value = true
+  try {
+    const API_BASE_URL = request.defaults.baseURL || ''
+    const url = `${API_BASE_URL}/app/download/${appId.value}`
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      throw new Error(`下载失败: ${response.status}`)
+    }
+    // 获取文件名
+    const contentDisposition = response.headers.get('Content-Disposition')
+    const fileName = contentDisposition?.match(/filename="(.+)"/)?.[1] || `app-${appId.value}.zip`
+    // 下载文件
+    const blob = await response.blob()
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = fileName
+    link.click()
+    // 清理
+    URL.revokeObjectURL(downloadUrl)
+    message.success('代码下载成功')
+  } catch (error) {
+    console.error('下载失败：', error)
+    message.error('下载失败，请重试')
+  } finally {
+    downloading.value = false
+  }
+}
+
 // 页面加载时获取应用信息
 onMounted(() => {
   fetchAppInfo()
@@ -774,6 +831,11 @@ onUnmounted(() => {
   height: 100%;
   border: none;
 }
+
+.code-gen-type-tag {
+  font-size: 12px;
+}
+
 
 /* 响应式设计 */
 @media (max-width: 1024px) {

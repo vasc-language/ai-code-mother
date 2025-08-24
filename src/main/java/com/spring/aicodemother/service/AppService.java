@@ -2,6 +2,7 @@ package com.spring.aicodemother.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import com.spring.aicodemother.model.dto.app.AppAddRequest;
 import com.spring.aicodemother.model.dto.app.AppQueryRequest;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.model.vo.AppVO;
@@ -26,6 +27,8 @@ public interface AppService extends IService<App> {
     List<AppVO> getAppVOList(List<App> appList);
 
     Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    Long createApp(AppAddRequest appAddRequest, User loginUser);
 
     String deployApp(Long appId, User loginUser);
 }

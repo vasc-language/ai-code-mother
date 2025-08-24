@@ -18,10 +18,7 @@ import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springdoc.core.service.GenericResponseService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.View;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
@@ -111,27 +108,77 @@ public class AiCodeGeneratorFacade {
      */
     private Flux<String> processTokenStream(TokenStream tokenStream) {
         return Flux.create(sink -> {
-            tokenStream.onPartialResponse((String partialResponse) -> {
-                        AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
-                        sink.next(JSONUtil.toJsonStr(aiResponseMessage));
-                    })
-                    .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
-                        ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
-                        sink.next(JSONUtil.toJsonStr(toolRequestMessage));
-                    })
-                    .onToolExecuted((ToolExecution toolExecution) -> {
-                        ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
-                        sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
-                    })
-                    .onCompleteResponse((ChatResponse response) -> {
-                        sink.complete();
-                    })
-                    .onError((Throwable error) -> {
-                        error.printStackTrace();
-                        sink.error(error);
-                    })
-                    .start();
-        });
+            try {
+                tokenStream.onPartialResponse((String partialResponse) -> {
+                            try {
+                                AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+                                sink.next(JSONUtil.toJsonStr(aiResponseMessage));
+                            } catch (Exception e) {
+                                log.error("处理AI响应消息失败: {}", e.getMessage());
+                                // 继续处理，不中断流
+                            }
+                        })
+                        .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
+                            try {
+                                ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
+                                sink.next(JSONUtil.toJsonStr(toolRequestMessage));
+                            } catch (Exception e) {
+                                log.error("处理工具请求消息失败: {}", e.getMessage());
+                                // 继续处理，不中断流
+                            }
+                        })
+                        .onToolExecuted((ToolExecution toolExecution) -> {
+                            try {
+                                ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
+                                sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
+                            } catch (Exception e) {
+                                log.error("处理工具执行消息失败: {}", e.getMessage());
+                                // 发送错误消息给前端
+                                try {
+                                    AiResponseMessage errorMessage = new AiResponseMessage("\n\n[错误] 工具调用出现问题，但代码生成继续进行\n\n");
+                                    sink.next(JSONUtil.toJsonStr(errorMessage));
+                                } catch (Exception nested) {
+                                    log.error("发送错误消息失败: {}", nested.getMessage());
+                                }
+                            }
+                        })
+                        .onCompleteResponse((ChatResponse response) -> {
+                            log.info("AI响应完成");
+                            sink.complete();
+                        })
+                        .onError((Throwable error) -> {
+                            log.error("TokenStream处理出现错误: {}", error.getMessage(), error);
+                            
+                            // 特殊处理JSON解析错误
+                            if (error.getCause() instanceof com.fasterxml.jackson.core.JsonParseException) {
+                                log.error("检测到LangChain4j工具调用JSON解析错误，尝试恢复");
+                                try {
+                                    AiResponseMessage errorMessage = new AiResponseMessage("\n\n[错误] 工具调用参数解析失败，请重新尝试或简化您的请求\n\n");
+                                    sink.next(JSONUtil.toJsonStr(errorMessage));
+                                    sink.complete(); // 优雅结束，而不是错误终止
+                                    return;
+                                } catch (Exception e) {
+                                    log.error("发送错误恢复消息失败: {}", e.getMessage());
+                                }
+                            }
+                            
+                            // 其他错误情况
+                            sink.error(error);
+                        })
+                        .start();
+            } catch (Exception e) {
+                log.error("启动TokenStream失败: {}", e.getMessage(), e);
+                sink.error(e);
+            }
+        })
+        // 添加错误恢复操作符，确保流不会因为单次错误而完全中断
+        .onErrorResume(throwable -> {
+            log.error("Flux流处理错误，尝试恢复: {}", throwable.getMessage());
+            AiResponseMessage errorMessage = new AiResponseMessage("\n\n[错误] 处理过程中遇到问题，请重试\n\n");
+            return Flux.just(JSONUtil.toJsonStr(errorMessage));
+        })
+        // 确保返回类型为 Flux<String>
+        .cast(String.class);
     }
 
 
