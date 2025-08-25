@@ -2,7 +2,7 @@ package com.spring.aicodemother.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.spring.aicodemother.ai.tools.FileWriteTool;
+import com.spring.aicodemother.ai.tools.*;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
@@ -41,6 +41,8 @@ public class AiCodeGeneratorServiceFactory {
     @Resource
     private ChatHistoryService chatHistoryService; // 从数据库中加载到对话历史中 loadChatHistoryToMemory
 
+    @Resource
+    private ToolManager toolManager; // 工具管理器
 
 
     /**
@@ -96,7 +98,7 @@ public class AiCodeGeneratorServiceFactory {
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+                    .tools(toolManager.getAllTools())
                     // 幻觉工具名称策略：当AI交换一个不存在的 tool 时，就会触发这一代码片段，降低 AI 的幻觉
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
