@@ -1,5 +1,6 @@
-package com.spring.aicodemother.langgraph4j.state;
+package com.spring.aicodemother.langgraph4j.model;
 
+import com.spring.aicodemother.langgraph4j.model.enums.ImageCategoryEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,5 +1,6 @@
 package com.spring.aicodemother.langgraph4j.state;
 
+import com.spring.aicodemother.langgraph4j.model.ImageResource;
 import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +10,7 @@ import org.bsc.langgraph4j.prebuilt.MessagesState;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 
 /**

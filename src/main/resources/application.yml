@@ -47,4 +47,8 @@ cos:
     secretKey: your-secret-key
     region: ap-shanghai
     bucket: your-bucket-name
+# Pexels 图片搜索配置
+pexels:
+  api-key: <Your API Key>
+
 

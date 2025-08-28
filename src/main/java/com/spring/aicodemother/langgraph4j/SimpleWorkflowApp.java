@@ -1,4 +1,4 @@
-package com.spring.aicodemother.langgraph4j.demo;
+package com.spring.aicodemother.langgraph4j;
 
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompiledGraph;
