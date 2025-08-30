@@ -1,4 +1,4 @@
-package com.spring.aicodemother.langgraph4j.node.concurrent;
+package com.spring.aicodemother.langgraph4j;
 
 import cn.hutool.core.thread.ExecutorBuilder;
 import cn.hutool.core.thread.ThreadFactoryBuilder;
@@ -6,6 +6,7 @@ import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.langgraph4j.model.QualityResult;
 import com.spring.aicodemother.langgraph4j.node.*;
+import com.spring.aicodemother.langgraph4j.node.concurrent.*;
 import com.spring.aicodemother.langgraph4j.state.WorkflowContext;
 import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
 import lombok.extern.slf4j.Slf4j;

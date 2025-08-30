@@ -1,17 +1,16 @@
-package com.spring.aicodemother.langgraph4j.node.concurrent;
+package com.spring.aicodemother.langgraph4j;
 
-import com.spring.aicodemother.langgraph4j.CodeGenConcurrentWorkflow;
 import com.spring.aicodemother.langgraph4j.state.WorkflowContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class CodeGenConcurrentWorkflowTest {
+class CodeGenSubgraphWorkflowTest {
 
     @Test
-    void testConcurrentWorkflow() {
-        WorkflowContext result = new CodeGenConcurrentWorkflow().executeWorkflow("创建一个技术博客网站，需要展示编程教程和系统架构");
+    void testSubgraphWorkflow() {
+        WorkflowContext result = new CodeGenSubgraphWorkflow().executeWorkflow("创建一个在线学习平台，需要课程展示、视频播放和学习进度跟踪");
         Assertions.assertNotNull(result);
         System.out.println("生成类型: " + result.getGenerationType());
         System.out.println("生成的代码目录: " + result.getGeneratedCodeDir());
@@ -20,8 +19,8 @@ class CodeGenConcurrentWorkflowTest {
     }
 
     @Test
-    void testEcommerceWorkflow() {
-        WorkflowContext result = new CodeGenConcurrentWorkflow().executeWorkflow("创建一个电子商务网站，需要商品展示、购物车和支付功能");
+    void testPortfolioWorkflow() {
+        WorkflowContext result = new CodeGenSubgraphWorkflow().executeWorkflow("创建一个个人作品集网站，展示项目案例和技能介绍");
         Assertions.assertNotNull(result);
         System.out.println("生成类型: " + result.getGenerationType());
         System.out.println("生成的代码目录: " + result.getGeneratedCodeDir());
