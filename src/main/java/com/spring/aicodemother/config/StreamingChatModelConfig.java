@@ -1,4 +1,5 @@
 package com.spring.aicodemother.config;
+
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import lombok.Data;
@@ -8,12 +9,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 /**
- * 推理模型流式输出
+ * 使用普通的流式对话模型
  */
 @Configuration
-@ConfigurationProperties(prefix = "langchain4j.open-ai.reasoning-streaming-chat-model")
+@ConfigurationProperties(prefix = "langchain4j.open-ai.streaming-chat-model")
 @Data
-public class ReasoningStreamingChatModelConfig {
+public class StreamingChatModelConfig {
 
     private String baseUrl;
 
@@ -25,13 +26,13 @@ public class ReasoningStreamingChatModelConfig {
 
     private Double temperature;
 
-    private Boolean logRequests = false;
+    private boolean logRequests;
 
-    private Boolean logResponses = false;
+    private boolean logResponses;
 
     @Bean
-    @Scope("prototype")
-    public StreamingChatModel reasoningStreamingChatModelPrototype() {
+    @Scope("prototype") // 告诉 Spring 容器，每次获取 Bean 都创建一个新的实例，而不是复用单例
+    public StreamingChatModel streamingChatModelPrototype() {
         return OpenAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
@@ -43,4 +44,3 @@ public class ReasoningStreamingChatModelConfig {
                 .build();
     }
 }
-

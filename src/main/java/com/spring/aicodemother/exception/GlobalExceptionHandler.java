@@ -1,23 +1,22 @@
 package com.spring.aicodemother.exception;
 
 import cn.hutool.json.JSONUtil;
-
+import com.spring.aicodemother.common.BaseResponse;
 import com.spring.aicodemother.common.ResultUtils;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
  * 全局异常处理器
- * 
- * @author system
  */
 @Hidden
 @RestControllerAdvice
@@ -25,67 +24,74 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<?> businessExceptionHandler(BusinessException e, HttpServletRequest request) {
+    public BaseResponse<?> businessExceptionHandler(BusinessException e) {
         log.error("BusinessException", e);
-        
-        // 检查是否是SSE流式请求
-        if (isSSERequest(request)) {
-            // 对于SSE请求，返回纯文本错误消息
-            String errorMessage = "data: " + JSONUtil.toJsonStr(Map.of("d", "[错误] " + e.getMessage())) + "\n\n";
-            return ResponseEntity.status(HttpStatus.OK)
-                    .contentType(MediaType.TEXT_EVENT_STREAM)
-                    .body(errorMessage);
+        // 尝试处理 SSE 请求
+        if (handleSseError(e.getCode(), e.getMessage())) {
+            return null;
         }
-        
-        // 普通请求返回JSON响应
-        return ResponseEntity.ok(ResultUtils.error(e.getCode(), e.getMessage()));
+        // 对于普通请求，返回标准 JSON 响应
+        return ResultUtils.error(e.getCode(), e.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<?> runtimeExceptionHandler(RuntimeException e, HttpServletRequest request) {
+    public BaseResponse<?> runtimeExceptionHandler(RuntimeException e) {
         log.error("RuntimeException", e);
-        
-        // 检查是否是SSE流式请求
-        if (isSSERequest(request)) {
-            // 特殊处理LangChain4j工具调用JSON解析错误
-            String errorMessage;
-            if (e.getCause() instanceof com.fasterxml.jackson.core.JsonParseException) {
-                errorMessage = "[错误] AI工具调用参数解析失败，请重试";
-                log.error("LangChain4j工具调用JSON解析错误: {}", e.getCause().getMessage());
-            } else {
-                errorMessage = "[错误] 系统错误，请稍后重试";
-            }
-            
-            // 对于SSE请求，返回符合SSE格式的错误消息
-            String sseErrorMessage = "data: " + JSONUtil.toJsonStr(Map.of("d", errorMessage)) + "\n\n"
-                    + "event: done\n"
-                    + "data: \n\n";
-            
-            return ResponseEntity.status(HttpStatus.OK)
-                    .contentType(MediaType.TEXT_EVENT_STREAM)
-                    .body(sseErrorMessage);
+        // 尝试处理 SSE 请求
+        if (handleSseError(ErrorCode.SYSTEM_ERROR.getCode(), "系统错误")) {
+            return null;
         }
-        
-        // 普通请求返回JSON响应
-        return ResponseEntity.ok(ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误"));
+        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误");
     }
-    
+
     /**
-     * 检查是否是SSE流式请求
+     * 处理SSE请求的错误响应
+     *
+     * @param errorCode 错误码
+     * @param errorMessage 错误信息
+     * @return true表示是SSE请求并已处理，false表示不是SSE请求
      */
-    private boolean isSSERequest(HttpServletRequest request) {
-        if (request == null) {
+    private boolean handleSseError(int errorCode, String errorMessage) {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
             return false;
         }
-        
-        // 检查Accept头
+        HttpServletRequest request = attributes.getRequest();
+        HttpServletResponse response = attributes.getResponse();
+        // 判断是否是SSE请求（通过Accept头或URL路径）
         String accept = request.getHeader("Accept");
-        if (accept != null && accept.contains("text/event-stream")) {
-            return true;
+        String uri = request.getRequestURI();
+        if ((accept != null && accept.contains("text/event-stream")) ||
+                uri.contains("/chat/gen/code")) {
+            try {
+                // 设置SSE响应头
+                response.setContentType("text/event-stream");
+                response.setCharacterEncoding("UTF-8");
+                response.setHeader("Cache-Control", "no-cache");
+                response.setHeader("Connection", "keep-alive");
+                // 构造错误消息的SSE格式
+                Map<String, Object> errorData = Map.of(
+                        "error", true,
+                        "code", errorCode,
+                        "message", errorMessage
+                );
+                String errorJson = JSONUtil.toJsonStr(errorData);
+                // 发送业务错误事件（避免与标准error事件冲突）
+                String sseData = "event: business-error\ndata: " + errorJson + "\n\n";
+                response.getWriter().write(sseData);
+                response.getWriter().flush();
+                // 发送结束事件
+                response.getWriter().write("event: done\ndata: {}\n\n");
+                response.getWriter().flush();
+                // 表示已处理SSE请求
+                return true;
+            } catch (IOException ioException) {
+                log.error("Failed to write SSE error response", ioException);
+                // 即使写入失败，也表示这是SSE请求
+                return true;
+            }
         }
-        
-        // 检查请求路径
-        String requestURI = request.getRequestURI();
-        return requestURI != null && requestURI.contains("/chat/gen/code");
+        return false;
     }
 }
+

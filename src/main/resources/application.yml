@@ -17,6 +17,7 @@ spring:
       host: 127.0.0.1
       port: 6379
       password:
+      database: 0
       ttl: 3600 # 缓存存活时间
   profiles:
     active: local
@@ -57,6 +58,26 @@ pixabay:
 dashscope:
   api-key: <Your API Key>
   image-model: wan2.2-t2i-flash
+# AI 模型配置
+langchain4j:
+  open-ai:
+    # 推理 AI 模型配置（用于复杂的推理任务）
+    reasoning-streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: <Your API Key>
+      model-name: deepseek-reasoner
+      max-tokens: 32768
+      temperature: 0.1
+      log-requests: true
+      log-responses: true
+    # 智能路由 AI 模型配置（用于简单的分类任务）
+    routing-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: <Your API Key>
+      model-name: deepseek-chat
+      log-requests: true
+      log-responses: true
+
 
 
 

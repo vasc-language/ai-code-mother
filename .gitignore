@@ -1,5 +1,15 @@
 ### CUSTOM ###
 application-local.yml
+application-local.properties
+*.env
+.env*
+*.key
+*.pem
+*.cert
+*.jks
+secrets/
+credentials/
+config/private*
 tmp
 
 HELP.md

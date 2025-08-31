@@ -8,6 +8,7 @@ import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.spring.aicodemother.ai.AiCodeGenTypeRoutingService;
+import com.spring.aicodemother.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.spring.aicodemother.constant.AppConstant;
 import com.spring.aicodemother.core.AiCodeGeneratorFacade;
 import com.spring.aicodemother.core.build.VueProjectBuilder;
@@ -15,6 +16,7 @@ import com.spring.aicodemother.core.handler.StreamHandlerExecutor;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
+import com.spring.aicodemother.langgraph4j.utils.SpringContextUtil;
 import com.spring.aicodemother.model.dto.app.AppAddRequest;
 import com.spring.aicodemother.model.enums.ChatHistoryMessageTypeEnum;
 import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
@@ -68,6 +70,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ScreenshotService screenshotService;
 
+    @Resource
+    private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
@@ -94,8 +99,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum);
     }
 
-    @Resource
-    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
     @Override
     public Long createApp(AppAddRequest appAddRequest, User loginUser) {
@@ -108,7 +111,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setUserId(loginUser.getId());
         // 应用名称暂时为 initPrompt 前 12 位
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
-        // 使用 AI 智能选择代码生成类型
+        // 使用 AI 智能选择代码生成类型（多例模式）
+        AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
         CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
         app.setCodeGenType(selectedCodeGenType.getValue());
         // 插入数据库
