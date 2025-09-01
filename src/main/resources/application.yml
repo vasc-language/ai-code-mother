@@ -78,6 +78,15 @@ langchain4j:
       max-tokens: 100
       log-requests: true
       log-responses: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
 
 
 
