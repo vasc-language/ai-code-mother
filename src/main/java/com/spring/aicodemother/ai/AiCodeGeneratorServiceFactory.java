@@ -5,6 +5,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.spring.aicodemother.ai.tools.*;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
+import com.spring.aicodemother.guardrail.PromptSafetyInputGuardrail;
+import com.spring.aicodemother.guardrail.RetryOutputGuardrail;
 import com.spring.aicodemother.langgraph4j.utils.SpringContextUtil;
 import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
 import com.spring.aicodemother.service.ChatHistoryService;
@@ -103,6 +105,10 @@ public class AiCodeGeneratorServiceFactory {
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                         ))
+                        .maxSequentialToolsInvocations(30) // 最多调用 30 次工具
+                        .inputGuardrails(new PromptSafetyInputGuardrail()) // 添加输入护轨
+                        // 不建议添加，AI 内容相应输出无法及时流式输出
+                        // .outputGuardrails(new RetryOutputGuardrail()) // 添加输出护轨
                         .build();
             }
             // HTML 和多文件生成使用默认模型
@@ -113,6 +119,9 @@ public class AiCodeGeneratorServiceFactory {
                         .chatModel(chatModel)
                         .streamingChatModel(openAiStreamingChatModel)
                         .chatMemory(chatMemory)
+                        .inputGuardrails(new PromptSafetyInputGuardrail()) // 添加输入护轨
+                        // 不建议添加，AI 内容相应输出无法及时流式输出
+                        // .outputGuardrails(new RetryOutputGuardrail()) // 添加输出护轨
                         .build();
             }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
