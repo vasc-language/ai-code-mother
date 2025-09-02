@@ -26,6 +26,8 @@ import com.spring.aicodemother.model.vo.AppVO;
 import com.spring.aicodemother.model.entity.App;
 import com.spring.aicodemother.mapper.AppMapper;
 import com.spring.aicodemother.model.entity.User;
+import com.spring.aicodemother.monitor.MonitorContext;
+import com.spring.aicodemother.monitor.MonitorContextHolder;
 import com.spring.aicodemother.service.AppService;
 import com.spring.aicodemother.service.ChatHistoryService;
 import com.spring.aicodemother.service.ScreenshotService;
@@ -93,10 +95,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-        // 6. 调用 AI 生成代码（流式）
+        // 6. 设置监控上下文
+        MonitorContextHolder.setContext(
+                MonitorContext.builder()
+                        .userId(loginUser.getId().toString())
+                        .appId(appId.toString())
+                        .build()
+        );
+        // 7. 调用 AI 生成代码（流式）
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
-        // 7. 收集AI响应内容并在完成后记录到对话历史
-        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum);
+        // 8. 收集AI响应内容并在完成后记录到对话历史
+        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+                .doFinally(signalType -> {
+                    // 无论成功与否，最后流结束都清除
+                    MonitorContextHolder.clearContext();
+                });
     }
 
 
