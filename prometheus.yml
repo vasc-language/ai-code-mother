@@ -22,7 +22,7 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   # Spring Boot 应用监控
-  - job_name: 'yu-ai-code-mother'
+  - job_name: 'ai-code-mother'
     metrics_path: '/api/actuator/prometheus'  # Spring Boot Actuator 端点
     static_configs:
       - targets: ['localhost:8123']  # 应用服务器地址

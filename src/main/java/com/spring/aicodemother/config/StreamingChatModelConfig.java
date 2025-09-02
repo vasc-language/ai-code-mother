@@ -3,6 +3,7 @@ package com.spring.aicodemother.config;
 import com.spring.aicodemother.monitor.AiModelMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +19,9 @@ import java.util.List;
 @ConfigurationProperties(prefix = "langchain4j.open-ai.streaming-chat-model")
 @Data
 public class StreamingChatModelConfig {
+
+    @Resource
+    private AiModelMonitorListener aiModelMonitorListener;
 
     private String baseUrl;
 
@@ -44,7 +48,7 @@ public class StreamingChatModelConfig {
                 .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
-                .listeners(List.of(new AiModelMonitorListener()))
+                .listeners(List.of(aiModelMonitorListener))
                 .build();
     }
 }

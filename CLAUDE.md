@@ -20,6 +20,10 @@ This is a full-stack AI-powered code generation web application with a Spring Bo
 - **Build Tool**: Maven with wrapper scripts (`mvnw` and `mvnw.cmd`)
 - **Screenshot**: Selenium integration for webpage screenshots
 - **Cloud Storage**: Tencent Cloud COS integration for file storage
+- **Monitoring**: Prometheus metrics integration via Spring Boot Actuator
+- **Local Cache**: Caffeine for high-performance caching
+- **AI Tools**: LangGraph4j integration for advanced workflow management
+- **Alternative Models**: Alibaba DashScope SDK for additional AI model support
 
 ### Frontend (Vue 3)
 - **Framework**: Vue 3 with TypeScript and Vite
@@ -120,6 +124,7 @@ npm run build-only
 - AI Code Generation (non-streaming): `curl -X POST "http://localhost:8123/api/app/generate/{id}" -H "accept: application/json"`
 - AI Code Generation (streaming): Connect to `http://localhost:8123/api/app/generate/sse/{id}` for Server-Sent Events
 - App Management: Full CRUD operations available at `http://localhost:8123/api/app/`
+- Prometheus Metrics: `http://localhost:8123/api/actuator/prometheus`
 
 ## Architecture Overview
 
@@ -131,6 +136,7 @@ ai-code-mother/
 ├── ai-code-mother-frontend/    # Vue 3 frontend application
 ├── sql/                        # Database initialization scripts
 ├── tmp/                        # Generated code and screenshots
+├── prometheus.yml              # Prometheus monitoring configuration
 └── CLAUDE.md                   # This documentation file
 ```
 
@@ -200,9 +206,11 @@ Standardized error codes defined in `ErrorCode` enum:
 ## Important Implementation Details
 
 ### AI Configuration
-- **DeepSeek API**: Configured in `application-local.yml` with base URL `https://api.deepseek.com`
+- **Primary Model**: DeepSeek Reasoner (`deepseek-reasoner`) for complex reasoning tasks
+- **Routing Model**: Qwen Turbo (`qwen-turbo`) for simple classification tasks
+- **DeepSeek API**: Base URL `https://api.deepseek.com` with max 32,768 tokens
+- **DashScope API**: Alibaba Cloud alternative with base URL `https://dashscope.aliyuncs.com/compatible-mode/v1`
 - **Structured Output**: JSON response format with strict schema validation
-- **Max Tokens**: 8192 tokens for complex code generation
 
 ### Security Configuration
 - **Password Encryption**: MD5 with salt "Join2049" for user passwords
@@ -233,3 +241,11 @@ Standardized error codes defined in `ErrorCode` enum:
 - Implement cleanup mechanism for generated files in `tmp/` directory
 - Consider rate limiting for AI generation endpoints
 - Ensure proper database indexing on frequently queried fields
+- Caffeine local cache is enabled for improved performance
+- Prometheus metrics available for monitoring application performance
+
+## Monitoring and Observability
+- **Prometheus Integration**: Metrics exposed at `/api/actuator/prometheus`
+- **Health Checks**: Available at `/api/actuator/health` with detailed status
+- **Grafana Support**: Custom dashboard configuration available in `ai_model_grafana_config.json`
+- **Application Metrics**: Performance monitoring for AI model usage and database operations

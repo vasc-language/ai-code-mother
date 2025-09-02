@@ -29,14 +29,6 @@ import java.io.File;
 @Slf4j
 public class AiCodeGeneratorFacade {
 
-//    @Resource
-//    private AiCodeGeneratorService aiCodeGeneratorService; // 当前所有对话都使用一个 AI Service
-
-//    @Autowired
-//    private GenericResponseService responseBuilder;
-//    @Autowired
-//    private View error;
-
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
