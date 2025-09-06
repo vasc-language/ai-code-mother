@@ -382,6 +382,10 @@ const currentGeneratingFile = ref<GeneratedFile | null>(null)
 const completedFiles = ref<GeneratedFile[]>([])
 const activeFileKeys = ref<string[]>([])
 
+// 代码流式输出定时器
+const codeStreamTimer = ref<any>(null)
+
+
 // 对话历史相关
 const loadingHistory = ref(false)
 const hasMoreHistory = ref(false)
@@ -953,6 +957,7 @@ const filterOutCodeBlocks = (content: string): string => {
   return filteredContent.trim()
 }
 
+
 // 流式内容解析器
 const parseStreamingContent = (chunk: string, fullContent: string) => {
   try {
@@ -1046,32 +1051,57 @@ const parseCodeBlock = (fullContent: string) => {
   }
 }
 
-// 流式更新代码内容
+// 流式更新代码内容 - 实现打字机效果
 const streamCodeContent = (targetContent: string, isComplete: boolean) => {
   if (!currentGeneratingFile.value) return
   
+  // 清理现有定时器
+  if (codeStreamTimer.value) {
+    clearInterval(codeStreamTimer.value)
+    codeStreamTimer.value = null
+  }
+  
   const currentContent = currentGeneratingFile.value.content
   
-  // 如果新内容比当前内容长，则逐字符添加
-  if (targetContent.length > currentContent.length) {
-    // 直接更新到新内容（后端已经是流式发送的）
-    currentGeneratingFile.value.content = targetContent
-    currentGeneratingFile.value.lastUpdated = new Date().toISOString()
+  // 如果目标内容与当前内容相同，直接完成
+  if (targetContent === currentContent) {
     currentGeneratingFile.value.completed = isComplete
-    
-    // 滚动到代码区域底部
-    nextTick(() => {
-      const codeElement = document.querySelector('.current-file .code-content')
-      if (codeElement) {
-        codeElement.scrollTop = codeElement.scrollHeight
-      }
-    })
-  } else if (targetContent !== currentContent) {
-    // 如果内容完全不同，直接更新
-    currentGeneratingFile.value.content = targetContent
-    currentGeneratingFile.value.lastUpdated = new Date().toISOString()
-    currentGeneratingFile.value.completed = isComplete
+    return
   }
+  
+  // 如果内容完全不同，先重置内容
+  if (targetContent.length < currentContent.length || !targetContent.startsWith(currentContent)) {
+    currentGeneratingFile.value.content = ''
+  }
+  
+  let currentIndex = currentGeneratingFile.value.content.length
+  
+  // 设置打字机效果的定时器
+  codeStreamTimer.value = setInterval(() => {
+    if (currentIndex < targetContent.length) {
+      // 每次添加一个字符
+      if (currentGeneratingFile.value) {
+        currentGeneratingFile.value.content += targetContent[currentIndex]
+        currentGeneratingFile.value.lastUpdated = new Date().toISOString()
+      }
+      currentIndex++
+      
+      // 自动滚动到底部
+      nextTick(() => {
+        const codeElement = document.querySelector('.current-file .code-content')
+        if (codeElement) {
+          codeElement.scrollTop = codeElement.scrollHeight
+        }
+      })
+    } else {
+      // 完成输出
+      clearInterval(codeStreamTimer.value)
+      codeStreamTimer.value = null
+      if (currentGeneratingFile.value) {
+        currentGeneratingFile.value.completed = isComplete
+      }
+    }
+  }, 10) // 每10毫秒添加一个字符，可根据需要调整速度
 }
 
 // 解析步骤信息
@@ -1121,6 +1151,11 @@ onMounted(() => {
 
 // 清理资源
 onUnmounted(() => {
+  // 清理代码流式定时器
+  if (codeStreamTimer.value) {
+    clearInterval(codeStreamTimer.value)
+    codeStreamTimer.value = null
+  }
   // EventSource 会在组件卸载时自动清理
 })
 </script>

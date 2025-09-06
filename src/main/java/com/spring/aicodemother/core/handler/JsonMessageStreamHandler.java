@@ -16,7 +16,6 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -51,6 +50,7 @@ public class JsonMessageStreamHandler {
         StringBuilder chatHistoryStringBuilder = new StringBuilder();
         // 用于跟踪已经见过的工具ID，判断是否是第一次调用
         Set<String> seenToolIds = new HashSet<>();
+        
         return originFlux
                 .map(chunk -> {
                     // 解析每个 JSON 消息块
