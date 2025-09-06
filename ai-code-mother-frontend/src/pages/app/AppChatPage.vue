@@ -230,7 +230,12 @@
               </div>
             </div>
             <div class="code-content">
-              <pre class="code-stream"><code>{{ currentGeneratingFile.content }}</code></pre>
+              <CodeHighlight 
+                :code="currentGeneratingFile.content" 
+                :language="currentGeneratingFile.language"
+                :fileName="currentGeneratingFile.name"
+                theme="atom-one-dark"
+              />
               <div class="typing-cursor" v-if="!currentGeneratingFile.completed">|</div>
             </div>
           </div>
@@ -250,7 +255,12 @@
                   </div>
                 </template>
                 <div class="file-content-wrapper">
-                  <pre class="code-content"><code>{{ file.content }}</code></pre>
+                  <CodeHighlight 
+                    :code="file.content" 
+                    :language="file.language"
+                    :fileName="file.name"
+                    theme="atom-one-dark"
+                  />
                 </div>
               </a-collapse-panel>
             </a-collapse>
@@ -303,6 +313,7 @@ import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
 
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
+import CodeHighlight from '@/components/CodeHighlight.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
