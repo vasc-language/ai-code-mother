@@ -60,10 +60,50 @@
                 <a-avatar :src="aiAvatar" />
               </div>
               <div class="message-content">
-                <MarkdownRenderer v-if="message.content" :content="message.content" />
+                <!-- 只显示非代码块内容，代码块在右侧显示 -->
+                <MarkdownRenderer v-if="message.content" :content="filterOutCodeBlocks(message.content)" />
                 <div v-if="message.loading" class="loading-indicator">
                   <a-spin size="small" />
                   <span>AI 正在思考...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 工具步骤显示区域 -->
+          <div v-if="generationSteps.length > 0" class="steps-section">
+            <div class="steps-header">
+              <h4>AI 操作步骤</h4>
+            </div>
+            <div class="steps-container">
+              <div 
+                v-for="step in generationSteps" 
+                :key="step.id" 
+                class="step-item"
+                :class="{ 'step-running': step.status === 'running', 'step-completed': step.status === 'completed' }"
+              >
+                <div class="step-header">
+                  <span class="step-number">STEP {{ step.number }}</span>
+                  <span class="step-title">{{ step.title }}</span>
+                  <a-badge :status="getStepStatus(step)" />
+                </div>
+                
+                <!-- 工具调用列表 -->
+                <div v-if="step.toolCalls && step.toolCalls.length > 0" class="tool-calls">
+                  <div 
+                    v-for="call in step.toolCalls" 
+                    :key="call.id" 
+                    class="tool-call-item"
+                  >
+                    <div class="tool-selection">
+                      <a-tag :color="getToolColor(call.toolType)">{{ call.toolType }}</a-tag>
+                    </div>
+                    <div class="tool-execution">
+                      <span class="tool-action">{{ call.action }}</span>
+                      <span class="file-path">{{ call.filePath }}</span>
+                      <p class="operation-desc">{{ call.description }}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -145,48 +185,87 @@
           </div>
         </div>
       </div>
-      <!-- 右侧网页展示区域 -->
-      <div class="preview-section">
-        <div class="preview-header">
-          <h3>生成后的网页展示</h3>
-          <div class="preview-actions">
-            <a-button
-              v-if="isOwner && previewUrl"
-              type="link"
-              :danger="isEditMode"
-              @click="toggleEditMode"
-              :class="{ 'edit-mode-active': isEditMode }"
-              style="padding: 0; height: auto; margin-right: 12px"
+      <!-- 右侧代码生成展示区域 -->
+      <div class="code-generation-section">
+        <div class="section-header">
+          <h3>代码生成过程</h3>
+          <div class="header-actions">
+            <a-button 
+              v-if="completedFiles.length > 0" 
+              type="link" 
+              @click="clearAllFiles"
+              size="small"
             >
-              <template #icon>
-                <EditOutlined />
-              </template>
-              {{ isEditMode ? '退出编辑' : '编辑模式' }}
+              清空文件
             </a-button>
-            <a-button v-if="previewUrl" type="link" @click="openInNewTab">
+            <a-button 
+              v-if="previewUrl" 
+              type="link" 
+              @click="openInNewTab"
+              size="small"
+            >
               <template #icon>
                 <ExportOutlined />
               </template>
-              新窗口打开
+              预览网站
             </a-button>
           </div>
         </div>
-        <div class="preview-content">
-          <div v-if="!previewUrl && !isGenerating" class="preview-placeholder">
-            <div class="placeholder-icon">🌐</div>
-            <p>网站文件生成完成后将在这里展示</p>
+        
+        <div class="code-output-container">
+          <!-- 当前生成的文件 -->
+          <div v-if="currentGeneratingFile" class="current-file">
+            <div class="file-header">
+              <div class="file-tab">
+                <FileOutlined class="file-icon" />
+                <span class="file-name">{{ currentGeneratingFile.name }}</span>
+                <a-button 
+                  type="link" 
+                  size="small" 
+                  @click="minimizeCurrentFile"
+                  v-if="currentGeneratingFile.completed"
+                >
+                  <MinusOutlined />
+                </a-button>
+              </div>
+            </div>
+            <div class="code-content">
+              <pre class="code-stream"><code>{{ currentGeneratingFile.content }}</code></pre>
+              <div class="typing-cursor" v-if="!currentGeneratingFile.completed">|</div>
+            </div>
           </div>
-          <div v-else-if="isGenerating" class="preview-loading">
+
+          <!-- 已完成的文件列表 -->
+          <div class="completed-files">
+            <a-collapse v-model:activeKey="activeFileKeys" v-if="completedFiles.length > 0">
+              <a-collapse-panel 
+                v-for="file in completedFiles" 
+                :key="file.id"
+              >
+                <template #header>
+                  <div class="file-panel-header">
+                    <FileOutlined class="file-icon" />
+                    <span class="file-name">{{ file.name }}</span>
+                    <span class="file-path">{{ file.path }}</span>
+                  </div>
+                </template>
+                <div class="file-content-wrapper">
+                  <pre class="code-content"><code>{{ file.content }}</code></pre>
+                </div>
+              </a-collapse-panel>
+            </a-collapse>
+          </div>
+
+          <!-- 占位符 -->
+          <div v-if="!currentGeneratingFile && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
+            <div class="placeholder-icon">📄</div>
+            <p>AI 生成的代码文件将在这里实时显示</p>
+          </div>
+          
+          <div v-else-if="!currentGeneratingFile && completedFiles.length === 0 && isGenerating" class="code-loading">
             <a-spin size="large" />
-            <p>正在生成网站...</p>
+            <p>正在分析需求，准备生成代码...</p>
           </div>
-          <iframe
-            v-else
-            :src="previewUrl"
-            class="preview-iframe"
-            frameborder="0"
-            @load="onIframeLoad"
-          ></iframe>
         </div>
       </div>
     </div>
@@ -237,6 +316,8 @@ import {
   InfoCircleOutlined,
   DownloadOutlined,
   EditOutlined,
+  FileOutlined,
+  MinusOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -255,10 +336,51 @@ interface Message {
   createTime?: string
 }
 
+// 工具步骤相关
+interface GenerationStep {
+  id: string
+  number: number
+  title: string
+  status: 'pending' | 'running' | 'completed' | 'error'
+  toolCalls?: ToolCall[]
+  startTime?: string
+  endTime?: string
+}
+
+interface ToolCall {
+  id: string
+  toolType: '写入文件' | '删除文件' | '读取目录' | '修改文件' | '读取文件'
+  action: string
+  filePath: string
+  description: string
+  status: 'pending' | 'running' | 'completed'
+  timestamp?: string
+}
+
 const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
+
+// 工具步骤相关状态
+const generationSteps = ref<GenerationStep[]>([])
+const currentStep = ref<GenerationStep | null>(null)
+
+// 代码生成文件相关状态
+interface GeneratedFile {
+  id: string
+  name: string
+  path: string
+  content: string
+  language: string
+  completed: boolean
+  generatedAt: string
+  lastUpdated?: string
+}
+
+const currentGeneratingFile = ref<GeneratedFile | null>(null)
+const completedFiles = ref<GeneratedFile[]>([])
+const activeFileKeys = ref<string[]>([])
 
 // 对话历史相关
 const loadingHistory = ref(false)
@@ -513,6 +635,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
           fullContent += content
           messages.value[aiMessageIndex].content = fullContent
           messages.value[aiMessageIndex].loading = false
+          
+          // 解析流式内容并更新右侧代码生成区域
+          parseStreamingContent(content, fullContent)
+          
           scrollToBottom()
         }
       } catch (error) {
@@ -754,6 +880,235 @@ const getInputPlaceholder = () => {
   return '请描述你想生成的网站，越详细效果越好哦'
 }
 
+// 工具步骤相关函数
+const getStepStatus = (step: GenerationStep): 'default' | 'processing' | 'success' | 'error' => {
+  switch (step.status) {
+    case 'pending': return 'default'
+    case 'running': return 'processing'
+    case 'completed': return 'success'
+    case 'error': return 'error'
+    default: return 'default'
+  }
+}
+
+const getToolColor = (toolType: string): string => {
+  const colorMap: Record<string, string> = {
+    '写入文件': 'blue',
+    '读取文件': 'green', 
+    '修改文件': 'orange',
+    '删除文件': 'red',
+    '读取目录': 'purple'
+  }
+  return colorMap[toolType] || 'default'
+}
+
+// 代码生成相关函数
+const minimizeCurrentFile = () => {
+  if (currentGeneratingFile.value && currentGeneratingFile.value.completed) {
+    // 将当前文件移动到已完成列表
+    completedFiles.value.push(currentGeneratingFile.value)
+    activeFileKeys.value = [currentGeneratingFile.value.id] // 自动展开这个文件
+    currentGeneratingFile.value = null
+  }
+}
+
+const clearAllFiles = () => {
+  completedFiles.value = []
+  currentGeneratingFile.value = null
+  activeFileKeys.value = []
+}
+
+const extractFileName = (filePath: string): string => {
+  if (!filePath) return '未知文件'
+  return filePath.split(/[/\\]/).pop() || filePath
+}
+
+const detectLanguage = (filePath: string): string => {
+  const ext = filePath.split('.').pop()?.toLowerCase()
+  const languageMap: Record<string, string> = {
+    'js': 'javascript',
+    'ts': 'typescript',
+    'vue': 'vue',
+    'html': 'html',
+    'css': 'css',
+    'scss': 'scss',
+    'json': 'json',
+    'md': 'markdown',
+    'py': 'python',
+    'java': 'java'
+  }
+  return languageMap[ext || ''] || 'text'
+}
+
+// 过滤代码块内容，只保留文本描述
+const filterOutCodeBlocks = (content: string): string => {
+  if (!content) return ''
+  
+  // 移除代码块（```language code ```）
+  let filteredContent = content.replace(/```[\w-]*\n[\s\S]*?```/g, '')
+  
+  // 移除单行代码（`code`）但保留必要的标记文本
+  filteredContent = filteredContent.replace(/`([^`\n]+)`/g, '$1')
+  
+  return filteredContent.trim()
+}
+
+// 流式内容解析器
+const parseStreamingContent = (chunk: string, fullContent: string) => {
+  try {
+    // 检查是否包含工具调用标识
+    if (chunk.includes('[工具调用]') && chunk.includes('写入文件')) {
+      parseFileWriteToolCall(chunk, fullContent)
+    }
+    
+    // 检查是否包含代码块
+    if (chunk.includes('```')) {
+      parseCodeBlock(fullContent)
+    }
+    
+    // 检查步骤信息
+    if (chunk.includes('STEP ')) {
+      parseStepInfo(chunk)
+    }
+  } catch (error) {
+    console.error('解析流式内容失败:', error)
+  }
+}
+
+// 解析文件写入工具调用
+const parseFileWriteToolCall = (chunk: string, fullContent: string) => {
+  // 匹配工具调用模式：[工具调用] 写入文件 path/to/file.ext
+  const toolCallPattern = /\[工具调用\]\s*写入文件\s+([^\n\r]+)/g
+  const match = toolCallPattern.exec(chunk)
+  
+  if (match) {
+    const filePath = match[1].trim()
+    const fileName = extractFileName(filePath)
+    const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9)
+    
+    // 如果当前已有文件正在生成，先将其完成并移到已完成列表
+    if (currentGeneratingFile.value && !currentGeneratingFile.value.completed) {
+      currentGeneratingFile.value.completed = true
+      completedFiles.value.push(currentGeneratingFile.value)
+    }
+    
+    // 创建新的生成文件
+    currentGeneratingFile.value = {
+      id: fileId,
+      name: fileName,
+      path: filePath,
+      content: '',
+      language: detectLanguage(filePath),
+      completed: false,
+      generatedAt: new Date().toISOString()
+    }
+  }
+}
+
+// 解析代码块
+const parseCodeBlock = (fullContent: string) => {
+  if (!currentGeneratingFile.value) return
+  
+  // 首先查找最近的工具调用位置
+  const toolCallIndex = fullContent.lastIndexOf('[工具调用] 写入文件')
+  if (toolCallIndex === -1) return
+  
+  // 从工具调用位置开始查找代码块
+  const contentAfterTool = fullContent.substring(toolCallIndex)
+  
+  // 匹配完整的代码块：```language\ncode content\n```
+  const completeCodeBlockPattern = /```(?:[\w-]+)?\n([\s\S]*?)```/g
+  const completeMatch = completeCodeBlockPattern.exec(contentAfterTool)
+  
+  if (completeMatch) {
+    // 找到完整的代码块
+    const newCodeContent = completeMatch[1]
+    
+    // 如果内容发生变化，实现流式更新
+    if (currentGeneratingFile.value.content !== newCodeContent) {
+      // 逐步更新内容以实现流式效果
+      streamCodeContent(newCodeContent, true)
+    }
+  } else {
+    // 查找正在生成的代码块（不完整）
+    const incompleteCodeBlockPattern = /```(?:[\w-]+)?\n([\s\S]*)$/
+    const incompleteMatch = incompleteCodeBlockPattern.exec(contentAfterTool)
+    
+    if (incompleteMatch) {
+      // 正在流式生成代码
+      const newCodeContent = incompleteMatch[1]
+      
+      // 如果内容发生变化，实现流式更新
+      if (currentGeneratingFile.value.content !== newCodeContent) {
+        streamCodeContent(newCodeContent, false)
+      }
+    }
+  }
+}
+
+// 流式更新代码内容
+const streamCodeContent = (targetContent: string, isComplete: boolean) => {
+  if (!currentGeneratingFile.value) return
+  
+  const currentContent = currentGeneratingFile.value.content
+  
+  // 如果新内容比当前内容长，则逐字符添加
+  if (targetContent.length > currentContent.length) {
+    // 直接更新到新内容（后端已经是流式发送的）
+    currentGeneratingFile.value.content = targetContent
+    currentGeneratingFile.value.lastUpdated = new Date().toISOString()
+    currentGeneratingFile.value.completed = isComplete
+    
+    // 滚动到代码区域底部
+    nextTick(() => {
+      const codeElement = document.querySelector('.current-file .code-content')
+      if (codeElement) {
+        codeElement.scrollTop = codeElement.scrollHeight
+      }
+    })
+  } else if (targetContent !== currentContent) {
+    // 如果内容完全不同，直接更新
+    currentGeneratingFile.value.content = targetContent
+    currentGeneratingFile.value.lastUpdated = new Date().toISOString()
+    currentGeneratingFile.value.completed = isComplete
+  }
+}
+
+// 解析步骤信息
+const parseStepInfo = (chunk: string) => {
+  // 匹配步骤模式：STEP 1: 步骤描述
+  const stepPattern = /STEP\s+(\d+):\s*(.+)/g
+  const match = stepPattern.exec(chunk)
+  
+  if (match) {
+    const stepNumber = parseInt(match[1])
+    const stepTitle = match[2].trim()
+    const stepId = `step-${stepNumber}`
+    
+    // 检查步骤是否已存在
+    const existingStep = generationSteps.value.find(s => s.id === stepId)
+    
+    if (!existingStep) {
+      // 创建新步骤
+      const newStep: GenerationStep = {
+        id: stepId,
+        number: stepNumber,
+        title: stepTitle,
+        status: 'running',
+        startTime: new Date().toISOString(),
+        toolCalls: []
+      }
+      
+      generationSteps.value.push(newStep)
+      currentStep.value = newStep
+    } else {
+      // 更新现有步骤状态
+      existingStep.status = 'running'
+      currentStep.value = existingStep
+    }
+  }
+}
+
 // 页面加载时获取应用信息
 onMounted(() => {
   fetchAppInfo()
@@ -891,6 +1246,102 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
+/* 工具步骤区域样式 */
+.steps-section {
+  margin-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.steps-header {
+  padding: 12px 0;
+  
+  h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+}
+
+.steps-container {
+  .step-item {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    
+    &.step-running {
+      background: #e6f7ff;
+      border-color: #91d5ff;
+    }
+    
+    &.step-completed {
+      background: #f6ffed;
+      border-color: #b7eb8f;
+    }
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      
+      .step-number {
+        font-weight: bold;
+        color: #1890ff;
+        font-size: 12px;
+      }
+      
+      .step-title {
+        flex: 1;
+        font-size: 13px;
+        color: #333;
+      }
+    }
+    
+    .tool-calls {
+      .tool-call-item {
+        margin: 6px 0;
+        padding: 8px;
+        background: white;
+        border-radius: 4px;
+        border: 1px solid #e1e4e8;
+        
+        .tool-selection {
+          margin-bottom: 4px;
+        }
+        
+        .tool-execution {
+          .tool-action {
+            font-weight: 500;
+            color: #333;
+            margin-right: 8px;
+          }
+          
+          .file-path {
+            color: #666;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            word-break: break-all;
+          }
+          
+          .operation-desc {
+            margin: 4px 0 0 0;
+            font-size: 12px;
+            color: #666;
+          }
+        }
+      }
+    }
+  }
+}
+
 /* 输入区域 */
 .input-container {
   padding: 16px;
@@ -911,8 +1362,8 @@ onUnmounted(() => {
   right: 8px;
 }
 
-/* 右侧预览区域 */
-.preview-section {
+/* 右侧代码生成区域 */
+.code-generation-section {
   flex: 3;
   display: flex;
   flex-direction: column;
@@ -922,62 +1373,191 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.preview-header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px;
   border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+  
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
 }
 
-.preview-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.preview-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.preview-content {
+.code-output-container {
   flex: 1;
-  position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  
+  .current-file {
+    background: white;
+    border-bottom: 1px solid #e8e8e8;
+    
+    .file-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      background: #f8f9fa;
+      
+      .file-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .file-icon {
+          color: #1890ff;
+          font-size: 14px;
+        }
+        
+        .file-name {
+          font-weight: 500;
+          color: #333;
+        }
+      }
+    }
+    
+    .code-content {
+      position: relative;
+      padding: 16px;
+      background: #fafbfc;
+      max-height: 400px;
+      overflow-y: auto;
+      
+      .code-stream {
+        font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #333;
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        
+        code {
+          background: transparent;
+          padding: 0;
+          font-family: inherit;
+        }
+      }
+      
+      .typing-cursor {
+        animation: blink 1s infinite;
+        display: inline-block;
+        color: #1890ff;
+        font-weight: bold;
+      }
+    }
+  }
+  
+  .completed-files {
+    flex: 1;
+    overflow-y: auto;
+    
+    .ant-collapse {
+      border: none;
+      background: transparent;
+      
+      .ant-collapse-item {
+        border-bottom: 1px solid #f0f0f0;
+        
+        .ant-collapse-header {
+          padding: 12px 16px !important;
+          
+          .file-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            
+            .file-icon {
+              color: #52c41a;
+            }
+            
+            .file-name {
+              font-weight: 500;
+              color: #333;
+            }
+            
+            .file-path {
+              margin-left: auto;
+              font-size: 12px;
+              color: #999;
+            }
+          }
+        }
+        
+        .ant-collapse-content {
+          .ant-collapse-content-box {
+            padding: 0;
+          }
+          
+          .file-content-wrapper {
+            padding: 16px;
+            background: #fafbfc;
+            
+            .code-content {
+              font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
+              font-size: 13px;
+              line-height: 1.5;
+              color: #333;
+              margin: 0;
+              max-height: 300px;
+              overflow-y: auto;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+              
+              code {
+                background: transparent;
+                padding: 0;
+                font-family: inherit;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .code-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    
+    .placeholder-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+  }
+  
+  .code-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    
+    p {
+      margin-top: 16px;
+    }
+  }
 }
 
-.preview-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #666;
-}
-
-.placeholder-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.preview-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #666;
-}
-
-.preview-loading p {
-  margin-top: 16px;
-}
-
-.preview-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
 .selected-element-alert {
@@ -991,7 +1571,7 @@ onUnmounted(() => {
   }
 
   .chat-section,
-  .preview-section {
+  .code-generation-section {
     flex: none;
     height: 50vh;
   }
