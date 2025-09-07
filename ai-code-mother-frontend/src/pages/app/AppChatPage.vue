@@ -60,7 +60,7 @@
                 <a-avatar :src="aiAvatar" />
               </div>
               <div class="message-content">
-                <!-- 只显示非代码块内容，代码块在右侧显示 -->
+                <!-- 显示过滤代码块后的内容 -->
                 <MarkdownRenderer v-if="message.content" :content="filterOutCodeBlocks(message.content)" />
                 <div v-if="message.loading" class="loading-indicator">
                   <a-spin size="small" />
@@ -70,44 +70,6 @@
             </div>
           </div>
 
-          <!-- 工具步骤显示区域 -->
-          <div v-if="generationSteps.length > 0" class="steps-section">
-            <div class="steps-header">
-              <h4>AI 操作步骤</h4>
-            </div>
-            <div class="steps-container">
-              <div
-                v-for="step in generationSteps"
-                :key="step.id"
-                class="step-item"
-                :class="{ 'step-running': step.status === 'running', 'step-completed': step.status === 'completed' }"
-              >
-                <div class="step-header">
-                  <span class="step-number">STEP {{ step.number }}</span>
-                  <span class="step-title">{{ step.title }}</span>
-                  <a-badge :status="getStepStatus(step)" />
-                </div>
-
-                <!-- 工具调用列表 -->
-                <div v-if="step.toolCalls && step.toolCalls.length > 0" class="tool-calls">
-                  <div
-                    v-for="call in step.toolCalls"
-                    :key="call.id"
-                    class="tool-call-item"
-                  >
-                    <div class="tool-selection">
-                      <a-tag :color="getToolColor(call.toolType)">{{ call.toolType }}</a-tag>
-                    </div>
-                    <div class="tool-execution">
-                      <span class="tool-action">{{ call.action }}</span>
-                      <span class="file-path">{{ call.filePath }}</span>
-                      <p class="operation-desc">{{ call.description }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 选中元素信息展示 -->
@@ -240,14 +202,14 @@
             </div>
           </div>
 
-          <!-- HTML和MULTI_FILE类型的简单代码文件 -->
+          <!-- HTML类型的简单代码文件 -->
           <div v-if="simpleCodeFile" class="current-file">
             <div class="file-header">
               <div class="file-tab">
                 <FileOutlined class="file-icon" />
                 <span class="file-name">{{ simpleCodeFile.name }}</span>
                 <a-tag color="blue" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
-              </div>
+                </div>
             </div>
             <div class="code-content">
               <CodeHighlight
@@ -258,6 +220,58 @@
               />
               <div class="typing-cursor" v-if="!simpleCodeFile.completed">|</div>
             </div>
+          </div>
+
+          <!-- MULTI_FILE类型的多文件显示 -->
+          <div v-if="multiFiles.length > 0" class="multi-file-container">
+            <div class="multi-file-header">
+              <a-tag color="green" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
+              <span class="file-count">{{ multiFiles.length }} 个文件</span>
+            </div>
+            
+            <a-tabs
+              v-model:activeKey="activeMultiFileKey"
+              type="card"
+              class="multi-file-tabs"
+              :tab-position="'top'"
+            >
+              <a-tab-pane
+                v-for="file in multiFiles"
+                :key="file.name"
+                :tab="file.name"
+                :class="`multi-file-tab-${file.name.replace('.', '-')}`"
+              >
+                <template #tab>
+                  <span class="tab-content">
+                    <FileOutlined class="file-icon" />
+                    {{ file.name }}
+                    <a-badge 
+                      v-if="currentMultiFile === file.name && !file.completed"
+                      status="processing" 
+                      class="generating-badge"
+                    />
+                    <a-badge 
+                      v-else-if="file.completed"
+                      status="success" 
+                      class="completed-badge"
+                    />
+                  </span>
+                </template>
+                
+                <div class="code-content multi-file-code">
+                  <CodeHighlight
+                    :code="file.content"
+                    :language="file.language"
+                    :fileName="file.name"
+                    theme="atom-one-dark"
+                  />
+                  <div 
+                    class="typing-cursor" 
+                    v-if="currentMultiFile === file.name && !file.completed"
+                  >|</div>
+                </div>
+              </a-tab-pane>
+            </a-tabs>
           </div>
 
           <!-- Vue项目类型的已完成文件列表 -->
@@ -287,12 +301,12 @@
           </div>
 
           <!-- 占位符 -->
-          <div v-if="!currentGeneratingFile && !simpleCodeFile && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
+          <div v-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
             <div class="placeholder-icon">📄</div>
             <p>AI 生成的代码文件将在这里实时显示</p>
           </div>
 
-          <div v-else-if="!currentGeneratingFile && !simpleCodeFile && completedFiles.length === 0 && isGenerating" class="code-loading">
+          <div v-else-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && isGenerating" class="code-loading">
             <a-spin size="large" />
             <p>正在分析需求，准备生成代码...</p>
           </div>
@@ -415,11 +429,19 @@ const activeFileKeys = ref<string[]>([])
 // 代码流式输出定时器
 const codeStreamTimer = ref<any>(null)
 
-// HTML和MULTI_FILE专用的代码流式输出状态
+// HTML专用的代码流式输出状态
 const simpleCodeFile = ref<GeneratedFile | null>(null)
 const simpleCodeContent = ref('')
 const isSimpleCodeGenerating = ref(false)
 const inSimpleCodeBlock = ref(false)
+
+// MULTI_FILE专用的多文件流式输出状态
+const multiFiles = ref<GeneratedFile[]>([])
+const currentMultiFile = ref<string | null>(null)
+const isMultiFileGenerating = ref(false)
+const multiFileContents = ref<Record<string, string>>({})
+const activeMultiFileKey = ref<string>('')
+
 
 // 对话历史相关
 const loadingHistory = ref(false)
@@ -1002,6 +1024,11 @@ const filterOutCodeBlocks = (content: string): string => {
   // 移除特殊标记
   filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\]/g, '')
 
+  // 移除MULTI_FILE相关标记
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
+
   // 移除工具调用相关内容
   filteredContent = filteredContent.replace(/\[工具调用\][\s\S]*?(?=\n\n|$)/g, '')
 
@@ -1010,6 +1037,9 @@ const filterOutCodeBlocks = (content: string): string => {
 
   // 移除单行代码（`code`）但保留必要的标记文本
   filteredContent = filteredContent.replace(/`([^`\n]+)`/g, '$1')
+
+  // 移除包含MULTI_FILE_CONTENT的整行
+  filteredContent = filteredContent.replace(/^.*\[MULTI_FILE_CONTENT:.*$/gm, '')
 
   // 清理多余的空行
   filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
@@ -1023,9 +1053,13 @@ const parseStreamingContent = (chunk: string, fullContent: string) => {
   try {
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
 
-    // 为HTML和MULTI_FILE类型处理简单的代码流式输出
-    if (codeGenType === CodeGenTypeEnum.HTML || codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+    // HTML类型使用简单的代码流式输出
+    if (codeGenType === CodeGenTypeEnum.HTML) {
       parseSimpleCodeStreaming(chunk, fullContent)
+    } 
+    // MULTI_FILE类型使用专用的多文件流式输出
+    else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+      parseMultiFileStreaming(chunk, fullContent)
     } else {
       // Vue项目类型的复杂处理逻辑
       if (chunk.includes('[工具调用]') && chunk.includes('写入文件')) {
@@ -1153,9 +1187,29 @@ const streamCodeContent = (targetContent: string, isComplete: boolean) => {
 
       // 自动滚动到底部
       nextTick(() => {
-        const codeElement = document.querySelector('.current-file .code-content')
-        if (codeElement) {
-          codeElement.scrollTop = codeElement.scrollHeight
+        // 尝试多种选择器找到正确的滚动容器
+        const selectors = [
+          '.current-file .hljs',
+          '.current-file pre[class*="language-"]',
+          '.current-file pre',
+          '.current-file .code-content'
+        ]
+        
+        let scrollElement = null
+        for (const selector of selectors) {
+          const element = document.querySelector(selector)
+          if (element && element.scrollHeight > element.clientHeight) {
+            scrollElement = element
+            break
+          }
+        }
+        
+        if (scrollElement) {
+          scrollElement.scrollTop = scrollElement.scrollHeight
+          // 延迟再次滚动确保完全到达底部
+          setTimeout(() => {
+            scrollElement.scrollTop = scrollElement.scrollHeight
+          }, 50)
         }
       })
     } else {
@@ -1265,9 +1319,29 @@ const updateSimpleCodeContent = (content: string) => {
 
   // 自动滚动到底部
   nextTick(() => {
-    const codeElement = document.querySelector('.current-file .code-content')
-    if (codeElement) {
-      codeElement.scrollTop = codeElement.scrollHeight
+    // 尝试多种选择器找到正确的滚动容器
+    const selectors = [
+      '.current-file .hljs',
+      '.current-file pre[class*="language-"]',
+      '.current-file pre',
+      '.current-file .code-content'
+    ]
+    
+    let scrollElement = null
+    for (const selector of selectors) {
+      const element = document.querySelector(selector)
+      if (element && element.scrollHeight > element.clientHeight) {
+        scrollElement = element
+        break
+      }
+    }
+    
+    if (scrollElement) {
+      scrollElement.scrollTop = scrollElement.scrollHeight
+      // 延迟再次滚动确保完全到达底部
+      setTimeout(() => {
+        scrollElement.scrollTop = scrollElement.scrollHeight
+      }, 50)
     }
   })
 }
@@ -1289,6 +1363,189 @@ const completeSimpleCodeFile = () => {
     }
   }, 2000) // 2秒后清空，让用户看到完成状态
 }
+
+// MULTI_FILE专用的多文件流式处理
+const parseMultiFileStreaming = (chunk: string, fullContent: string) => {
+  try {
+    // 检查MULTI_FILE专用标记
+    if (chunk.includes('[MULTI_FILE_START:')) {
+      // 文件开始标记
+      const match = chunk.match(/\[MULTI_FILE_START:([^\]]+)\]/)
+      if (match) {
+        const fileName = match[1]
+        startMultiFile(fileName)
+      }
+    } else if (chunk.includes('[MULTI_FILE_CONTENT:')) {
+      // 文件内容标记
+      const match = chunk.match(/\[MULTI_FILE_CONTENT:([^\]]+)\](.*)$/s)
+      if (match) {
+        const fileName = match[1]
+        const content = match[2]
+        updateMultiFileContent(fileName, content)
+      }
+    } else if (chunk.includes('[MULTI_FILE_END:')) {
+      // 文件结束标记
+      const match = chunk.match(/\[MULTI_FILE_END:([^\]]+)\]/)
+      if (match) {
+        const fileName = match[1]
+        completeMultiFile(fileName)
+      }
+    }
+  } catch (error) {
+    console.error('解析多文件流失败:', error)
+  }
+}
+
+// 开始多文件生成
+const startMultiFile = (fileName: string) => {
+  if (!fileName) return
+
+  isMultiFileGenerating.value = true
+  currentMultiFile.value = fileName
+
+  // 确定文件语言类型
+  let language = 'html'
+  if (fileName.endsWith('.css')) language = 'css'
+  else if (fileName.endsWith('.js')) language = 'javascript'
+
+  // 检查文件是否已存在
+  let existingFile = multiFiles.value.find(file => file.name === fileName)
+  
+  if (!existingFile) {
+    // 创建新文件
+    const newFile: GeneratedFile = {
+      id: Date.now().toString() + '_' + fileName,
+      name: fileName,
+      path: fileName,
+      content: '',
+      language: language,
+      completed: false,
+      generatedAt: new Date().toISOString()
+    }
+    
+    multiFiles.value.push(newFile)
+    multiFileContents.value[fileName] = ''
+    
+    // 如果是第一个文件，设置为活动标签
+    if (multiFiles.value.length === 1) {
+      activeMultiFileKey.value = fileName
+    }
+  } else {
+    // 重置现有文件
+    existingFile.completed = false
+    existingFile.lastUpdated = new Date().toISOString()
+    multiFileContents.value[fileName] = existingFile.content
+  }
+}
+
+// 更新多文件内容
+const updateMultiFileContent = (fileName: string, content: string) => {
+  if (!fileName || !multiFileContents.value.hasOwnProperty(fileName)) return
+
+  // 清理内容中的标记符号，保留原始格式
+  let cleanContent = content
+    .replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
+    .replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
+    .replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
+
+  // 更新内容缓存
+  multiFileContents.value[fileName] += cleanContent
+
+  // 更新文件对象
+  const file = multiFiles.value.find(f => f.name === fileName)
+  if (file) {
+    file.content = multiFileContents.value[fileName]
+    file.lastUpdated = new Date().toISOString()
+  }
+
+  // 自动滚动到底部
+  nextTick(() => {
+    // 如果当前文件是正在生成的文件，切换到该标签
+    if (currentMultiFile.value === fileName) {
+      activeMultiFileKey.value = fileName
+    }
+    
+    // 滚动到最新内容的函数
+    const scrollToBottom = (retryCount = 0) => {
+      const maxRetries = 5
+      
+      // 尝试多种选择器以确保能找到正确的滚动容器
+      const selectors = [
+        // 活动标签页内的代码高亮容器
+        `.multi-file-container .ant-tabs-tabpane-active .hljs`,
+        `.multi-file-container .ant-tabs-tabpane-active pre[class*="language-"]`,
+        `.multi-file-container .ant-tabs-tabpane-active pre`,
+        // 活动标签页内的code容器
+        `.multi-file-container .ant-tabs-tabpane-active .code-content`,
+        // 通用选择器
+        `.ant-tabs-tabpane-active .code-content`,
+        `.ant-tabs-tabpane-active pre`,
+        `.multi-file-container .code-content`,
+        '.code-content'
+      ]
+      
+      let scrollElement = null
+      for (const selector of selectors) {
+        const elements = document.querySelectorAll(selector)
+        if (elements.length > 0) {
+          // 如果找到多个元素，选择可滚动的或最后一个
+          for (const element of elements) {
+            if (element.scrollHeight > element.clientHeight) {
+              scrollElement = element
+              break
+            }
+          }
+          // 如果没有找到可滚动的元素，使用最后一个
+          if (!scrollElement && elements.length > 0) {
+            scrollElement = elements[elements.length - 1]
+          }
+          if (scrollElement) break
+        }
+      }
+      
+      if (scrollElement) {
+        // 强制滚动到底部
+        scrollElement.scrollTop = scrollElement.scrollHeight
+        // 再次确保滚动到底部
+        setTimeout(() => {
+          scrollElement.scrollTop = scrollElement.scrollHeight
+        }, 50)
+      } else if (retryCount < maxRetries) {
+        // 如果找不到滚动元素，稍后重试
+        setTimeout(() => scrollToBottom(retryCount + 1), 100)
+      } else {
+        // 最终备用方案：滚动整个代码生成区域
+        const fallbackElement = document.querySelector('.code-generation-section')
+        if (fallbackElement) {
+          fallbackElement.scrollTop = fallbackElement.scrollHeight
+        }
+      }
+    }
+    
+    // 延迟执行滚动，确保标签切换和DOM渲染完成
+    setTimeout(() => scrollToBottom(), 200)
+  })
+}
+
+// 完成多文件生成
+const completeMultiFile = (fileName: string) => {
+  const file = multiFiles.value.find(f => f.name === fileName)
+  if (file) {
+    file.completed = true
+  }
+
+  // 如果是当前文件，清除当前状态
+  if (currentMultiFile.value === fileName) {
+    currentMultiFile.value = null
+  }
+
+  // 检查是否所有文件都已完成
+  const allCompleted = multiFiles.value.length > 0 && multiFiles.value.every(f => f.completed)
+  if (allCompleted) {
+    isMultiFileGenerating.value = false
+  }
+}
+
 
 // 页面加载时获取应用信息
 onMounted(() => {
@@ -1616,7 +1873,7 @@ onUnmounted(() => {
       position: relative;
       padding: 16px;
       background: #fafbfc;
-      max-height: 400px;
+      height: 500px;
       overflow-y: auto;
 
       .code-stream {
@@ -1709,6 +1966,44 @@ onUnmounted(() => {
             }
           }
         }
+      }
+    }
+  }
+
+  .multi-file-container {
+    background: white;
+    flex: 1;
+    
+    .multi-file-header {
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e8e8e8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .file-count {
+        color: #666;
+        font-size: 12px;
+      }
+    }
+    
+    .multi-file-tabs {
+      height: 500px;
+      
+      .ant-tabs-content-holder {
+        height: calc(100% - 44px);
+        
+        .ant-tabs-tabpane {
+          height: 100%;
+        }
+      }
+      
+      .multi-file-code {
+        height: 100%;
+        padding: 16px;
+        background: #fafbfc;
+        overflow-y: auto;
       }
     }
   }
