@@ -69,16 +69,16 @@
               </div>
             </div>
           </div>
-          
+
           <!-- 工具步骤显示区域 -->
           <div v-if="generationSteps.length > 0" class="steps-section">
             <div class="steps-header">
               <h4>AI 操作步骤</h4>
             </div>
             <div class="steps-container">
-              <div 
-                v-for="step in generationSteps" 
-                :key="step.id" 
+              <div
+                v-for="step in generationSteps"
+                :key="step.id"
                 class="step-item"
                 :class="{ 'step-running': step.status === 'running', 'step-completed': step.status === 'completed' }"
               >
@@ -87,12 +87,12 @@
                   <span class="step-title">{{ step.title }}</span>
                   <a-badge :status="getStepStatus(step)" />
                 </div>
-                
+
                 <!-- 工具调用列表 -->
                 <div v-if="step.toolCalls && step.toolCalls.length > 0" class="tool-calls">
-                  <div 
-                    v-for="call in step.toolCalls" 
-                    :key="call.id" 
+                  <div
+                    v-for="call in step.toolCalls"
+                    :key="call.id"
                     class="tool-call-item"
                   >
                     <div class="tool-selection">
@@ -190,17 +190,17 @@
         <div class="section-header">
           <h3>代码生成过程</h3>
           <div class="header-actions">
-            <a-button 
-              v-if="completedFiles.length > 0" 
-              type="link" 
+            <a-button
+              v-if="completedFiles.length > 0"
+              type="link"
               @click="clearAllFiles"
               size="small"
             >
               清空文件
             </a-button>
-            <a-button 
-              v-if="previewUrl" 
-              type="link" 
+            <a-button
+              v-if="previewUrl"
+              type="link"
               @click="openInNewTab"
               size="small"
             >
@@ -211,17 +211,17 @@
             </a-button>
           </div>
         </div>
-        
+
         <div class="code-output-container">
-          <!-- 当前生成的文件 -->
-          <div v-if="currentGeneratingFile" class="current-file">
+          <!-- Vue项目类型的当前生成文件 -->
+          <div v-if="currentGeneratingFile && !isSimpleCodeGenerating" class="current-file">
             <div class="file-header">
               <div class="file-tab">
                 <FileOutlined class="file-icon" />
                 <span class="file-name">{{ currentGeneratingFile.name }}</span>
-                <a-button 
-                  type="link" 
-                  size="small" 
+                <a-button
+                  type="link"
+                  size="small"
                   @click="minimizeCurrentFile"
                   v-if="currentGeneratingFile.completed"
                 >
@@ -230,8 +230,8 @@
               </div>
             </div>
             <div class="code-content">
-              <CodeHighlight 
-                :code="currentGeneratingFile.content" 
+              <CodeHighlight
+                :code="currentGeneratingFile.content"
                 :language="currentGeneratingFile.language"
                 :fileName="currentGeneratingFile.name"
                 theme="atom-one-dark"
@@ -240,11 +240,31 @@
             </div>
           </div>
 
-          <!-- 已完成的文件列表 -->
+          <!-- HTML和MULTI_FILE类型的简单代码文件 -->
+          <div v-if="simpleCodeFile" class="current-file">
+            <div class="file-header">
+              <div class="file-tab">
+                <FileOutlined class="file-icon" />
+                <span class="file-name">{{ simpleCodeFile.name }}</span>
+                <a-tag color="blue" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
+              </div>
+            </div>
+            <div class="code-content">
+              <CodeHighlight
+                :code="simpleCodeFile.content"
+                :language="simpleCodeFile.language"
+                :fileName="simpleCodeFile.name"
+                theme="atom-one-dark"
+              />
+              <div class="typing-cursor" v-if="!simpleCodeFile.completed">|</div>
+            </div>
+          </div>
+
+          <!-- Vue项目类型的已完成文件列表 -->
           <div class="completed-files">
             <a-collapse v-model:activeKey="activeFileKeys" v-if="completedFiles.length > 0">
-              <a-collapse-panel 
-                v-for="file in completedFiles" 
+              <a-collapse-panel
+                v-for="file in completedFiles"
                 :key="file.id"
               >
                 <template #header>
@@ -255,8 +275,8 @@
                   </div>
                 </template>
                 <div class="file-content-wrapper">
-                  <CodeHighlight 
-                    :code="file.content" 
+                  <CodeHighlight
+                    :code="file.content"
                     :language="file.language"
                     :fileName="file.name"
                     theme="atom-one-dark"
@@ -267,12 +287,12 @@
           </div>
 
           <!-- 占位符 -->
-          <div v-if="!currentGeneratingFile && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
+          <div v-if="!currentGeneratingFile && !simpleCodeFile && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
             <div class="placeholder-icon">📄</div>
             <p>AI 生成的代码文件将在这里实时显示</p>
           </div>
-          
-          <div v-else-if="!currentGeneratingFile && completedFiles.length === 0 && isGenerating" class="code-loading">
+
+          <div v-else-if="!currentGeneratingFile && !simpleCodeFile && completedFiles.length === 0 && isGenerating" class="code-loading">
             <a-spin size="large" />
             <p>正在分析需求，准备生成代码...</p>
           </div>
@@ -326,7 +346,6 @@ import {
   ExportOutlined,
   InfoCircleOutlined,
   DownloadOutlined,
-  EditOutlined,
   FileOutlined,
   MinusOutlined,
 } from '@ant-design/icons-vue'
@@ -396,6 +415,11 @@ const activeFileKeys = ref<string[]>([])
 // 代码流式输出定时器
 const codeStreamTimer = ref<any>(null)
 
+// HTML和MULTI_FILE专用的代码流式输出状态
+const simpleCodeFile = ref<GeneratedFile | null>(null)
+const simpleCodeContent = ref('')
+const isSimpleCodeGenerating = ref(false)
+const inSimpleCodeBlock = ref(false)
 
 // 对话历史相关
 const loadingHistory = ref(false)
@@ -648,12 +672,22 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         // 拼接内容
         if (content !== undefined && content !== null) {
           fullContent += content
-          messages.value[aiMessageIndex].content = fullContent
+
+          // 根据项目类型决定是否过滤代码块
+          const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+          if (codeGenType === CodeGenTypeEnum.HTML || codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+            // HTML和MULTI_FILE类型：过滤掉代码块内容，只显示文本描述
+            messages.value[aiMessageIndex].content = filterOutCodeBlocks(fullContent)
+          } else {
+            // VUE项目类型：显示完整内容，包括工具调用和步骤信息
+            messages.value[aiMessageIndex].content = fullContent
+          }
+
           messages.value[aiMessageIndex].loading = false
-          
+
           // 解析流式内容并更新右侧代码生成区域
           parseStreamingContent(content, fullContent)
-          
+
           scrollToBottom()
         }
       } catch (error) {
@@ -909,7 +943,7 @@ const getStepStatus = (step: GenerationStep): 'default' | 'processing' | 'succes
 const getToolColor = (toolType: string): string => {
   const colorMap: Record<string, string> = {
     '写入文件': 'blue',
-    '读取文件': 'green', 
+    '读取文件': 'green',
     '修改文件': 'orange',
     '删除文件': 'red',
     '读取目录': 'purple'
@@ -958,13 +992,28 @@ const detectLanguage = (filePath: string): string => {
 // 过滤代码块内容，只保留文本描述
 const filterOutCodeBlocks = (content: string): string => {
   if (!content) return ''
-  
-  // 移除代码块（```language code ```）
+
+  // 移除完整代码块（```language code ```）
   let filteredContent = content.replace(/```[\w-]*\n[\s\S]*?```/g, '')
-  
+
+  // 移除不完整的代码块（```开头但没有结束的）
+  filteredContent = filteredContent.replace(/```[\w-]*\n[\s\S]*$/g, '')
+
+  // 移除特殊标记
+  filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\]/g, '')
+
+  // 移除工具调用相关内容
+  filteredContent = filteredContent.replace(/\[工具调用\][\s\S]*?(?=\n\n|$)/g, '')
+
+  // 移除步骤信息
+  filteredContent = filteredContent.replace(/STEP\s+\d+:[\s\S]*?(?=\n\n|$)/g, '')
+
   // 移除单行代码（`code`）但保留必要的标记文本
   filteredContent = filteredContent.replace(/`([^`\n]+)`/g, '$1')
-  
+
+  // 清理多余的空行
+  filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
+
   return filteredContent.trim()
 }
 
@@ -972,19 +1021,24 @@ const filterOutCodeBlocks = (content: string): string => {
 // 流式内容解析器
 const parseStreamingContent = (chunk: string, fullContent: string) => {
   try {
-    // 检查是否包含工具调用标识
-    if (chunk.includes('[工具调用]') && chunk.includes('写入文件')) {
-      parseFileWriteToolCall(chunk, fullContent)
-    }
-    
-    // 检查是否包含代码块
-    if (chunk.includes('```')) {
-      parseCodeBlock(fullContent)
-    }
-    
-    // 检查步骤信息
-    if (chunk.includes('STEP ')) {
-      parseStepInfo(chunk)
+    const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+
+    // 为HTML和MULTI_FILE类型处理简单的代码流式输出
+    if (codeGenType === CodeGenTypeEnum.HTML || codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+      parseSimpleCodeStreaming(chunk, fullContent)
+    } else {
+      // Vue项目类型的复杂处理逻辑
+      if (chunk.includes('[工具调用]') && chunk.includes('写入文件')) {
+        parseFileWriteToolCall(chunk, fullContent)
+      }
+
+      if (chunk.includes('```')) {
+        parseCodeBlock(fullContent)
+      }
+
+      if (chunk.includes('STEP ')) {
+        parseStepInfo(chunk)
+      }
     }
   } catch (error) {
     console.error('解析流式内容失败:', error)
@@ -996,18 +1050,18 @@ const parseFileWriteToolCall = (chunk: string, fullContent: string) => {
   // 匹配工具调用模式：[工具调用] 写入文件 path/to/file.ext
   const toolCallPattern = /\[工具调用\]\s*写入文件\s+([^\n\r]+)/g
   const match = toolCallPattern.exec(chunk)
-  
+
   if (match) {
     const filePath = match[1].trim()
     const fileName = extractFileName(filePath)
     const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9)
-    
+
     // 如果当前已有文件正在生成，先将其完成并移到已完成列表
     if (currentGeneratingFile.value && !currentGeneratingFile.value.completed) {
       currentGeneratingFile.value.completed = true
       completedFiles.value.push(currentGeneratingFile.value)
     }
-    
+
     // 创建新的生成文件
     currentGeneratingFile.value = {
       id: fileId,
@@ -1024,22 +1078,22 @@ const parseFileWriteToolCall = (chunk: string, fullContent: string) => {
 // 解析代码块
 const parseCodeBlock = (fullContent: string) => {
   if (!currentGeneratingFile.value) return
-  
+
   // 首先查找最近的工具调用位置
   const toolCallIndex = fullContent.lastIndexOf('[工具调用] 写入文件')
   if (toolCallIndex === -1) return
-  
+
   // 从工具调用位置开始查找代码块
   const contentAfterTool = fullContent.substring(toolCallIndex)
-  
+
   // 匹配完整的代码块：```language\ncode content\n```
   const completeCodeBlockPattern = /```(?:[\w-]+)?\n([\s\S]*?)```/g
   const completeMatch = completeCodeBlockPattern.exec(contentAfterTool)
-  
+
   if (completeMatch) {
     // 找到完整的代码块
     const newCodeContent = completeMatch[1]
-    
+
     // 如果内容发生变化，实现流式更新
     if (currentGeneratingFile.value.content !== newCodeContent) {
       // 逐步更新内容以实现流式效果
@@ -1049,11 +1103,11 @@ const parseCodeBlock = (fullContent: string) => {
     // 查找正在生成的代码块（不完整）
     const incompleteCodeBlockPattern = /```(?:[\w-]+)?\n([\s\S]*)$/
     const incompleteMatch = incompleteCodeBlockPattern.exec(contentAfterTool)
-    
+
     if (incompleteMatch) {
       // 正在流式生成代码
       const newCodeContent = incompleteMatch[1]
-      
+
       // 如果内容发生变化，实现流式更新
       if (currentGeneratingFile.value.content !== newCodeContent) {
         streamCodeContent(newCodeContent, false)
@@ -1065,28 +1119,28 @@ const parseCodeBlock = (fullContent: string) => {
 // 流式更新代码内容 - 实现打字机效果
 const streamCodeContent = (targetContent: string, isComplete: boolean) => {
   if (!currentGeneratingFile.value) return
-  
+
   // 清理现有定时器
   if (codeStreamTimer.value) {
     clearInterval(codeStreamTimer.value)
     codeStreamTimer.value = null
   }
-  
+
   const currentContent = currentGeneratingFile.value.content
-  
+
   // 如果目标内容与当前内容相同，直接完成
   if (targetContent === currentContent) {
     currentGeneratingFile.value.completed = isComplete
     return
   }
-  
+
   // 如果内容完全不同，先重置内容
   if (targetContent.length < currentContent.length || !targetContent.startsWith(currentContent)) {
     currentGeneratingFile.value.content = ''
   }
-  
+
   let currentIndex = currentGeneratingFile.value.content.length
-  
+
   // 设置打字机效果的定时器
   codeStreamTimer.value = setInterval(() => {
     if (currentIndex < targetContent.length) {
@@ -1096,7 +1150,7 @@ const streamCodeContent = (targetContent: string, isComplete: boolean) => {
         currentGeneratingFile.value.lastUpdated = new Date().toISOString()
       }
       currentIndex++
-      
+
       // 自动滚动到底部
       nextTick(() => {
         const codeElement = document.querySelector('.current-file .code-content')
@@ -1120,15 +1174,15 @@ const parseStepInfo = (chunk: string) => {
   // 匹配步骤模式：STEP 1: 步骤描述
   const stepPattern = /STEP\s+(\d+):\s*(.+)/g
   const match = stepPattern.exec(chunk)
-  
+
   if (match) {
     const stepNumber = parseInt(match[1])
     const stepTitle = match[2].trim()
     const stepId = `step-${stepNumber}`
-    
+
     // 检查步骤是否已存在
     const existingStep = generationSteps.value.find(s => s.id === stepId)
-    
+
     if (!existingStep) {
       // 创建新步骤
       const newStep: GenerationStep = {
@@ -1139,7 +1193,7 @@ const parseStepInfo = (chunk: string) => {
         startTime: new Date().toISOString(),
         toolCalls: []
       }
-      
+
       generationSteps.value.push(newStep)
       currentStep.value = newStep
     } else {
@@ -1148,6 +1202,92 @@ const parseStepInfo = (chunk: string) => {
       currentStep.value = existingStep
     }
   }
+}
+
+// HTML和MULTI_FILE专用的简单代码流式处理
+const parseSimpleCodeStreaming = (chunk: string, fullContent: string) => {
+  try {
+    // 检查后端发送的特殊标记
+    if (chunk.includes('[CODE_BLOCK_START]')) {
+      // 代码块开始，创建简单的代码文件
+      startSimpleCodeFile()
+    } else if (chunk.includes('[CODE_STREAM]')) {
+      // 代码流内容，实时更新
+      const codeContent = chunk.replace('[CODE_STREAM]', '')
+      updateSimpleCodeContent(codeContent)
+    } else if (chunk.includes('[CODE_BLOCK_END]')) {
+      // 代码块结束
+      const codeContent = chunk.replace('[CODE_BLOCK_END]', '')
+      updateSimpleCodeContent(codeContent)
+      completeSimpleCodeFile()
+    }
+  } catch (error) {
+    console.error('解析简单代码流失败:', error)
+  }
+}
+
+// 开始简单的代码文件生成
+const startSimpleCodeFile = () => {
+  isSimpleCodeGenerating.value = true
+  inSimpleCodeBlock.value = true
+  simpleCodeContent.value = ''
+
+  // 根据应用类型确定文件名和语言
+  const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+  let fileName = 'index'
+  let language = 'html'
+  let fileExtension = '.html'
+
+  if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+    fileName = 'main'
+    language = 'javascript'
+    fileExtension = '.js'
+  }
+
+  simpleCodeFile.value = {
+    id: Date.now().toString(),
+    name: fileName + fileExtension,
+    path: fileName + fileExtension,
+    content: '',
+    language: language,
+    completed: false,
+    generatedAt: new Date().toISOString()
+  }
+}
+
+// 更新简单代码内容
+const updateSimpleCodeContent = (content: string) => {
+  if (!simpleCodeFile.value || !inSimpleCodeBlock.value) return
+
+  simpleCodeContent.value += content
+  simpleCodeFile.value.content = simpleCodeContent.value
+  simpleCodeFile.value.lastUpdated = new Date().toISOString()
+
+  // 自动滚动到底部
+  nextTick(() => {
+    const codeElement = document.querySelector('.current-file .code-content')
+    if (codeElement) {
+      codeElement.scrollTop = codeElement.scrollHeight
+    }
+  })
+}
+
+// 完成简单代码文件生成
+const completeSimpleCodeFile = () => {
+  if (!simpleCodeFile.value) return
+
+  inSimpleCodeBlock.value = false
+  isSimpleCodeGenerating.value = false
+  simpleCodeFile.value.completed = true
+
+  // 将文件移动到已完成列表（对于简单类型，直接显示在右侧）
+  setTimeout(() => {
+    if (simpleCodeFile.value) {
+      // 对于HTML和MULTI_FILE，直接在右侧显示即可
+      simpleCodeFile.value = null
+      simpleCodeContent.value = ''
+    }
+  }, 2000) // 2秒后清空，让用户看到完成状态
 }
 
 // 页面加载时获取应用信息
@@ -1300,7 +1440,7 @@ onUnmounted(() => {
 
 .steps-header {
   padding: 12px 0;
-  
+
   h4 {
     margin: 0;
     font-size: 14px;
@@ -1317,40 +1457,40 @@ onUnmounted(() => {
     border: 1px solid #e9ecef;
     border-radius: 8px;
     transition: all 0.3s ease;
-    
+
     &.step-running {
       background: #e6f7ff;
       border-color: #91d5ff;
     }
-    
+
     &.step-completed {
       background: #f6ffed;
       border-color: #b7eb8f;
     }
-    
+
     &:last-child {
       margin-bottom: 0;
     }
-    
+
     .step-header {
       display: flex;
       align-items: center;
       gap: 8px;
       margin-bottom: 8px;
-      
+
       .step-number {
         font-weight: bold;
         color: #1890ff;
         font-size: 12px;
       }
-      
+
       .step-title {
         flex: 1;
         font-size: 13px;
         color: #333;
       }
     }
-    
+
     .tool-calls {
       .tool-call-item {
         margin: 6px 0;
@@ -1358,25 +1498,25 @@ onUnmounted(() => {
         background: white;
         border-radius: 4px;
         border: 1px solid #e1e4e8;
-        
+
         .tool-selection {
           margin-bottom: 4px;
         }
-        
+
         .tool-execution {
           .tool-action {
             font-weight: 500;
             color: #333;
             margin-right: 8px;
           }
-          
+
           .file-path {
             color: #666;
             font-family: 'Monaco', 'Menlo', monospace;
             font-size: 12px;
             word-break: break-all;
           }
-          
+
           .operation-desc {
             margin: 4px 0 0 0;
             font-size: 12px;
@@ -1426,14 +1566,14 @@ onUnmounted(() => {
   padding: 16px;
   border-bottom: 1px solid #e8e8e8;
   background: #fafafa;
-  
+
   h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
     color: #1a1a1a;
   }
-  
+
   .header-actions {
     display: flex;
     gap: 8px;
@@ -1445,40 +1585,40 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  
+
   .current-file {
     background: white;
     border-bottom: 1px solid #e8e8e8;
-    
+
     .file-header {
       padding: 12px 16px;
       border-bottom: 1px solid #f0f0f0;
       background: #f8f9fa;
-      
+
       .file-tab {
         display: flex;
         align-items: center;
         gap: 8px;
-        
+
         .file-icon {
           color: #1890ff;
           font-size: 14px;
         }
-        
+
         .file-name {
           font-weight: 500;
           color: #333;
         }
       }
     }
-    
+
     .code-content {
       position: relative;
       padding: 16px;
       background: #fafbfc;
       max-height: 400px;
       overflow-y: auto;
-      
+
       .code-stream {
         font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
         font-size: 13px;
@@ -1487,14 +1627,14 @@ onUnmounted(() => {
         margin: 0;
         white-space: pre-wrap;
         word-wrap: break-word;
-        
+
         code {
           background: transparent;
           padding: 0;
           font-family: inherit;
         }
       }
-      
+
       .typing-cursor {
         animation: blink 1s infinite;
         display: inline-block;
@@ -1503,36 +1643,36 @@ onUnmounted(() => {
       }
     }
   }
-  
+
   .completed-files {
     flex: 1;
     overflow-y: auto;
-    
+
     .ant-collapse {
       border: none;
       background: transparent;
-      
+
       .ant-collapse-item {
         border-bottom: 1px solid #f0f0f0;
-        
+
         .ant-collapse-header {
           padding: 12px 16px !important;
-          
+
           .file-panel-header {
             display: flex;
             align-items: center;
             gap: 8px;
             width: 100%;
-            
+
             .file-icon {
               color: #52c41a;
             }
-            
+
             .file-name {
               font-weight: 500;
               color: #333;
             }
-            
+
             .file-path {
               margin-left: auto;
               font-size: 12px;
@@ -1540,16 +1680,16 @@ onUnmounted(() => {
             }
           }
         }
-        
+
         .ant-collapse-content {
           .ant-collapse-content-box {
             padding: 0;
           }
-          
+
           .file-content-wrapper {
             padding: 16px;
             background: #fafbfc;
-            
+
             .code-content {
               font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
               font-size: 13px;
@@ -1560,7 +1700,7 @@ onUnmounted(() => {
               overflow-y: auto;
               white-space: pre-wrap;
               word-wrap: break-word;
-              
+
               code {
                 background: transparent;
                 padding: 0;
@@ -1572,7 +1712,7 @@ onUnmounted(() => {
       }
     }
   }
-  
+
   .code-placeholder {
     display: flex;
     flex-direction: column;
@@ -1580,13 +1720,13 @@ onUnmounted(() => {
     justify-content: center;
     height: 100%;
     color: #666;
-    
+
     .placeholder-icon {
       font-size: 48px;
       margin-bottom: 16px;
     }
   }
-  
+
   .code-loading {
     display: flex;
     flex-direction: column;
@@ -1594,7 +1734,7 @@ onUnmounted(() => {
     justify-content: center;
     height: 100%;
     color: #666;
-    
+
     p {
       margin-top: 16px;
     }
