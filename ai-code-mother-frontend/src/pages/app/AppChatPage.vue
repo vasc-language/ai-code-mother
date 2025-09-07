@@ -390,7 +390,7 @@ interface GenerationStep {
 
 interface ToolCall {
   id: string
-  toolType: '写入文件' | '删除文件' | '读取目录' | '修改文件' | '读取文件'
+  toolType: string
   action: string
   filePath: string
   description: string
@@ -1034,8 +1034,15 @@ const filterOutCodeBlocks = (content: string): string => {
   filteredContent = filteredContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
   filteredContent = filteredContent.replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
 
-  // 移除工具调用相关内容
-  filteredContent = filteredContent.replace(/\[工具调用\][\s\S]*?(?=\n\n|$)/g, '')
+  // 保留工具调用信息，只过滤掉代码块内容
+  // 将工具调用格式化为更易读的格式
+  filteredContent = filteredContent.replace(/\[选择工具\]\s*([^\n]+)/g, (match, toolName) => {
+    return `**[选择工具]** ${toolName}\n`
+  })
+
+  filteredContent = filteredContent.replace(/\[工具调用\]\s*([^:\n]+)(?:\s*([^\n]*))?/g, (match, toolName, filePath) => {
+    return `**[工具调用]** ${toolName}${filePath ? ' ' + filePath : ''}\n\n`
+  })
 
   // 移除步骤信息
   filteredContent = filteredContent.replace(/STEP\s+\d+:[\s\S]*?(?=\n\n|$)/g, '')
@@ -1061,14 +1068,20 @@ const parseStreamingContent = (chunk: string, fullContent: string) => {
     // HTML类型使用简单的代码流式输出
     if (codeGenType === CodeGenTypeEnum.HTML) {
       parseSimpleCodeStreaming(chunk, fullContent)
-    } 
+    }
     // MULTI_FILE类型使用专用的多文件流式输出
     else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
       parseMultiFileStreaming(chunk, fullContent)
     } else {
       // Vue项目类型的复杂处理逻辑
-      if (chunk.includes('[工具调用]') && chunk.includes('写入文件')) {
-        parseFileWriteToolCall(chunk, fullContent)
+      if (chunk.includes('[工具调用]')) {
+        // 通用工具调用解析
+        parseToolCall(chunk, fullContent)
+
+        // 特殊处理写入文件（用于代码生成）
+        if (chunk.includes('写入文件')) {
+          parseFileWriteToolCall(chunk, fullContent)
+        }
       }
 
       if (chunk.includes('```')) {
@@ -1112,6 +1125,47 @@ const parseFileWriteToolCall = (chunk: string, fullContent: string) => {
       generatedAt: new Date().toISOString()
     }
   }
+}
+
+// 通用工具调用解析器
+const parseToolCall = (chunk: string, fullContent: string) => {
+  // 匹配所有工具调用模式：[工具调用] 工具名称 文件路径/参数
+  const toolCallPattern = /\[工具调用\]\s*([^:\n]+)(?:\s*([^\n]*))?/g
+  const match = toolCallPattern.exec(chunk)
+
+  if (match) {
+    const toolDisplayName = match[1].trim()
+    const filePath = match[2] ? match[2].trim() : ''
+
+    // 创建工具调用记录
+    const toolCall: ToolCall = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      toolType: toolDisplayName,
+      action: '执行',
+      filePath: filePath,
+      description: `${toolDisplayName}${filePath ? ': ' + filePath : ''}`,
+      status: 'completed',
+      timestamp: new Date().toISOString()
+    }
+
+    // 添加到当前步骤
+    if (currentStep.value) {
+      if (!currentStep.value.toolCalls) {
+        currentStep.value.toolCalls = []
+      }
+      currentStep.value.toolCalls.push(toolCall)
+    }
+
+    // 在右侧显示区域添加工具调用信息
+    showToolCallInfo(toolCall, toolDisplayName, filePath)
+  }
+}
+
+// 显示工具调用信息
+const showToolCallInfo = (toolCall: ToolCall, toolDisplayName: string, filePath: string) => {
+  // 屏蔽右边框的工具调用信息显示，避免敏感信息泄露
+  // 不再向右侧边栏添加工具调用信息
+  console.log(`工具调用已执行: ${toolDisplayName} - ${filePath || '无文件路径'}`)
 }
 
 // 解析代码块
@@ -1199,7 +1253,7 @@ const streamCodeContent = (targetContent: string, isComplete: boolean) => {
           '.current-file pre',
           '.current-file .code-content'
         ]
-        
+
         let scrollElement = null
         for (const selector of selectors) {
           const element = document.querySelector(selector)
@@ -1208,7 +1262,7 @@ const streamCodeContent = (targetContent: string, isComplete: boolean) => {
             break
           }
         }
-        
+
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight
           // 延迟再次滚动确保完全到达底部
@@ -1223,7 +1277,7 @@ const streamCodeContent = (targetContent: string, isComplete: boolean) => {
       codeStreamTimer.value = null
       if (currentGeneratingFile.value) {
         currentGeneratingFile.value.completed = isComplete
-        
+
         // 如果是完整的代码块，自动将文件移动到已完成列表
         if (isComplete) {
           // 将当前文件移动到已完成列表
@@ -1339,7 +1393,7 @@ const updateSimpleCodeContent = (content: string) => {
       '.current-file pre',
       '.current-file .code-content'
     ]
-    
+
     let scrollElement = null
     for (const selector of selectors) {
       const element = document.querySelector(selector)
@@ -1348,7 +1402,7 @@ const updateSimpleCodeContent = (content: string) => {
         break
       }
     }
-    
+
     if (scrollElement) {
       scrollElement.scrollTop = scrollElement.scrollHeight
       // 延迟再次滚动确保完全到达底部
@@ -1416,7 +1470,7 @@ const startMultiFile = (fileName: string) => {
 
   // 检查文件是否已存在
   let existingFile = multiFiles.value.find(file => file.name === fileName)
-  
+
   if (!existingFile) {
     // 创建新文件
     const newFile: GeneratedFile = {
@@ -1428,10 +1482,10 @@ const startMultiFile = (fileName: string) => {
       completed: false,
       generatedAt: new Date().toISOString()
     }
-    
+
     multiFiles.value.push(newFile)
     multiFileContents.value[fileName] = ''
-    
+
     // 如果是第一个文件，设置为活动标签
     if (multiFiles.value.length === 1) {
       activeMultiFileKey.value = fileName
@@ -1457,18 +1511,18 @@ const updateMultiFileContent = (fileName: string, content: string) => {
   // 直接更新内容，不使用定时器
   const currentContent = multiFileContents.value[fileName] || ''
   const newContent = currentContent + cleanContent
-  
+
   // 只有当内容真正变化时才更新
   if (newContent !== currentContent) {
     multiFileContents.value[fileName] = newContent
-    
+
     // 更新文件对象
     const file = multiFiles.value.find(f => f.name === fileName)
     if (file) {
       file.content = newContent
       file.lastUpdated = new Date().toISOString()
     }
-    
+
     // 智能滚动：只在内容增加时滚动
     nextTick(() => {
       smartScrollToBottom()
@@ -1484,7 +1538,7 @@ const smartScrollToBottom = () => {
     '.current-file pre',
     '.current-file .code-content'
   ]
-  
+
   let scrollElement = null
   for (const selector of selectors) {
     const element = document.querySelector(selector)
@@ -1493,11 +1547,11 @@ const smartScrollToBottom = () => {
       break
     }
   }
-  
+
   if (scrollElement) {
     // 检查是否已经接近底部（100px范围内）
     const isNearBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight < 100
-    
+
     if (isNearBottom) {
       scrollElement.scrollTop = scrollElement.scrollHeight
     }
@@ -1547,7 +1601,7 @@ const streamMultiFileContent = (fileName: string, newContent: string) => {
           '.current-file pre',
           '.current-file .code-content'
         ]
-        
+
         let scrollElement = null
         for (const selector of selectors) {
           const element = document.querySelector(selector)
@@ -1557,7 +1611,7 @@ const streamMultiFileContent = (fileName: string, newContent: string) => {
             break
           }
         }
-        
+
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight
           // 延迟再次滚动确保完全到达底部
@@ -1579,7 +1633,7 @@ const completeMultiFile = (fileName: string) => {
   const file = multiFiles.value.find(f => f.name === fileName)
   if (file) {
     file.completed = true
-    
+
     // 将完成的文件移动到已完成列表
     completedFiles.value.push(file)
     activeFileKeys.value = [file.id] // 自动展开这个文件
