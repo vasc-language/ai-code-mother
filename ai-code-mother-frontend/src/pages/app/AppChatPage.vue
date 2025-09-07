@@ -1367,14 +1367,7 @@ const completeSimpleCodeFile = () => {
   isSimpleCodeGenerating.value = false
   simpleCodeFile.value.completed = true
 
-  // 将文件移动到已完成列表（对于简单类型，直接显示在右侧）
-  setTimeout(() => {
-    if (simpleCodeFile.value) {
-      // 对于HTML和MULTI_FILE，直接在右侧显示即可
-      simpleCodeFile.value = null
-      simpleCodeContent.value = ''
-    }
-  }, 2000) // 2秒后清空，让用户看到完成状态
+  // 保持代码在红色框内显示，不清空
 }
 
 // MULTI_FILE专用的多文件流式处理
