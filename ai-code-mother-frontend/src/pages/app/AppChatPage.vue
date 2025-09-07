@@ -222,56 +222,53 @@
             </div>
           </div>
 
-          <!-- MULTI_FILE类型的多文件显示 -->
-          <div v-if="multiFiles.length > 0" class="multi-file-container">
-            <div class="multi-file-header">
-              <a-tag color="green" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
-              <span class="file-count">{{ multiFiles.length }} 个文件</span>
-            </div>
-            
-            <a-tabs
-              v-model:activeKey="activeMultiFileKey"
-              type="card"
-              class="multi-file-tabs"
-              :tab-position="'top'"
-            >
-              <a-tab-pane
-                v-for="file in multiFiles"
-                :key="file.name"
-                :tab="file.name"
-                :class="`multi-file-tab-${file.name.replace('.', '-')}`"
-              >
-                <template #tab>
-                  <span class="tab-content">
-                    <FileOutlined class="file-icon" />
-                    {{ file.name }}
-                    <a-badge 
-                      v-if="currentMultiFile === file.name && !file.completed"
-                      status="processing" 
-                      class="generating-badge"
-                    />
-                    <a-badge 
-                      v-else-if="file.completed"
-                      status="success" 
-                      class="completed-badge"
-                    />
-                  </span>
-                </template>
-                
-                <div class="code-content multi-file-code">
-                  <CodeHighlight
-                    :code="file.content"
-                    :language="file.language"
-                    :fileName="file.name"
-                    theme="atom-one-dark"
-                  />
-                  <div 
-                    class="typing-cursor" 
-                    v-if="currentMultiFile === file.name && !file.completed"
-                  >|</div>
+          <!-- MULTI_FILE类型的多文件显示 - 改为和Vue项目一样的样式 -->
+          <div v-if="multiFiles.length > 0">
+            <!-- 当前正在生成的文件 -->
+            <div v-if="currentMultiFile && isMultiFileGenerating" class="current-file">
+              <div class="file-header">
+                <div class="file-tab">
+                  <FileOutlined class="file-icon" />
+                  <span class="file-name">{{ currentMultiFile }}</span>
+                  <a-tag color="green" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
                 </div>
-              </a-tab-pane>
-            </a-tabs>
+              </div>
+              <div class="code-content">
+                <CodeHighlight
+                  :code="getCurrentMultiFileContent()"
+                  :language="getCurrentMultiFileLanguage()"
+                  :fileName="currentMultiFile"
+                  theme="atom-one-dark"
+                />
+                <div class="typing-cursor" v-if="isMultiFileGenerating">|</div>
+              </div>
+            </div>
+
+            <!-- 已完成的多文件列表 -->
+            <div class="completed-files">
+              <a-collapse v-model:activeKey="activeFileKeys" v-if="multiFiles.length > 0">
+                <a-collapse-panel
+                  v-for="file in multiFiles"
+                  :key="file.id"
+                >
+                  <template #header>
+                    <div class="file-panel-header">
+                      <FileOutlined class="file-icon" />
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-path">{{ file.path }}</span>
+                    </div>
+                  </template>
+                  <div class="file-content-wrapper">
+                    <CodeHighlight
+                      :code="file.content"
+                      :language="file.language"
+                      :fileName="file.name"
+                      theme="atom-one-dark"
+                    />
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </div>
           </div>
 
           <!-- Vue项目类型的已完成文件列表 -->
@@ -441,6 +438,9 @@ const currentMultiFile = ref<string | null>(null)
 const isMultiFileGenerating = ref(false)
 const multiFileContents = ref<Record<string, string>>({})
 const activeMultiFileKey = ref<string>('')
+
+// MULTI_FILE专用的流式输出定时器
+const multiFileStreamTimer = ref<any>(null)
 
 
 // 对话历史相关
@@ -987,6 +987,11 @@ const clearAllFiles = () => {
   completedFiles.value = []
   currentGeneratingFile.value = null
   activeFileKeys.value = []
+  // 清空MULTI_FILE相关状态
+  multiFiles.value = []
+  currentMultiFile.value = null
+  multiFileContents.value = {}
+  isMultiFileGenerating.value = false
 }
 
 const extractFileName = (filePath: string): string => {
@@ -1438,7 +1443,7 @@ const startMultiFile = (fileName: string) => {
   }
 }
 
-// 更新多文件内容
+// 更新多文件内容 - 直接更新，不使用定时器
 const updateMultiFileContent = (fileName: string, content: string) => {
   if (!fileName || !multiFileContents.value.hasOwnProperty(fileName)) return
 
@@ -1448,83 +1453,124 @@ const updateMultiFileContent = (fileName: string, content: string) => {
     .replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
     .replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
 
-  // 更新内容缓存
-  multiFileContents.value[fileName] += cleanContent
+  // 直接更新内容，不使用定时器
+  const currentContent = multiFileContents.value[fileName] || ''
+  const newContent = currentContent + cleanContent
+  
+  // 只有当内容真正变化时才更新
+  if (newContent !== currentContent) {
+    multiFileContents.value[fileName] = newContent
+    
+    // 更新文件对象
+    const file = multiFiles.value.find(f => f.name === fileName)
+    if (file) {
+      file.content = newContent
+      file.lastUpdated = new Date().toISOString()
+    }
+    
+    // 智能滚动：只在内容增加时滚动
+    nextTick(() => {
+      smartScrollToBottom()
+    })
+  }
+}
 
-  // 更新文件对象
-  const file = multiFiles.value.find(f => f.name === fileName)
-  if (file) {
-    file.content = multiFileContents.value[fileName]
-    file.lastUpdated = new Date().toISOString()
+// 智能滚动函数 - 只在用户接近底部时滚动
+const smartScrollToBottom = () => {
+  const selectors = [
+    '.current-file .hljs',
+    '.current-file pre[class*="language-"]',
+    '.current-file pre',
+    '.current-file .code-content'
+  ]
+  
+  let scrollElement = null
+  for (const selector of selectors) {
+    const element = document.querySelector(selector)
+    if (element && element.scrollHeight > element.clientHeight) {
+      scrollElement = element
+      break
+    }
+  }
+  
+  if (scrollElement) {
+    // 检查是否已经接近底部（100px范围内）
+    const isNearBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight < 100
+    
+    if (isNearBottom) {
+      scrollElement.scrollTop = scrollElement.scrollHeight
+    }
+  }
+}
+
+// 新增专门的流式输出函数 - 实现打字机效果（已废弃，保留备用）
+const streamMultiFileContent = (fileName: string, newContent: string) => {
+  if (!fileName || !multiFileContents.value.hasOwnProperty(fileName)) return
+
+  // 清理现有定时器
+  if (multiFileStreamTimer.value) {
+    clearInterval(multiFileStreamTimer.value)
+    multiFileStreamTimer.value = null
   }
 
-  // 自动滚动到底部
-  nextTick(() => {
-    // 如果当前文件是正在生成的文件，切换到该标签
-    if (currentMultiFile.value === fileName) {
-      activeMultiFileKey.value = fileName
-    }
-    
-    // 滚动到最新内容的函数
-    const scrollToBottom = (retryCount = 0) => {
-      const maxRetries = 5
-      
-      // 尝试多种选择器以确保能找到正确的滚动容器
-      const selectors = [
-        // 活动标签页内的代码高亮容器
-        `.multi-file-container .ant-tabs-tabpane-active .hljs`,
-        `.multi-file-container .ant-tabs-tabpane-active pre[class*="language-"]`,
-        `.multi-file-container .ant-tabs-tabpane-active pre`,
-        // 活动标签页内的code容器
-        `.multi-file-container .ant-tabs-tabpane-active .code-content`,
-        // 通用选择器
-        `.ant-tabs-tabpane-active .code-content`,
-        `.ant-tabs-tabpane-active pre`,
-        `.multi-file-container .code-content`,
-        '.code-content'
-      ]
-      
-      let scrollElement = null
-      for (const selector of selectors) {
-        const elements = document.querySelectorAll(selector)
-        if (elements.length > 0) {
-          // 如果找到多个元素，选择可滚动的或最后一个
-          for (const element of elements) {
-            if (element.scrollHeight > element.clientHeight) {
-              scrollElement = element
-              break
-            }
-          }
-          // 如果没有找到可滚动的元素，使用最后一个
-          if (!scrollElement && elements.length > 0) {
-            scrollElement = elements[elements.length - 1]
-          }
-          if (scrollElement) break
-        }
+  const currentContent = multiFileContents.value[fileName] || ''
+  const targetContent = currentContent + newContent
+
+  // 如果目标内容与当前内容相同，直接返回
+  if (targetContent === currentContent) {
+    return
+  }
+
+  let currentIndex = currentContent.length
+
+  // 设置打字机效果的定时器
+  multiFileStreamTimer.value = setInterval(() => {
+    if (currentIndex < targetContent.length) {
+      // 每次添加一个字符
+      multiFileContents.value[fileName] += targetContent[currentIndex]
+      currentIndex++
+
+      // 更新文件对象
+      const file = multiFiles.value.find(f => f.name === fileName)
+      if (file) {
+        file.content = multiFileContents.value[fileName]
+        file.lastUpdated = new Date().toISOString()
       }
-      
-      if (scrollElement) {
-        // 强制滚动到底部
-        scrollElement.scrollTop = scrollElement.scrollHeight
-        // 再次确保滚动到底部
-        setTimeout(() => {
+
+      // 每次添加字符后都触发滚动
+      nextTick(() => {
+        // 使用和Vue项目完全相同的滚动选择器和逻辑
+        const selectors = [
+          '.current-file .hljs',
+          '.current-file pre[class*="language-"]',
+          '.current-file pre',
+          '.current-file .code-content'
+        ]
+        
+        let scrollElement = null
+        for (const selector of selectors) {
+          const element = document.querySelector(selector)
+          // 只有当元素真正可滚动时才滚动
+          if (element && element.scrollHeight > element.clientHeight) {
+            scrollElement = element
+            break
+          }
+        }
+        
+        if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight
-        }, 50)
-      } else if (retryCount < maxRetries) {
-        // 如果找不到滚动元素，稍后重试
-        setTimeout(() => scrollToBottom(retryCount + 1), 100)
-      } else {
-        // 最终备用方案：滚动整个代码生成区域
-        const fallbackElement = document.querySelector('.code-generation-section')
-        if (fallbackElement) {
-          fallbackElement.scrollTop = fallbackElement.scrollHeight
+          // 延迟再次滚动确保完全到达底部
+          setTimeout(() => {
+            scrollElement.scrollTop = scrollElement.scrollHeight
+          }, 50)
         }
-      }
+      })
+    } else {
+      // 完成输出
+      clearInterval(multiFileStreamTimer.value)
+      multiFileStreamTimer.value = null
     }
-    
-    // 延迟执行滚动，确保标签切换和DOM渲染完成
-    setTimeout(() => scrollToBottom(), 200)
-  })
+  }, 10) // 每10毫秒添加一个字符，可根据需要调整速度
 }
 
 // 完成多文件生成
@@ -1532,6 +1578,10 @@ const completeMultiFile = (fileName: string) => {
   const file = multiFiles.value.find(f => f.name === fileName)
   if (file) {
     file.completed = true
+    
+    // 将完成的文件移动到已完成列表
+    completedFiles.value.push(file)
+    activeFileKeys.value = [file.id] // 自动展开这个文件
   }
 
   // 如果是当前文件，清除当前状态
@@ -1544,6 +1594,22 @@ const completeMultiFile = (fileName: string) => {
   if (allCompleted) {
     isMultiFileGenerating.value = false
   }
+}
+
+// 获取当前多文件内容
+const getCurrentMultiFileContent = () => {
+  if (!currentMultiFile.value) return ''
+  return multiFileContents.value[currentMultiFile.value] || ''
+}
+
+// 获取当前多文件语言
+const getCurrentMultiFileLanguage = () => {
+  if (!currentMultiFile.value) return 'text'
+  const fileName = currentMultiFile.value
+  if (fileName.endsWith('.css')) return 'css'
+  else if (fileName.endsWith('.js')) return 'javascript'
+  else if (fileName.endsWith('.html')) return 'html'
+  return 'text'
 }
 
 
@@ -1563,6 +1629,11 @@ onUnmounted(() => {
   if (codeStreamTimer.value) {
     clearInterval(codeStreamTimer.value)
     codeStreamTimer.value = null
+  }
+  // 清理MULTI_FILE专用的流式输出定时器
+  if (multiFileStreamTimer.value) {
+    clearInterval(multiFileStreamTimer.value)
+    multiFileStreamTimer.value = null
   }
   // EventSource 会在组件卸载时自动清理
 })
@@ -1841,7 +1912,7 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
 
   .current-file {
     background: white;
@@ -1873,7 +1944,8 @@ onUnmounted(() => {
       position: relative;
       padding: 16px;
       background: #fafbfc;
-      height: 500px;
+      min-height: 300px;
+      max-height: 600px;
       overflow-y: auto;
 
       .code-stream {
@@ -1953,7 +2025,7 @@ onUnmounted(() => {
               line-height: 1.5;
               color: #333;
               margin: 0;
-              max-height: 300px;
+              max-height: 500px;
               overflow-y: auto;
               white-space: pre-wrap;
               word-wrap: break-word;
@@ -1970,43 +2042,6 @@ onUnmounted(() => {
     }
   }
 
-  .multi-file-container {
-    background: white;
-    flex: 1;
-    
-    .multi-file-header {
-      padding: 12px 16px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #e8e8e8;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      .file-count {
-        color: #666;
-        font-size: 12px;
-      }
-    }
-    
-    .multi-file-tabs {
-      height: 500px;
-      
-      .ant-tabs-content-holder {
-        height: calc(100% - 44px);
-        
-        .ant-tabs-tabpane {
-          height: 100%;
-        }
-      }
-      
-      .multi-file-code {
-        height: 100%;
-        padding: 16px;
-        background: #fafbfc;
-        overflow-y: auto;
-      }
-    }
-  }
 
   .code-placeholder {
     display: flex;
