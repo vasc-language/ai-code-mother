@@ -271,32 +271,7 @@
             </div>
           </div>
 
-          <!-- Vue项目类型的已完成文件列表 -->
-          <div class="completed-files">
-            <a-collapse v-model:activeKey="activeFileKeys" v-if="completedFiles.length > 0">
-              <a-collapse-panel
-                v-for="file in completedFiles"
-                :key="file.id"
-              >
-                <template #header>
-                  <div class="file-panel-header">
-                    <FileOutlined class="file-icon" />
-                    <span class="file-name">{{ file.name }}</span>
-                    <span class="file-path">{{ file.path }}</span>
-                  </div>
-                </template>
-                <div class="file-content-wrapper">
-                  <CodeHighlight
-                    :code="file.content"
-                    :language="file.language"
-                    :fileName="file.name"
-                    theme="atom-one-dark"
-                  />
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-          </div>
-
+  
           <!-- 占位符 -->
           <div v-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
             <div class="placeholder-icon">📄</div>
