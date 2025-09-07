@@ -60,8 +60,8 @@
                 <a-avatar :src="aiAvatar" />
               </div>
               <div class="message-content">
-                <!-- 显示过滤代码块后的内容 -->
-                <MarkdownRenderer v-if="message.content" :content="filterOutCodeBlocks(message.content)" />
+                <!-- 根据项目类型显示内容 -->
+                <MarkdownRenderer v-if="message.content" :content="message.content" />
                 <div v-if="message.loading" class="loading-indicator">
                   <a-spin size="small" />
                   <span>AI 正在思考...</span>
@@ -700,8 +700,11 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
           if (codeGenType === CodeGenTypeEnum.HTML || codeGenType === CodeGenTypeEnum.MULTI_FILE) {
             // HTML和MULTI_FILE类型：过滤掉代码块内容，只显示文本描述
             messages.value[aiMessageIndex].content = filterOutCodeBlocks(fullContent)
+          } else if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+            // VUE项目类型：显示完整内容，包括工具调用和步骤信息，但格式化工具调用信息
+            messages.value[aiMessageIndex].content = formatVueProjectContent(fullContent)
           } else {
-            // VUE项目类型：显示完整内容，包括工具调用和步骤信息
+            // 其他类型：使用默认处理
             messages.value[aiMessageIndex].content = fullContent
           }
 
@@ -1057,6 +1060,57 @@ const filterOutCodeBlocks = (content: string): string => {
   filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
 
   return filteredContent.trim()
+}
+
+// VUE项目专用：只格式化工具调用信息，过滤代码片段
+const formatVueProjectContent = (content: string): string => {
+  if (!content) return ''
+  
+  let formattedContent = content
+
+  // 移除完整代码块（```language code ```）
+  formattedContent = formattedContent.replace(/```[\w-]*\n[\s\S]*?```/g, '')
+
+  // 移除不完整的代码块（```开头但没有结束的）
+  formattedContent = formattedContent.replace(/```[\w-]*\n[\s\S]*$/g, '')
+
+  // 移除特殊标记
+  formattedContent = formattedContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\]/g, '')
+
+  // 移除MULTI_FILE相关标记
+  formattedContent = formattedContent.replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
+  formattedContent = formattedContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
+  formattedContent = formattedContent.replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
+
+  // 移除步骤信息
+  formattedContent = formattedContent.replace(/STEP\s+\d+:[\s\S]*?(?=\n\n|$)/g, '')
+
+  // 移除单行代码（`code`）但保留必要的标记文本
+  formattedContent = formattedContent.replace(/`([^`\n]+)`/g, '$1')
+
+  // 移除包含MULTI_FILE_CONTENT的整行
+  formattedContent = formattedContent.replace(/^.*\[MULTI_FILE_CONTENT:.*$/gm, '')
+
+  // 关键修复：在所有工具调用标记前后添加换行符，确保它们被正确分隔
+  formattedContent = formattedContent.replace(/(\[选择工具\])/g, '\n$1')
+  formattedContent = formattedContent.replace(/(\[工具调用\])/g, '\n$1')
+
+  // 将工具调用格式化为更易读的格式，确保有换行效果
+  // [选择工具] 格式化为加粗并换行，匹配到下一个方括号或结尾为止
+  formattedContent = formattedContent.replace(/\[选择工具\]\s*([^\[\n\r]*)/g, (match, toolName) => {
+    return `**[选择工具]** ${toolName.trim()}\n\n`
+  })
+
+  // [工具调用] 格式化为加粗并换行，匹配到下一个方括号或结尾为止
+  formattedContent = formattedContent.replace(/\[工具调用\]\s*([^\[\n\r]*)/g, (match, content) => {
+    return `**[工具调用]** ${content.trim()}\n\n`
+  })
+
+  // 清理多余的空行
+  formattedContent = formattedContent.replace(/\n\s*\n\s*\n/g, '\n\n')
+  formattedContent = formattedContent.replace(/^\n+/, '') // 移除开头的空行
+
+  return formattedContent.trim()
 }
 
 
