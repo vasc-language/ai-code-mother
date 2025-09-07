@@ -506,11 +506,24 @@ const loadChatHistory = async (isLoadMore = false) => {
       if (chatHistories.length > 0) {
         // 将对话历史转换为消息格式，并按时间正序排列（老消息在前）
         const historyMessages: Message[] = chatHistories
-          .map((chat) => ({
-            type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
-            content: chat.message || '',
-            createTime: chat.createTime,
-          }))
+          .map((chat) => {
+            let content = chat.message || ''
+            // 如果是AI消息，根据项目类型过滤掉代码相关信息
+            if (chat.messageType === 'ai') {
+              if (appInfo.value?.codeGenType === CodeGenTypeEnum.HTML) {
+                content = filterHtmlContent(content)
+              } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+                content = filterOutCodeBlocks(content)
+              } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+                content = formatVueProjectContent(content)
+              }
+            }
+            return {
+              type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
+              content: content,
+              createTime: chat.createTime,
+            }
+          })
           .reverse() // 反转数组，让老消息在前
         if (isLoadMore) {
           // 加载更多时，将历史消息添加到开头
@@ -697,8 +710,11 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
           // 根据项目类型决定是否过滤代码块
           const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
-          if (codeGenType === CodeGenTypeEnum.HTML || codeGenType === CodeGenTypeEnum.MULTI_FILE) {
-            // HTML和MULTI_FILE类型：过滤掉代码块内容，只显示文本描述
+          if (codeGenType === CodeGenTypeEnum.HTML) {
+            // HTML类型：只保留简单的文本描述，移除所有代码相关信息
+            messages.value[aiMessageIndex].content = filterHtmlContent(fullContent)
+          } else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+            // MULTI_FILE类型：过滤掉代码块内容，但保留工具调用信息
             messages.value[aiMessageIndex].content = filterOutCodeBlocks(fullContent)
           } else if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
             // VUE项目类型：显示完整内容，包括工具调用和步骤信息，但格式化工具调用信息
@@ -1019,45 +1035,72 @@ const detectLanguage = (filePath: string): string => {
   return languageMap[ext || ''] || 'text'
 }
 
-// 过滤代码块内容，只保留文本描述
+// HTML模式专用：完全移除代码片段，只保留AI的文本描述
+const filterHtmlContent = (content: string): string => {
+  if (!content) return ''
+
+  // 移除完整代码块（```language code ```）及其前后内容
+  let filteredContent = content.replace(/(\n\s*)?```[\w-]*\n[\s\S]*?```(\n\s*)?/g, '')
+
+  // 移除不完整的代码块（```开头但没有结束的）及其后面的所有内容
+  filteredContent = filteredContent.replace(/(\n\s*)?```[\w-]*\n[\s\S]*$/g, '')
+
+  // 移除HTML代码流式输出的特殊标记及其周围的代码内容
+  filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\][\s\S]*?(?=\n\n|$)/g, '')
+
+  // 移除内联代码标记
+  filteredContent = filteredContent.replace(/`[^`\n]*`/g, '')
+  
+  // 移除任何包含代码标记的行
+  filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
+  filteredContent = filteredContent.replace(/^.*`.*$/gm, '')
+  
+  // 清理多余的空行
+  filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
+  filteredContent = filteredContent.replace(/^\n+/, '') // 移除开头的空行
+  filteredContent = filteredContent.replace(/\n\s*$/, '') // 移除结尾的空行
+
+  return filteredContent.trim()
+}
+
+// MULTI_FILE模式专用：完全移除代码片段，只保留AI的文本描述
 const filterOutCodeBlocks = (content: string): string => {
   if (!content) return ''
 
-  // 移除完整代码块（```language code ```）
-  let filteredContent = content.replace(/```[\w-]*\n[\s\S]*?```/g, '')
+  // 移除完整代码块（```language code ```）及其前后内容
+  let filteredContent = content.replace(/(\n\s*)?```[\w-]*\n[\s\S]*?```(\n\s*)?/g, '')
 
-  // 移除不完整的代码块（```开头但没有结束的）
-  filteredContent = filteredContent.replace(/```[\w-]*\n[\s\S]*$/g, '')
+  // 移除不完整的代码块（```开头但没有结束的）及其后面的所有内容
+  filteredContent = filteredContent.replace(/(\n\s*)?```[\w-]*\n[\s\S]*$/g, '')
 
-  // 移除特殊标记
-  filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\]/g, '')
+  // 移除所有MULTI_FILE相关标记及其周围的内容
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_START:[^\]]+\][\s\S]*?(?=\n\n|$)/g, '')
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\][\s\S]*?(?=\n\n|$)/g, '')
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_END:[^\]]+\][\s\S]*?(?=\n\n|$)/g, '')
 
-  // 移除MULTI_FILE相关标记
-  filteredContent = filteredContent.replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
-  filteredContent = filteredContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
-  filteredContent = filteredContent.replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
+  // 移除特殊标记及其周围内容
+  filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\][\s\S]*?(?=\n\n|$)/g, '')
 
-  // 保留工具调用信息，只过滤掉代码块内容
-  // 将工具调用格式化为更易读的格式
-  filteredContent = filteredContent.replace(/\[选择工具\]\s*([^\n]+)/g, (match, toolName) => {
-    return `**[选择工具]** ${toolName}\n`
-  })
+  // 移除内联代码标记
+  filteredContent = filteredContent.replace(/`[^`\n]*`/g, '')
 
-  filteredContent = filteredContent.replace(/\[工具调用\]\s*([^:\n]+)(?:\s*([^\n]*))?/g, (match, toolName, filePath) => {
-    return `**[工具调用]** ${toolName}${filePath ? ' ' + filePath : ''}\n\n`
-  })
+  // 移除工具调用信息（完全移除，不显示在左边框）
+  filteredContent = filteredContent.replace(/\[选择工具\][\s\S]*?(?=\n\n|$)/g, '')
+  filteredContent = filteredContent.replace(/\[工具调用\][\s\S]*?(?=\n\n|$)/g, '')
 
   // 移除步骤信息
   filteredContent = filteredContent.replace(/STEP\s+\d+:[\s\S]*?(?=\n\n|$)/g, '')
 
-  // 移除单行代码（`code`）但保留必要的标记文本
-  filteredContent = filteredContent.replace(/`([^`\n]+)`/g, '$1')
-
-  // 移除包含MULTI_FILE_CONTENT的整行
-  filteredContent = filteredContent.replace(/^.*\[MULTI_FILE_CONTENT:.*$/gm, '')
+  // 移除任何包含代码标记的行
+  filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
+  filteredContent = filteredContent.replace(/^.*`.*$/gm, '')
+  filteredContent = filteredContent.replace(/^.*\[MULTI_FILE_.*$/gm, '')
+  filteredContent = filteredContent.replace(/^.*\[CODE_.*$/gm, '')
 
   // 清理多余的空行
   filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
+  filteredContent = filteredContent.replace(/^\n+/, '') // 移除开头的空行
+  filteredContent = filteredContent.replace(/\n\s*$/, '') // 移除结尾的空行
 
   return filteredContent.trim()
 }
