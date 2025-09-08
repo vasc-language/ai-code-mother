@@ -108,6 +108,11 @@ public class AppController {
         return Flux.merge(dataEvents, interruptEvent)
                 // 一旦发送了 interrupted 事件就结束 SSE
                 .takeUntil(sse -> "interrupted".equals(sse.event()))
+                // 前端主动断开 SSE（未显式调用 /stop）时，同样触发取消，确保后台保存/构建链路停止
+                .doOnCancel(() -> {
+                    generationControlRegistry.cancel(rid);
+                    log.info("[SSE-CANCEL] runId={} cancelled by client disconnect", rid);
+                })
                 .doFinally(sig -> {
                     generationControlRegistry.remove(rid);
                     log.info("[SSE-END] runId={}, appId={}, userId={}, signal={}", rid, finalAppId, finalUserId, sig);

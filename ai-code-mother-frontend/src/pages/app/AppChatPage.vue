@@ -692,6 +692,8 @@ const sendMessage = async () => {
 // 生成代码 - 使用 EventSource 处理流式响应
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   let streamCompleted = false
+  // 新一轮生成前，重置“手动停止”标志，防止误判
+  stoppedByUser.value = false
 
   try {
     // 获取 axios 配置的 baseURL
