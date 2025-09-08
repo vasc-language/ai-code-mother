@@ -9,6 +9,7 @@ import com.spring.aicodemother.model.vo.AppVO;
 import com.spring.aicodemother.model.entity.App;
 import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
+import com.spring.aicodemother.core.control.GenerationControlRegistry.GenerationControl;
 
 import java.util.List;
 
@@ -27,6 +28,9 @@ public interface AppService extends IService<App> {
     List<AppVO> getAppVOList(List<App> appList);
 
     Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    // New signature supporting manual cancellation
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser, GenerationControl control);
 
     Long createApp(AppAddRequest appAddRequest, User loginUser);
 

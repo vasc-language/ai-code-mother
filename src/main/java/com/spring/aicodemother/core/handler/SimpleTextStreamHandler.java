@@ -27,7 +27,8 @@ public class SimpleTextStreamHandler {
      */
     public Flux<String> handle(Flux<String> originFlux,
                                ChatHistoryService chatHistoryService,
-                               long appId, User loginUser, CodeGenTypeEnum codeGenType) {
+                               long appId, User loginUser, CodeGenTypeEnum codeGenType,
+                               java.util.function.BooleanSupplier cancelled) {
         StringBuilder aiResponseBuilder = new StringBuilder();
         StringBuilder codeBuffer = new StringBuilder();
         boolean[] inCodeBlock = new boolean[]{false};
@@ -45,11 +46,17 @@ public class SimpleTextStreamHandler {
                     return chunk;
                 })
                 .doOnComplete(() -> {
+                    if (cancelled != null && cancelled.getAsBoolean()) {
+                        return;
+                    }
                     // 流式响应完成后，添加AI消息到对话历史
                     String aiResponse = aiResponseBuilder.toString();
                     chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
                 })
                 .doOnError(error -> {
+                    if (cancelled != null && cancelled.getAsBoolean()) {
+                        return;
+                    }
                     // 如果AI回复失败，也要记录错误消息
                     String errorMessage = "AI回复失败: " + error.getMessage();
                     chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());

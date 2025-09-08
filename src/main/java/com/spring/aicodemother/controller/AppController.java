@@ -5,7 +5,6 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.spring.aicodemother.ai.AiCodeGenTypeRoutingService;
 import com.spring.aicodemother.annotation.AuthCheck;
 import com.spring.aicodemother.common.BaseResponse;
 import com.spring.aicodemother.common.DeleteRequest;
@@ -18,7 +17,6 @@ import com.spring.aicodemother.exception.ThrowUtils;
 import com.spring.aicodemother.model.dto.app.*;
 import com.spring.aicodemother.model.vo.AppVO;
 import com.spring.aicodemother.model.entity.User;
-import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
 import com.spring.aicodemother.ratelimit.annotation.RateLimit;
 import com.spring.aicodemother.ratelimit.enums.RateLimitType;
 import com.spring.aicodemother.service.ProjectDownloadService;
@@ -26,7 +24,6 @@ import com.spring.aicodemother.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.bytebuddy.implementation.bytecode.Throw;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -44,6 +41,10 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
+import com.spring.aicodemother.core.control.GenerationControlRegistry;
+import com.spring.aicodemother.core.control.GenerationControlRegistry.GenerationControl;
+
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 /**
  * 应用 控制层。
@@ -64,6 +65,9 @@ public class AppController {
     @Resource
     private ProjectDownloadService projectDownloadService;
 
+    @Resource
+    private GenerationControlRegistry generationControlRegistry;
+
 //    @Resource
 //    private ProjectDownloadService projectDownloadService;
 
@@ -71,15 +75,24 @@ public class AppController {
     @RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI 对话请求过于频繁，请稍后再试")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
+                                                       @RequestParam(required = false) String runId,
                                                        HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 id 错误");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "提示词不能为空");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
-        // 调用服务生成代码（SSE 流式返回）
-        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
-        return contentFlux
+        // 生成控制器：用于手动取消
+        final String rid = StrUtil.isBlank(runId) ? java.util.UUID.randomUUID().toString() : runId;
+        final Long finalAppId = appId;
+        final Long finalUserId = loginUser.getId();
+        GenerationControl control = generationControlRegistry.register(rid, String.valueOf(finalUserId), finalAppId);
+        log.info("[SSE-START] runId={}, appId={}, userId={}", rid, finalAppId, finalUserId);
+        // 调用服务生成代码（SSE 流式返回）并绑定取消信号
+        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser, control);
+        // 将业务流与取消信号融合，取消时立刻向前端发送 interrupted 事件并终止
+        Flux<ServerSentEvent<String>> dataEvents = contentFlux
+                .takeUntilOther(control.cancelFlux())
                 .map(chunk -> {
                     Map<String, String> wrapper = Map.of("d", chunk);
                     String jsonData = JSONUtil.toJsonStr(wrapper);
@@ -87,13 +100,38 @@ public class AppController {
                             .data(jsonData)
                             .build();
                 })
-                .concatWith(Mono.just(
-                        // 发送结束事件
-                        ServerSentEvent.<String>builder()
-                                .event("done")
-                                .data("")
-                                .build()
-                ));
+                .concatWith(Mono.fromSupplier(() -> ServerSentEvent.<String>builder().event("done").data("").build()));
+
+        Flux<ServerSentEvent<String>> interruptEvent = control.cancelFlux()
+                .map(v -> ServerSentEvent.<String>builder().event("interrupted").data("").build());
+
+        return Flux.merge(dataEvents, interruptEvent)
+                // 一旦发送了 interrupted 事件就结束 SSE
+                .takeUntil(sse -> "interrupted".equals(sse.event()))
+                .doFinally(sig -> {
+                    generationControlRegistry.remove(rid);
+                    log.info("[SSE-END] runId={}, appId={}, userId={}, signal={}", rid, finalAppId, finalUserId, sig);
+                });
+    }
+
+    /**
+     * 手动停止当前运行
+     */
+    @PostMapping(value = "/chat/stop", consumes = APPLICATION_JSON_VALUE)
+    @RateLimit(limitType = RateLimitType.USER, rate = 20, rateInterval = 60, message = "操作过于频繁，请稍后")
+    public BaseResponse<Boolean> stopChat(@RequestBody Map<String, String> payload, HttpServletRequest request) {
+        String runId = payload == null ? null : payload.get("runId");
+        ThrowUtils.throwIf(StrUtil.isBlank(runId), ErrorCode.PARAMS_ERROR, "runId 不能为空");
+        // 权限校验：仅拥有者可取消
+        User loginUser = userService.getLoginUser(request);
+        GenerationControl control = generationControlRegistry.get(runId);
+        ThrowUtils.throwIf(control == null, ErrorCode.NOT_FOUND_ERROR, "运行不存在或已结束");
+        if (control.getOwnerUserId() != null && !String.valueOf(loginUser.getId()).equals(control.getOwnerUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权停止该生成");
+        }
+        generationControlRegistry.cancel(runId);
+        log.info("[SSE-CANCEL] runId={} cancelled by userId={}", runId, loginUser.getId());
+        return ResultUtils.success(true);
     }
 
     /**

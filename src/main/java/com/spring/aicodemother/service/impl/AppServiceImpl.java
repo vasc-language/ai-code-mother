@@ -77,6 +77,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
+        // Backward compatibility: run without external cancellation
+        return chatToGenCode(appId, message, loginUser, null);
+    }
+
+    // New entry with cancellation control
+    public Flux<String> chatToGenCode(Long appId, String message, User loginUser,
+                                      com.spring.aicodemother.core.control.GenerationControlRegistry.GenerationControl control) {
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户提示词不能为空");
@@ -102,10 +109,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                         .appId(appId.toString())
                         .build()
         );
-        // 7. 调用 AI 生成代码（流式）
-        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
-        // 8. 收集AI响应内容并在完成后记录到对话历史
-        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+        // 7. 调用 AI 生成代码（流式）并绑定取消信号
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId, control);
+        // 8. 收集AI响应内容并在完成后记录到对话历史（根据取消状态抑制副作用）
+        java.util.function.BooleanSupplier cancelled = (control == null) ? (() -> false) : control::isCancelled;
+        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum,
+                        cancelled)
                 .doFinally(signalType -> {
                     // 无论成功与否，最后流结束都清除
                     MonitorContextHolder.clearContext();

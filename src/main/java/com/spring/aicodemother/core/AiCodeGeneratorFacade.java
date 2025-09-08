@@ -10,6 +10,8 @@ import com.spring.aicodemother.ai.model.message.ToolExecutedMessage;
 import com.spring.aicodemother.ai.model.message.ToolRequestMessage;
 import com.spring.aicodemother.constant.AppConstant;
 import com.spring.aicodemother.core.build.VueProjectBuilder;
+import com.spring.aicodemother.core.control.GenerationControlRegistry;
+import com.spring.aicodemother.core.control.GenerationControlRegistry.GenerationControl;
 import com.spring.aicodemother.core.parser.CodeParserExecutor;
 import com.spring.aicodemother.core.saver.CodeFileSaverExecutor;
 import com.spring.aicodemother.exception.BusinessException;
@@ -34,6 +36,8 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+    @Resource
+    private GenerationControlRegistry generationControlRegistry;
 
     /**
      * 统一入口：根据类型生成并保存代码（非流式）
@@ -71,7 +75,8 @@ public class AiCodeGeneratorFacade {
      * @param codeGenTypeEnum 生成类型
      * @return 保存的目录
      */
-    public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId) {
+    public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId,
+                                                  GenerationControl control) {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型不能为空");
         }
@@ -80,15 +85,15 @@ public class AiCodeGeneratorFacade {
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.HTML, appId);
+                yield processCodeStream(codeStream, CodeGenTypeEnum.HTML, appId, control);
             }
             case MULTI_FILE -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
+                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId, control);
             }
             case VUE_PROJECT -> {
                 TokenStream codeTokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-                yield processTokenStream(codeTokenStream, appId);
+                yield processTokenStream(codeTokenStream, appId, control);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -103,11 +108,23 @@ public class AiCodeGeneratorFacade {
      * @param tokenStream TokenStream 对象
      * @return Flux<String> 流式响应
      */
-    private Flux<String> processTokenStream(TokenStream tokenStream, Long appId) {
+    private Flux<String> processTokenStream(TokenStream tokenStream, Long appId, GenerationControl control) {
         return Flux.create(sink -> {
             try {
+                java.util.concurrent.atomic.AtomicBoolean completed = new java.util.concurrent.atomic.AtomicBoolean(false);
+                // 当下游取消或释放时，触发控制器取消，以便上层尽早停止
+                if (control != null) {
+                    sink.onCancel(control::cancel);
+                    sink.onDispose(control::cancel);
+                }
                 tokenStream.onPartialResponse((String partialResponse) -> {
                             try {
+                                if (control != null && control.isCancelled()) {
+                                    if (completed.compareAndSet(false, true)) {
+                                        sink.complete();
+                                    }
+                                    return;
+                                }
                                 AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
                                 sink.next(JSONUtil.toJsonStr(aiResponseMessage));
                             } catch (Exception e) {
@@ -117,6 +134,9 @@ public class AiCodeGeneratorFacade {
                         })
                         .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
                             try {
+                                if (control != null && control.isCancelled()) {
+                                    return;
+                                }
                                 ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
                                 sink.next(JSONUtil.toJsonStr(toolRequestMessage));
                             } catch (Exception e) {
@@ -126,6 +146,9 @@ public class AiCodeGeneratorFacade {
                         })
                         .onToolExecuted((ToolExecution toolExecution) -> {
                             try {
+                                if (control != null && control.isCancelled()) {
+                                    return;
+                                }
                                 ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
                                 sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
                             } catch (Exception e) {
@@ -142,7 +165,9 @@ public class AiCodeGeneratorFacade {
                         .onCompleteResponse((ChatResponse response) -> {
                             // 同步构造 Vue 项目（同步执行，确保预览时项目已就绪）
                             String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-                            vueProjectBuilder.buildProject(projectPath);
+                            if (control == null || !control.isCancelled()) {
+                                vueProjectBuilder.buildProject(projectPath);
+                            }
                             sink.complete();
                         })
                         .onError((Throwable error) -> {
@@ -170,6 +195,7 @@ public class AiCodeGeneratorFacade {
                 sink.error(e);
             }
         })
+        .takeUntilOther(control == null ? reactor.core.publisher.Mono.never() : control.cancelFlux())
         // 添加错误恢复操作符，确保流不会因为单次错误而完全中断
         .onErrorResume(throwable -> {
             log.error("Flux流处理错误，尝试恢复: {}", throwable.getMessage());
@@ -189,14 +215,19 @@ public class AiCodeGeneratorFacade {
      * @param codeGenType 代码生成类型
      * @return 流式响应
      */
-    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId) {
+    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId,
+                                           GenerationControl control) {
         // 使用cache()确保流可以被多次订阅
-        Flux<String> cachedStream = codeStream.cache();
+        Flux<String> controlled = (control == null) ? codeStream : codeStream.takeUntilOther(control.cancelFlux());
+        Flux<String> cachedStream = controlled.cache();
 
         // 异步处理保存操作，不阻塞原流
         cachedStream.collect(StringBuilder::new, StringBuilder::append)
                 .doOnSuccess(codeBuilder -> {
                     try {
+                        if (control != null && control.isCancelled()) {
+                            return; // 用户取消，跳过保存
+                        }
                         String completeCode = codeBuilder.toString();
                         // 使用执行器解析代码
                         Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);

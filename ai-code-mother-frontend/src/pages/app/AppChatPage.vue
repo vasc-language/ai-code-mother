@@ -144,6 +144,16 @@
                 </template>
               </a-button>
             </div>
+            <!-- 蓝色浮动按钮：停止 / 继续 -->
+            <button
+              v-if="isOwner"
+              class="stream-toggle"
+              :title="isGenerating ? '停止生成' : (stoppedByUser ? '继续生成' : '开始生成')"
+              @click="onToggleStream"
+            >
+              <span v-if="isGenerating">■</span>
+              <span v-else>▶</span>
+            </button>
           </div>
         </div>
       </div>
@@ -402,6 +412,12 @@ const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
+// Streaming control state
+let eventSource: EventSource | null = null
+const currentRunId = ref<string | null>(null)
+const stoppedByUser = ref(false)
+const lastUserMessage = ref('')
+const currentAiMessageIndex = ref<number | null>(null)
 
 // 工具步骤相关状态
 const generationSteps = ref<GenerationStep[]>([])
@@ -668,12 +684,13 @@ const sendMessage = async () => {
 
   // 开始生成
   isGenerating.value = true
+  lastUserMessage.value = message
+  currentAiMessageIndex.value = aiMessageIndex
   await generateCode(message, aiMessageIndex)
 }
 
 // 生成代码 - 使用 EventSource 处理流式响应
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
-  let eventSource: EventSource | null = null
   let streamCompleted = false
 
   try {
@@ -684,11 +701,16 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     const params = new URLSearchParams({
       appId: appId.value || '',
       message: userMessage,
+      runId: (currentRunId.value = (crypto as any)?.randomUUID?.() || `run_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2)}`),
     })
 
     const url = `${baseURL}/app/chat/gen/code?${params}`
 
     // 创建 EventSource 连接
+    // 先关闭旧连接
+    eventSource?.close()
     eventSource = new EventSource(url, {
       withCredentials: true,
     })
@@ -697,7 +719,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理接收到的消息
     eventSource.onmessage = function (event) {
-      if (streamCompleted) return
+      if (streamCompleted || !isGenerating.value) return
 
       try {
         // 解析JSON包装的数据
@@ -739,17 +761,31 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理done事件
     eventSource.addEventListener('done', function () {
-      if (streamCompleted) return
+      if (streamCompleted || !isGenerating.value) return
 
       streamCompleted = true
       isGenerating.value = false
       eventSource?.close()
+      eventSource = null
+      stoppedByUser.value = false
+      currentRunId.value = null
 
       // 延迟更新预览，确保后端已完成处理
       setTimeout(async () => {
         await fetchAppInfo()
         updatePreview()
       }, 1000)
+    })
+
+    // 处理interrupted事件（手动停止）
+    eventSource.addEventListener('interrupted', function () {
+      if (streamCompleted) return
+      streamCompleted = true
+      isGenerating.value = false
+      eventSource?.close()
+      eventSource = null
+      // 保持 stoppedByUser = true，以便显示继续按钮语义
+      currentRunId.value = null
     })
 
     // 处理business-error事件（后端限流等错误）
@@ -784,6 +820,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         streamCompleted = true
         isGenerating.value = false
         eventSource?.close()
+        eventSource = null
+        stoppedByUser.value = false
+        currentRunId.value = null
 
         setTimeout(async () => {
           await fetchAppInfo()
@@ -799,6 +838,45 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   }
 }
 
+// 手动停止/继续切换
+const onToggleStream = async () => {
+  if (!isOwner.value) return
+  if (isGenerating.value) {
+    // 停止当前生成
+    stoppedByUser.value = true
+    isGenerating.value = false
+    if (currentAiMessageIndex.value !== null) {
+      // 停止后去掉该条的 loading 态
+      const msg = messages.value[currentAiMessageIndex.value]
+      msg.loading = false
+      if (!msg.content || msg.content.trim().length === 0) {
+        msg.content = '⏹ 已停止，未生成内容'
+      } else {
+        msg.content = msg.content + '\n\n⏹ 已停止'
+      }
+    }
+    try {
+      const rid = currentRunId.value
+      eventSource?.close()
+      eventSource = null
+      if (rid) {
+        await request('/app/chat/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: { runId: rid },
+        })
+      }
+      message.info('已停止生成')
+    } catch (e) {
+      // ignore errors for stop
+    }
+  } else if (stoppedByUser.value && lastUserMessage.value && currentAiMessageIndex.value !== null) {
+    // 继续，以新的 runId 重新开始
+    isGenerating.value = true
+    await generateCode(lastUserMessage.value, currentAiMessageIndex.value!)
+  }
+}
+
 // 错误处理函数
 const handleError = (error: unknown, aiMessageIndex: number) => {
   console.error('生成代码失败：', error)
@@ -806,6 +884,10 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   messages.value[aiMessageIndex].loading = false
   message.error('生成失败，请重试')
   isGenerating.value = false
+  eventSource?.close()
+  eventSource = null
+  currentRunId.value = null
+  stoppedByUser.value = false
 }
 
 // 更新预览
@@ -2026,6 +2108,25 @@ onUnmounted(() => {
   position: absolute;
   bottom: 8px;
   right: 8px;
+}
+
+/* 蓝色浮动的流控制按钮 */
+.stream-toggle {
+  position: absolute;
+  right: 56px; /* 不遮挡发送按钮 */
+  bottom: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: #1677ff;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
 }
 
 /* 右侧代码生成区域 */

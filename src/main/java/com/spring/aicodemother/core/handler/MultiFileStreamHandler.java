@@ -36,7 +36,8 @@ public class MultiFileStreamHandler {
      */
     public Flux<String> handle(Flux<String> originFlux,
                                ChatHistoryService chatHistoryService,
-                               long appId, User loginUser) {
+                               long appId, User loginUser,
+                               java.util.function.BooleanSupplier cancelled) {
         StringBuilder aiResponseBuilder = new StringBuilder();
         MultiFileContext context = new MultiFileContext();
         
@@ -49,11 +50,17 @@ public class MultiFileStreamHandler {
                     return processMultiFileChunk(chunk, context);
                 })
                 .doOnComplete(() -> {
+                    if (cancelled != null && cancelled.getAsBoolean()) {
+                        return;
+                    }
                     // 流式响应完成后，添加AI消息到对话历史
                     String aiResponse = aiResponseBuilder.toString();
                     chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
                 })
                 .doOnError(error -> {
+                    if (cancelled != null && cancelled.getAsBoolean()) {
+                        return;
+                    }
                     // 如果AI回复失败，也要记录错误消息
                     String errorMessage = "AI回复失败: " + error.getMessage();
                     chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
