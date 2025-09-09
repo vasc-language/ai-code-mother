@@ -132,27 +132,29 @@
               @keydown.enter.prevent="sendMessage"
               :disabled="isGenerating"
             />
-            <div class="input-actions">
-              <a-button
-                type="primary"
-                @click="sendMessage"
-                :loading="isGenerating"
-                :disabled="!isOwner"
+            <!-- 合一主按钮：发送 / 停止 / 继续（非作者可见但禁用） -->
+            <a-tooltip v-if="!isOwner" title="无法在别人的作品下对话哦~" placement="top">
+              <button
+                class="stream-toggle"
+                :title="primaryActionTitle"
+                :disabled="true"
+                @click="onPrimaryActionClick"
               >
-                <template #icon>
-                  <SendOutlined />
-                </template>
-              </a-button>
-            </div>
-            <!-- 蓝色浮动按钮：停止 / 继续 -->
+                <span v-if="btnState === 'stop'">■</span>
+                <span v-else-if="btnState === 'continue'">▶</span>
+                <SendOutlined v-else :style="{ opacity: 0.5 }" />
+              </button>
+            </a-tooltip>
             <button
-              v-if="isOwner"
+              v-else
               class="stream-toggle"
-              :title="isGenerating ? '停止生成' : (stoppedByUser ? '继续生成' : '开始生成')"
-              @click="onToggleStream"
+              :title="primaryActionTitle"
+              :disabled="primaryActionDisabled"
+              @click="onPrimaryActionClick"
             >
-              <span v-if="isGenerating">■</span>
-              <span v-else>▶</span>
+              <span v-if="btnState === 'stop'">■</span>
+              <span v-else-if="btnState === 'continue'">▶</span>
+              <SendOutlined v-else :style="{ opacity: btnState === 'disabled' ? 0.5 : 1 }" />
             </button>
           </div>
         </div>
@@ -531,6 +533,51 @@ const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
 
+// 合一按钮状态机：send | stop | continue | disabled
+type BtnState = 'send' | 'stop' | 'continue' | 'disabled'
+const btnState = computed<BtnState>(() => {
+  if (!isOwner.value) return 'disabled'
+  if (isGenerating.value) return 'stop'
+  const hasInput = !!(userInput.value && userInput.value.trim())
+  if (stoppedByUser.value) {
+    if (hasInput) return 'send'
+    if (lastUserMessage.value && currentAiMessageIndex.value !== null) return 'continue'
+    return 'disabled'
+  }
+  return hasInput ? 'send' : 'disabled'
+})
+
+const primaryActionDisabled = computed(() => btnState.value === 'disabled')
+const primaryActionTitle = computed(() => {
+  switch (btnState.value) {
+    case 'stop':
+      return '停止生成'
+    case 'continue':
+      return '继续生成'
+    case 'send':
+      return '发送'
+    default:
+      return '请输入提示词'
+  }
+})
+
+const onPrimaryActionClick = async () => {
+  if (!isOwner.value) {
+    message.info('无法在别人的作品下对话哦~')
+    return
+  }
+  const state = btnState.value
+  if (state === 'stop' || state === 'continue') {
+    await onToggleStream()
+    return
+  }
+  if (state === 'send') {
+    await sendMessage()
+    return
+  }
+  message.info('请输入提示词')
+}
+
 // 应用详情相关
 const appDetailVisible = ref(false)
 
@@ -538,6 +585,21 @@ const appDetailVisible = ref(false)
 const showAppDetail = () => {
   appDetailVisible.value = true
 }
+
+// 全局快捷键：生成中按 Enter 触发“停止”
+const globalKeyHandler = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && isGenerating.value) {
+    e.preventDefault()
+    // 仅当拥有者时可操作；非拥有者无效果（按钮已禁用）
+    if (isOwner.value) {
+      onToggleStream()
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', globalKeyHandler)
+})
 
 // 加载对话历史
 const loadChatHistory = async (isLoadMore = false) => {
@@ -2051,6 +2113,7 @@ onMounted(() => {
 
 // 清理资源
 onUnmounted(() => {
+  window.removeEventListener('keydown', globalKeyHandler)
   // 清理代码流式定时器
   if (codeStreamTimer.value) {
     clearInterval(codeStreamTimer.value)
@@ -2323,7 +2386,7 @@ onUnmounted(() => {
 /* 蓝色浮动的流控制按钮 */
 .stream-toggle {
   position: absolute;
-  right: 56px; /* 不遮挡发送按钮 */
+  right: 8px; /* 合一按钮靠右显示 */
   bottom: 8px;
   width: 32px;
   height: 32px;
@@ -2337,6 +2400,10 @@ onUnmounted(() => {
   justify-content: center;
   font-weight: 700;
   line-height: 1;
+}
+.stream-toggle[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 右侧代码生成区域 */

@@ -2,6 +2,29 @@
 
 本说明记录“蓝色按钮随开随关”功能的最终实现方案与关键设计点，覆盖前后端协议约定、后端取消链路、前端交互与状态管理，以及已知限制与后续建议。
 
+附：本次 Bug 修复记录（停止后仍继续旧计划输出）
+- 现象（见 tmp/screenshots/20250903/error-1.png）：停止后重新下达“请重新生成 index.html 文件”，页面仍沿用上一轮未中断的计划继续输出其它文件。
+- 根因归纳：
+  1) 后端仅在顶层使用 takeUntilOther(cancelFlux) 截断推送，但底层 TokenStream 的工具执行与递归 follow-up chat 未感知取消；
+  2) 前端在新一轮生成时，偶发接收/渲染上一个 run 的残余分片（SSE 定时批次或网络延迟到达），造成“继续旧计划”的观感；
+  3) 继续操作对同一 AI 消息行未清空旧文案，呈现为“在原内容上追加”。
+- 修复思路与落地：
+  后端（硬化取消传播）
+  - dev/langchain4j/service/AiServiceTokenStream.java：新增 withCancellation(Supplier<Boolean>)，把外部取消信号透传到流式 Handler；
+  - dev/langchain4j/service/AiServiceStreamingResponseHandler.java：在 onPartialResponse/onPartialToolExecutionRequest/onToolExecuted/onCompleteResponse/onError 前均判断取消，已取消则直接 return，阻断工具执行与后续递归调用；
+  - core/AiCodeGeneratorFacade.java：若 TokenStream 为 AiServiceTokenStream，则注入取消判断 stream.withCancellation(() -> control != null && control.isCancelled())；保留 takeUntilOther(cancelFlux) 与 sink.onCancel/onDispose → control.cancel()；
+  - 以上确保“停止”后既不再向前端推送，也不再执行写文件/构建等副作用，更不会把旧流的后续步骤带入下一次会话。
+  前端（源头隔离与 UI 正确性）
+  - pages/app/AppChatPage.vue：为每次 generate() 捕获 myRunId，在 onmessage/done/interrupted/onerror/flushToUi 中若 currentRunId !== myRunId 则丢弃事件，彻底消除旧 run 残留分片对 UI 的影响；
+  - onToggleStream 改进：
+    - Continue 模式会将同一条 AI 消息重置为 loading 状态并清空旧内容，再以新 runId 重新发起，避免“接着旧内容往下写”；
+    - Idle 模式下点蓝色按钮等同“开始生成”快捷入口（若输入为空则给予提示）。
+  - 继续保留微批渲染（≈40ms）与定时器清理，避免频繁重绘及内存泄漏。
+- 验收要点：
+  - 停止≤200ms：前端停止追加、后端不再推送/不触发工具；
+  - 新指令仅按新 prompt 输出；旧 run 的任何事件/工具结果不会污染 UI 或落库；
+  - 继续/开始操作的文案与 loading 表现正确，无“在旧内容上续写”的错觉。
+
 一、目标回顾
 - 生成中点击“停止”：
   - 前端立即停止追加展示，按钮状态立刻切换；
@@ -116,4 +139,3 @@
   - “继续”操作可立即重新发起并正常收到流式输出。
 
 （完）
-
