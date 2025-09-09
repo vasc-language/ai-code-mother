@@ -139,3 +139,59 @@
   - “继续”操作可立即重新发起并正常收到流式输出。
 
 （完）
+
+---
+
+% 发送/停止合一按钮（UI 实现完成）
+
+目标
+- 将输入框右下角的两个蓝色按钮（发送、停止/继续）合并为一个更简洁、美观的主按钮，同时具备：
+  - 生成中一键停止（前端立即停更，后端 POST /app/chat/stop）。
+  - 空闲时一键发送当前输入。
+  - 手动停止后无输入时，支持“继续生成”。
+- 非作品拥有者也能看到该按钮，但处于禁用态并展示提示。
+
+实现要点（前端）
+- 文件：ai-code-mother-frontend/src/pages/app/AppChatPage.vue
+- 状态机（computed）：
+  - btnState: 'send' | 'stop' | 'continue' | 'disabled'
+  - 依据 isGenerating、stoppedByUser、userInput、lastUserMessage 与 isOwner 计算。
+- 模板调整：
+  - 移除独立的发送按钮，仅保留一个 `.stream-toggle` 主按钮；
+  - 非拥有者：按钮可见但禁用，外层包裹 a-tooltip 提示“无法在别人的作品下对话哦~”；
+  - 图标切换：stop=■、continue=▶、send=SendOutlined（禁用时 50% 透明）。
+- 事件处理：
+  - 新增 onPrimaryActionClick()：
+    - stop/continue → 复用 onToggleStream()（停止或以新 runId 继续）。
+    - send → 调用 sendMessage()。
+    - disabled → message.info('请输入提示词')。
+  - onPrimaryActionClick 内部首先校验 isOwner，非拥有者弹提示并返回。
+- 全局快捷键：
+  - 新增 window keydown 监听：生成中按 Enter 触发停止（owners only）。
+  - onMounted 绑定、onUnmounted 移除，避免泄漏；与原 textarea 的 @keydown.enter.prevent 共存（生成中 textarea 已禁用）。
+- 样式：
+  - `.stream-toggle` 位置从 `right: 56px` 调整为 `right: 8px` 以适配单按钮布局；
+  - 新增禁用态样式 `.stream-toggle[disabled] { opacity: .5; cursor: not-allowed; }`。
+
+交互逻辑（摘要）
+- 生成中：按钮=■ 停止；点击或按 Enter 立即停止（关闭 SSE 并调用 /app/chat/stop）。
+- 停止后：
+  - 有新输入：按钮=发送，点击发送新请求。
+  - 无输入但存在 lastUserMessage：按钮=▶ 继续，点击以新 runId 重新触发同一语义请求。
+- 空闲且无输入：按钮禁用并提示“请输入提示词”。
+- 非拥有者：按钮始终禁用，展示“无法在别人的作品下对话哦~”。
+
+影响面与兼容性
+- 后端 API 与 SSE 协议不变；仅改变前端交互触发路径。
+- 继续沿用 runId 相关性与 onToggleStream 的定时器/缓冲清理逻辑，避免旧流残留影响。
+
+验收用例
+- 空输入未生成：按钮禁用；输入文本后变为“发送”，点击后开始生成。
+- 生成中：按钮变为“停止”，点击或按 Enter ≤200ms 内停更并触发 /app/chat/stop。
+- 停止后：
+  - 输入框为空 → 按钮为“继续”，点击后以新 runId 正常续生成；
+  - 输入框有内容 → 按钮为“发送”，点击后按新输入生成。
+- 非拥有者：按钮可见但禁用，悬浮与点击均提示无权限对话。
+
+备注
+- 若后续需要新增 Esc=停止 的快捷键，可在同一全局 keydown 中匹配 e.key==='Escape' 并复用 onToggleStream() 实现。

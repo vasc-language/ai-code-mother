@@ -1,3 +1,70 @@
+% 停止按钮问题修复 TODO（优先级 P0）
+
+问题与现象
+- 场景：在页面生成过程中点击“停止”，随后再次输入“请重新生成 index.html”，输出却继续沿着上一次未中断的计划生成其它文件，与新指令无关（见 tmp/screenshots/20250903/error-1.png）。
+- 预判根因：
+  - 旧流在后端仍继续运行与执行工具调用（写文件等），前端仅停止了展示；
+  - 新请求复用同一会话上下文/状态，导致模型延续旧计划；
+  - SSE 晚到分片或重连未完全清理，造成 UI 误拼接旧流内容。
+
+修复目标（验收标准）
+- 点击“停止”≤200ms 内：
+  - 后端停止向前端推送任何新分片，并停止/跳过工具调用与后续副作用（写文件、构建等）。
+  - 前端不再显示“AI 正在思考…”，当前消息标记为“已停止”。
+- 再次发送新指令时：
+  - 仅依据新的 prompt 输出；不延续之前的计划或继续写其它文件。
+  - 旧 run 不会再产生对 UI/持久层的任何影响。
+
+实施清单（按文件与模块）
+- 前端（Vite + Vue 3）
+  - ai-code-mother-frontend/src/pages/app/AppChatPage.vue：
+    - 已有：`runId`、`eventSource.close()`、`/app/chat/stop`。核对并补充：
+      - 在开始新一轮生成前清空上轮解析状态（HTML/MULTI_FILE 的 inSimpleCodeBlock、isMultiFileGenerating、currentMultiFile 等）。
+      - 统一复位缓冲与计时器：`clearSseTimerAndBuffers()`、`codeStreamTimer`、`multiFileStreamTimer`。
+      - 以 `runId` 作为前端侧“相关性”键：若收到的分片不在当前 `runId` 的连接上，直接丢弃。
+      - 组件卸载时如仍在生成，调用 `onToggleStream()` 主动终止。
+
+- 后端 Controller 层
+  - src/main/java/com/spring/aicodemother/controller/AppController.java：
+    - 已有：`GenerationControlRegistry` + `cancelFlux()` + `interrupted` 事件。
+    - 补充日志：`[SSE-CANCEL]` 触发后记录 runId、appId、userId、触发来源（手动/断连）。
+
+- 后端 Service/Facade 层（关键改造）
+  - src/main/java/com/spring/aicodemother/core/AiCodeGeneratorFacade.java：
+    - 保持 `takeUntilOther(control.cancelFlux())`；在保存/构建前再次判断 `control.isCancelled()`（已覆盖）。
+  - 重要：在 LangChain4j 适配层引入“可取消”检查，阻断工具执行与后续链路：
+    - src/main/java/dev/langchain4j/service/AiServiceTokenStream.java：
+      - 新增一个 `Supplier<Boolean> isCancelled`（或直接传入 `GenerationControl`）并向下传递给 Handler；
+      - 在 `start()` 前订阅取消信号，若已取消则直接短路返回；
+      - 在 `onError/complete` 回调前后，若取消则不再继续派发。
+    - src/main/java/dev/langchain4j/service/AiServiceStreamingResponseHandler.java：
+      - 在以下位置优先判断 `isCancelled.get()` 并 `return`：
+        - `onPartialResponse`
+        - `onPartialToolExecutionRequest` 与 `onCompleteToolExecutionRequest`
+        - 工具真实执行前（调用 `ToolExecutor.execute(...)` 前）
+        - `onToolExecuted` 与 `onCompleteResponse`
+      - 若取消：不执行工具、不落库、不触发二次递归调用。
+
+- 历史落库与副作用
+  - src/main/java/com/spring/aicodemother/core/handler/*.java：
+    - 已有根据 `cancelled.getAsBoolean()` 的落库抑制；回归确认取消路径不会写入 AI 消息。
+  - Vue 构建：`vueProjectBuilder.buildProject(...)` 已按 `!control.isCancelled()` 防守；保持不变。
+
+测试计划
+- 单测：
+  - `JsonMessageStreamHandlerCancelTest` 扩展：模拟取消后不落库；
+  - 新增 `AiServiceStreamingResponseHandlerCancelTest`：断言取消后不触发 `ToolExecutor` 与 `completeResponseHandler`。
+- 手测脚本：
+  - 用例 A：生成 Vue 项目 → 中途“停止” → 立刻发送“请重新生成 index.html”→ 仅输出 index.html；
+  - 用例 B：生成 HTML → 停止 → 继续 → 输出从头开始的新流；
+  - 用例 C：断网或刷新导致的断连 → 旧流不再产生任何 UI 更新或落库。
+
+回滚与风险
+- 若底层模型不支持真正中断：也要做到“前端不展示、后端不执行工具与不落库”。
+- 改动集中在本仓内置的 langchain4j 适配层，风险可控，可随时回滚。
+
+— — —
+
 % 手动停止 / 恢复 AI 生成（SSE 流）实施计划
 
 > 根据 AGENTS.md 规范与截图 tmp/screenshots/20250903/error_two.png：为对话输入框右下角蓝色按钮增加“随开随关”的生成控制。目标是：当用户点击时，立即停止前端显示与后端生成，并可再次点击重新开始新一轮生成。
@@ -253,3 +320,125 @@
   - 在 /app/chat/gen/code SSE 流开始时先发送 keepalive（data: {"d":""}），确保前端首包 onmessage 快速触发（降低 TTFT）。
 - 待办：
   - 将指标上报为可视化监控（当前仅 console）。
+
+---
+
+合并发送/停止为单一按钮（UI 计划）
+
+背景
+- 根据截图 tmp/screenshots/20250903/fix-12.png，当前输入框右下角存在两个蓝色按钮：左侧“流控制（开始/停止/继续）”，右侧“发送”。希望合并为一个更简洁、美观、语义清晰的按钮，同时具备两者功能。
+
+目标与交互（状态机）
+- 单一按钮依据页面状态动态展示与触发不同动作：
+  - 状态 S0 Idle（未输入、未在生成、未手动停止）：
+    - 图标：纸飞机（发送）灰态；禁用。
+    - 点击：无动作，提示“请输入提示词”。
+  - 状态 S1 Ready（有输入，未在生成）：
+    - 图标：纸飞机（发送）高亮；
+    - 点击：发送消息（sendMessage），清空输入。
+  - 状态 S2 Generating（生成中）：
+    - 图标：方块（停止）高亮；
+    - 点击：停止（onToggleStream → stop 分支），关闭 SSE 并发 /app/chat/stop。
+  - 状态 S3 Stopped（已手动停止，且有 lastUserMessage，输入为空）：
+    - 图标：播放/继续（▶）高亮；
+    - 点击：继续（以新 runId 调用 generateCode(lastUserMessage)）。
+  - 状态 S4 StoppedWithInput（已手动停止，但输入框中有新文本）：
+    - 图标：纸飞机（发送）高亮；
+    - 点击：发送新消息（优先级高于继续）。
+
+视觉规范
+- 仅保留一个主按钮，尺寸与现有发送按钮一致；
+- 悬浮提示：根据当前状态动态显示（开始生成 / 发送 / 停止生成 / 继续生成）；
+- 颜色：
+  - 可用：#1677ff（保持一致）；
+  - 禁用：降低不透明度 0.5；
+  - 交互反馈：hover 加深，active 稍暗；
+- 动画：图标在状态切换时淡入淡出 120ms；
+
+实现步骤（前端）
+1) 组件结构调整（AppChatPage.vue）
+   - 移除独立的发送按钮 `<a-button type="primary" @click="sendMessage">`；
+   - 保留一个统一按钮 `<button class="stream-send-toggle">`，放置在输入框右下角；
+   - 图标切换依据 `btnState` 计算属性：`send` | `stop` | `continue` | `disabled`。
+2) 计算属性与点击处理
+   - `const btnState = computed(() => { ...依据 isGenerating / stoppedByUser / userInput / lastUserMessage... })`；
+   - `onUnifiedButtonClick()`：
+     - switch(btnState): send→sendMessage(); stop→onToggleStream(); continue→触发 generateCode(lastUserMessage); disabled→message.info('请输入提示词');
+3) 键盘交互
+   - Enter 键行为与按钮保持一致：
+     - 生成中：Enter → 停止；
+     - 其他：有输入 → 发送；
+   - 避免误触：`@keydown.enter.prevent` 已存在，调用统一处理函数。
+4) 运行关联与防抖
+   - 继续/发送前复位定时器与缓冲；
+   - 复用现有 runId 门禁（myRunId）与 /app/chat/stop 逻辑，确保不会混淆流。
+5) 样式
+   - 新增 `.stream-send-toggle`，沿用 `.stream-toggle` 的定位与尺寸；
+   - 统一图标：
+     - stop：■
+     - send：纸飞机（现有图标）
+     - continue：▶
+     - disabled：纸飞机 + 50% 透明度；
+
+实现步骤（后端）
+- 无需改动 API；合并按钮仅改变前端触发路径。
+
+测试与验收
+- 用例：
+  - 空输入：按钮禁用且提示；
+  - 有输入未生成：点击=发送；Enter=发送；
+  - 生成中：点击=停止；Enter=停止；
+  - 停止后无输入：点击=继续；
+  - 停止后有输入：点击=发送新消息；
+  - 快速切换状态无闪烁、无误触（图标过渡 120ms）。
+
+回退方案
+- 保留原发送按钮代码块（注释保留一版），如遇异常可快速切回两按钮方案。
+
+---
+
+发送/停止合一按钮（执行清单）
+
+背景与目标
+- 图片参考：tmp/screenshots/20250903/fix-12.png（Windows 路径：D:\\Java\\ai-code\\ai-code-mother\\tmp\\screenshots\\20250903\\fix-12.png）。
+- 合并现有“发送”和“停止/继续”两个按钮为一个主按钮，既能在生成中一键停止前端内容输出（同时请求后端停止），又能在空闲时一键发送当前输入，整体更简洁美观。
+
+实施范围
+- 仅前端（Vite + Vue 3）；后端 API 不变。
+
+开发任务（分步）
+1) 定义状态机与计算属性
+   - 定义 `btnState: 'send' | 'stop' | 'continue' | 'disabled'`。
+   - 依据 `isGenerating`、`stoppedByUser`、`userInput`、`lastUserMessage` 计算 `btnState`。
+
+2) 组件改造（ai-code-mother-frontend/src/pages/app/AppChatPage.vue）
+   - 移除独立发送按钮，保留一个主按钮 `.primary-action`（或沿用 `.stream-send-toggle`）。
+   - 点击处理 `onPrimaryActionClick()`：
+     - send → `sendMessage()`；
+     - stop → `onToggleStream()`（关闭 SSE，调用 `/app/chat/stop`）；
+     - continue → 以新 `runId` 触发 `generateCode(lastUserMessage)`；
+     - disabled → `message.info('请输入提示词')`。
+   - 键盘映射：Enter 和按钮一致；可选启用 Esc=停止（生成中）。
+
+3) 视觉与交互
+   - 图标：send=纸飞机，stop=方块（■），continue=▶，disabled=纸飞机（50% 不透明）。
+   - 过渡：图标淡入淡出 120ms；hover/active 深浅变化保持与现有主色一致（#1677ff）。
+
+4) 可靠性与防抖
+   - 点击防抖 250–300ms，防重复发送/停止；
+   - 发送/继续前清理定时器与缓冲；SSE URL 携带新 `runId`；
+   - 生成中仅允许一次 stop 调用，避免重复请求。
+
+5) 边界与优先级
+   - 输入为空 → disabled；
+   - 生成中 → stop；
+   - 停止后有输入 → send 优先；
+   - 停止后无输入但有 `lastUserMessage` → continue。
+
+验收标准
+- 空输入禁用；有输入未生成=发送；生成中=停止（≤200ms 停止前端输出并触发后端 stop）；停止后无输入=继续，有输入=发送。
+- Enter 键行为与按钮一致；（若启用）Esc=停止。
+- 按钮过渡平滑无闪烁；快速切换不误触；不会混淆不同 `runId` 的流。
+
+回退方案
+- 保留旧发送按钮代码（注释），出现异常可快速还原为双按钮方案。
