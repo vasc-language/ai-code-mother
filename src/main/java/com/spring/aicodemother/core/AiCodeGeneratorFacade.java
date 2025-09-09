@@ -93,6 +93,12 @@ public class AiCodeGeneratorFacade {
             }
             case VUE_PROJECT -> {
                 TokenStream codeTokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
+                // 如果是我们内置的实现，注入取消感知，便于在停止后阻断工具执行
+                try {
+                    if (codeTokenStream instanceof dev.langchain4j.service.AiServiceTokenStream stream) {
+                        stream.withCancellation(() -> control != null && control.isCancelled());
+                    }
+                } catch (Throwable ignored) {}
                 yield processTokenStream(codeTokenStream, appId, control);
             }
             default -> {

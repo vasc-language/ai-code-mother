@@ -756,6 +756,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     })
 
     const url = `${baseURL}/app/chat/gen/code?${params}`
+    // 捕获本次运行的 runId，用于丢弃已过期的分片/事件
+    const myRunId = currentRunId.value
 
     // 创建 EventSource 连接
     // 先关闭旧连接
@@ -777,6 +779,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     // 批量刷新到 UI，降低每包处理成本
     const flushToUi = () => {
       try {
+        // 若已不是当前运行，直接丢弃（防止旧 run 的定时器残留影响新 UI）
+        if (currentRunId.value !== myRunId) return
         if (streamCompleted || (!isGenerating.value && !stoppedByUser.value)) return
         if (ssePendingChunks.length === 0) return
         const batch = ssePendingChunks.join('')
@@ -812,6 +816,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理接收到的消息（改为收集 + 定时批量刷新）
     eventSource.onmessage = function (event) {
+      if (currentRunId.value !== myRunId) return
       if (streamCompleted) return
       try {
         const parsed = JSON.parse(event.data)
@@ -836,6 +841,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理done事件
     eventSource.addEventListener('done', function () {
+      if (currentRunId.value !== myRunId) return
       if (streamCompleted || !isGenerating.value) return
 
       // 先刷新剩余内容
@@ -879,6 +885,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理interrupted事件（手动停止）
     eventSource.addEventListener('interrupted', function () {
+      if (currentRunId.value !== myRunId) return
       if (streamCompleted) return
       // 先刷新剩余内容
       flushToUi()
@@ -938,6 +945,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理错误
     eventSource.onerror = function () {
+      if (currentRunId.value !== myRunId) return
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
       if (eventSource?.readyState === EventSource.CONNECTING) {
@@ -1036,8 +1044,23 @@ const onToggleStream = async () => {
     }
   } else if (stoppedByUser.value && lastUserMessage.value && currentAiMessageIndex.value !== null) {
     // 继续，以新的 runId 重新开始
+    // 让左侧同一条消息重新进入 loading
+    const idx = currentAiMessageIndex.value!
+    if (messages.value[idx]) {
+      messages.value[idx].loading = true
+      // 清空旧内容，避免造成“继续追加”的错觉
+      messages.value[idx].content = ''
+    }
     isGenerating.value = true
     await generateCode(lastUserMessage.value, currentAiMessageIndex.value!)
+  } else {
+    // 未在生成且未曾手动停止：作为“开始生成”快捷操作
+    const text = (userInput.value || '').trim()
+    if (!text) {
+      message.info('请输入提示词后再开始')
+      return
+    }
+    await sendMessage()
   }
 }
 

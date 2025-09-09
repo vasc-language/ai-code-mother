@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
@@ -43,6 +44,8 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
     private Consumer<Throwable> errorHandler;
     private BiConsumer<Integer, ToolExecutionRequest> partialToolExecutionRequestHandler;
     private BiConsumer<Integer, ToolExecutionRequest> completeToolExecutionRequestHandler;
+    // Optional: external cancellation signal supplier
+    private Supplier<Boolean> cancelledSupplier;
 
     private int onPartialResponseInvoked;
     private int onCompleteResponseInvoked;
@@ -116,6 +119,15 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
         return this;
     }
 
+    /**
+     * Inject a cancellation supplier so downstream handler can short-circuit
+     * when user stops the generation.
+     */
+    public dev.langchain4j.service.TokenStream withCancellation(Supplier<Boolean> cancelledSupplier) {
+        this.cancelledSupplier = cancelledSupplier;
+        return this;
+    }
+
     @Override
     public TokenStream ignoreErrors() {
         this.errorHandler = null;
@@ -152,7 +164,8 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
                 toolSpecifications,
                 toolExecutors,
                 commonGuardrailParams,
-                methodKey);
+                methodKey,
+                cancelledSupplier);
 
         if (contentsHandler != null && retrievedContents != null) {
             contentsHandler.accept(retrievedContents);
