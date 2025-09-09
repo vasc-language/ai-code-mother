@@ -91,7 +91,14 @@ public class AppController {
         // 调用服务生成代码（SSE 流式返回）并绑定取消信号
         Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser, control);
         // 将业务流与取消信号融合，取消时立刻向前端发送 interrupted 事件并终止
-        Flux<ServerSentEvent<String>> dataEvents = contentFlux
+        // 为了提升首包到达速度（TTFT），在真实内容前先发送一条轻量 keepalive 数据帧
+        ServerSentEvent<String> keepalive = ServerSentEvent.<String>builder()
+                .data("{\"d\":\"\"}")
+                .build();
+        Flux<ServerSentEvent<String>> dataEvents = Flux
+                .just(keepalive)
+                .concatWith(
+                        contentFlux
                 .takeUntilOther(control.cancelFlux())
                 .map(chunk -> {
                     Map<String, String> wrapper = Map.of("d", chunk);
@@ -100,6 +107,7 @@ public class AppController {
                             .data(jsonData)
                             .build();
                 })
+                )
                 .concatWith(Mono.fromSupplier(() -> ServerSentEvent.<String>builder().event("done").data("").build()));
 
         Flux<ServerSentEvent<String>> interruptEvent = control.cancelFlux()

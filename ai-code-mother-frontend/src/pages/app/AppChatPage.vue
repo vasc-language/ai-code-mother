@@ -201,16 +201,16 @@
                 </a-button>
               </div>
             </div>
-            <div class="code-content">
-              <CodeHighlight
-                :code="currentGeneratingFile.content"
-                :language="currentGeneratingFile.language"
-                :fileName="currentGeneratingFile.name"
-                theme="atom-one-dark"
-              />
-              <div class="typing-cursor" v-if="!currentGeneratingFile.completed">|</div>
+              <div class="code-content">
+                <CodeHighlight
+                  :code="currentGeneratingFile.content"
+                  :language="currentGeneratingFile.language"
+                  :fileName="currentGeneratingFile.name"
+                  theme="atom-one-dark"
+                />
+                <div class="typing-cursor" v-if="!currentGeneratingFile.completed">|</div>
+              </div>
             </div>
-          </div>
 
           <!-- HTML类型的简单代码文件 -->
           <div v-if="simpleCodeFile" class="current-file">
@@ -418,6 +418,42 @@ const currentRunId = ref<string | null>(null)
 const stoppedByUser = ref(false)
 const lastUserMessage = ref('')
 const currentAiMessageIndex = ref<number | null>(null)
+// 最近一次手动停止的时间戳，用于判断是否为“停止后重连”
+const lastStoppedAt = ref<number>(0)
+
+// SSE micro-batching buffers and timer (to reduce per-chunk overhead)
+let ssePendingChunks: string[] = []
+let sseFullContent = ''
+const sseFlushTimer = ref<any>(null)
+
+const clearSseTimerAndBuffers = () => {
+  if (sseFlushTimer.value) {
+    clearTimeout(sseFlushTimer.value)
+    sseFlushTimer.value = null
+  }
+  ssePendingChunks = []
+  sseFullContent = ''
+}
+
+// 轻量级性能指标
+let sseMetrics: {
+  runId: string | null
+  codeGenType: string
+  afterStop: boolean
+  t0: number
+  t1?: number // onopen
+  t2?: number // first onmessage
+  firstFlushAt?: number
+  totalBytes: number
+  flushCount: number
+} = {
+  runId: null,
+  codeGenType: '',
+  afterStop: false,
+  t0: 0,
+  totalBytes: 0,
+  flushCount: 0,
+}
 
 // 工具步骤相关状态
 const generationSteps = ref<GenerationStep[]>([])
@@ -694,6 +730,17 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   let streamCompleted = false
   // 新一轮生成前，重置“手动停止”标志，防止误判
   stoppedByUser.value = false
+  // 重置 SSE 批处理缓冲
+  clearSseTimerAndBuffers()
+  // 初始化性能指标
+  sseMetrics = {
+    runId: null,
+    codeGenType: (appInfo.value?.codeGenType || CodeGenTypeEnum.HTML) as unknown as string,
+    afterStop: lastStoppedAt.value > 0 && Date.now() - lastStoppedAt.value < 1000,
+    t0: performance.now(),
+    totalBytes: 0,
+    flushCount: 0,
+  }
 
   try {
     // 获取 axios 配置的 baseURL
@@ -712,48 +759,74 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 创建 EventSource 连接
     // 先关闭旧连接
+    const hadOld = !!eventSource
     eventSource?.close()
+    // 当为“停止后重连”或存在旧连接时，做一次轻微去抖，规避网络拥塞
+    if (hadOld || sseMetrics.afterStop) {
+      await new Promise((r) => setTimeout(r, 80))
+    }
     eventSource = new EventSource(url, {
       withCredentials: true,
     })
 
-    let fullContent = ''
+    // 连接打开时间
+    eventSource.onopen = function () {
+      sseMetrics.t1 = performance.now()
+    }
 
-    // 处理接收到的消息
-    eventSource.onmessage = function (event) {
-      if (streamCompleted || !isGenerating.value) return
-
+    // 批量刷新到 UI，降低每包处理成本
+    const flushToUi = () => {
       try {
-        // 解析JSON包装的数据
+        if (streamCompleted || (!isGenerating.value && !stoppedByUser.value)) return
+        if (ssePendingChunks.length === 0) return
+        const batch = ssePendingChunks.join('')
+        ssePendingChunks = []
+        sseFullContent += batch
+        const fullContent = sseFullContent
+
+        const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+        let textForLeft = ''
+        if (codeGenType === CodeGenTypeEnum.HTML) {
+          textForLeft = filterHtmlContent(fullContent)
+        } else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+          textForLeft = filterOutCodeBlocks(fullContent)
+        } else if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+          textForLeft = formatVueProjectContent(fullContent)
+        } else {
+          textForLeft = fullContent
+        }
+
+        messages.value[aiMessageIndex].content = textForLeft || 'AI 正在生成，右侧代码实时输出中…'
+        messages.value[aiMessageIndex].loading = false
+
+        // 解析流式内容并更新右侧代码区（传入本次批次与完整内容）
+        parseStreamingContent(batch, fullContent)
+        scrollToBottom()
+        sseMetrics.flushCount += 1
+      } catch (e) {
+        console.error('批量刷新失败:', e)
+      } finally {
+        sseFlushTimer.value = null
+      }
+    }
+
+    // 处理接收到的消息（改为收集 + 定时批量刷新）
+    eventSource.onmessage = function (event) {
+      if (streamCompleted) return
+      try {
         const parsed = JSON.parse(event.data)
         const content = parsed.d
-
-        // 拼接内容
         if (content !== undefined && content !== null) {
-          fullContent += content
-
-          // 根据项目类型决定是否过滤代码块
-          const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
-          if (codeGenType === CodeGenTypeEnum.HTML) {
-            // HTML类型：只保留简单的文本描述，移除所有代码相关信息
-            messages.value[aiMessageIndex].content = filterHtmlContent(fullContent)
-          } else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
-            // MULTI_FILE类型：过滤掉代码块内容，但保留工具调用信息
-            messages.value[aiMessageIndex].content = filterOutCodeBlocks(fullContent)
-          } else if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
-            // VUE项目类型：显示完整内容，包括工具调用和步骤信息，但格式化工具调用信息
-            messages.value[aiMessageIndex].content = formatVueProjectContent(fullContent)
-          } else {
-            // 其他类型：使用默认处理
-            messages.value[aiMessageIndex].content = fullContent
+          // 首个消息到达时间
+          if (!sseMetrics.t2) sseMetrics.t2 = performance.now()
+          ssePendingChunks.push(content)
+          sseMetrics.totalBytes += (typeof content === 'string' ? content.length : 0)
+          if (!sseFlushTimer.value) {
+            sseFlushTimer.value = setTimeout(() => {
+              if (!sseMetrics.firstFlushAt) sseMetrics.firstFlushAt = performance.now()
+              flushToUi()
+            }, 40)
           }
-
-          messages.value[aiMessageIndex].loading = false
-
-          // 解析流式内容并更新右侧代码生成区域
-          parseStreamingContent(content, fullContent)
-
-          scrollToBottom()
         }
       } catch (error) {
         console.error('解析消息失败:', error)
@@ -765,12 +838,37 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     eventSource.addEventListener('done', function () {
       if (streamCompleted || !isGenerating.value) return
 
+      // 先刷新剩余内容
+      flushToUi()
       streamCompleted = true
       isGenerating.value = false
       eventSource?.close()
       eventSource = null
       stoppedByUser.value = false
       currentRunId.value = null
+      clearSseTimerAndBuffers()
+
+      // 打印性能指标
+      try {
+        const now = performance.now()
+        const t0 = sseMetrics.t0
+        const t1 = sseMetrics.t1 || now
+        const t2 = sseMetrics.t2 || now
+        const ttftOpen = Math.round(t1 - t0)
+        const ttftMsg = Math.round(t2 - t0)
+        const duration = Math.max(1, (now - (sseMetrics.t2 || now)) / 1000)
+        const tps = Math.round((sseMetrics.totalBytes / duration) * 100) / 100
+        console.info('[SSE-METRICS][done]', {
+          runId: currentRunId.value,
+          codeGenType: sseMetrics.codeGenType,
+          afterStop: sseMetrics.afterStop,
+          ttftOpenMs: ttftOpen,
+          ttftFirstMsgMs: ttftMsg,
+          totalBytes: sseMetrics.totalBytes,
+          flushCount: sseMetrics.flushCount,
+          avgBytesPerSec: tps,
+        })
+      } catch (e) {}
 
       // 延迟更新预览，确保后端已完成处理
       setTimeout(async () => {
@@ -782,12 +880,36 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     // 处理interrupted事件（手动停止）
     eventSource.addEventListener('interrupted', function () {
       if (streamCompleted) return
+      // 先刷新剩余内容
+      flushToUi()
       streamCompleted = true
       isGenerating.value = false
       eventSource?.close()
       eventSource = null
       // 保持 stoppedByUser = true，以便显示继续按钮语义
       currentRunId.value = null
+      clearSseTimerAndBuffers()
+      // 打印性能指标
+      try {
+        const now = performance.now()
+        const t0 = sseMetrics.t0
+        const t1 = sseMetrics.t1 || now
+        const t2 = sseMetrics.t2 || now
+        const ttftOpen = Math.round(t1 - t0)
+        const ttftMsg = Math.round(t2 - t0)
+        const duration = Math.max(1, (now - (sseMetrics.t2 || now)) / 1000)
+        const tps = Math.round((sseMetrics.totalBytes / duration) * 100) / 100
+        console.info('[SSE-METRICS][interrupted]', {
+          runId: currentRunId.value,
+          codeGenType: sseMetrics.codeGenType,
+          afterStop: sseMetrics.afterStop,
+          ttftOpenMs: ttftOpen,
+          ttftFirstMsgMs: ttftMsg,
+          totalBytes: sseMetrics.totalBytes,
+          flushCount: sseMetrics.flushCount,
+          avgBytesPerSec: tps,
+        })
+      } catch (e) {}
     })
 
     // 处理business-error事件（后端限流等错误）
@@ -819,12 +941,35 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
       if (eventSource?.readyState === EventSource.CONNECTING) {
+        // 先刷新剩余内容
+        flushToUi()
         streamCompleted = true
         isGenerating.value = false
         eventSource?.close()
         eventSource = null
         stoppedByUser.value = false
         currentRunId.value = null
+        clearSseTimerAndBuffers()
+        try {
+          const now = performance.now()
+          const t0 = sseMetrics.t0
+          const t1 = sseMetrics.t1 || now
+          const t2 = sseMetrics.t2 || now
+          const ttftOpen = Math.round(t1 - t0)
+          const ttftMsg = Math.round(t2 - t0)
+          const duration = Math.max(1, (now - (sseMetrics.t2 || now)) / 1000)
+          const tps = Math.round((sseMetrics.totalBytes / duration) * 100) / 100
+          console.info('[SSE-METRICS][onerror-connect]', {
+            runId: currentRunId.value,
+            codeGenType: sseMetrics.codeGenType,
+            afterStop: sseMetrics.afterStop,
+            ttftOpenMs: ttftOpen,
+            ttftFirstMsgMs: ttftMsg,
+            totalBytes: sseMetrics.totalBytes,
+            flushCount: sseMetrics.flushCount,
+            avgBytesPerSec: tps,
+          })
+        } catch (e) {}
 
         setTimeout(async () => {
           await fetchAppInfo()
@@ -847,6 +992,22 @@ const onToggleStream = async () => {
     // 停止当前生成
     stoppedByUser.value = true
     isGenerating.value = false
+    // 清理所有流式定时器，释放主线程
+    if (codeStreamTimer.value) {
+      clearInterval(codeStreamTimer.value)
+      codeStreamTimer.value = null
+    }
+    if (multiFileStreamTimer.value) {
+      clearInterval(multiFileStreamTimer.value)
+      multiFileStreamTimer.value = null
+    }
+    // 复位 HTML / MULTI_FILE 进行中状态
+    isSimpleCodeGenerating.value = false
+    inSimpleCodeBlock.value = false
+    // 不清空 simpleCodeFile，保留已输出部分
+    isMultiFileGenerating.value = false
+    currentMultiFile.value = null
+    clearSseTimerAndBuffers()
     if (currentAiMessageIndex.value !== null) {
       // 停止后去掉该条的 loading 态
       const msg = messages.value[currentAiMessageIndex.value]
@@ -868,6 +1029,7 @@ const onToggleStream = async () => {
           data: { runId: rid },
         })
       }
+      lastStoppedAt.value = Date.now()
       message.info('已停止生成')
     } catch (e) {
       // ignore errors for stop
@@ -1509,18 +1671,23 @@ const parseStepInfo = (chunk: string) => {
 // HTML和MULTI_FILE专用的简单代码流式处理
 const parseSimpleCodeStreaming = (chunk: string, fullContent: string) => {
   try {
-    // 检查后端发送的特殊标记
-    if (chunk.includes('[CODE_BLOCK_START]')) {
+    // 支持前端 micro-batching：一个 batch 可能同时包含多个标记
+    const hasStart = chunk.includes('[CODE_BLOCK_START]')
+    const hasEnd = chunk.includes('[CODE_BLOCK_END]')
+
+    if (hasStart && !inSimpleCodeBlock.value) {
       // 代码块开始，创建简单的代码文件
       startSimpleCodeFile()
-    } else if (chunk.includes('[CODE_STREAM]')) {
-      // 代码流内容，实时更新
-      const codeContent = chunk.replace('[CODE_STREAM]', '')
+    }
+
+    // 去除所有标记，留下纯代码内容
+    const codeContent = chunk.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\]/g, '')
+    if (codeContent && codeContent.length > 0) {
       updateSimpleCodeContent(codeContent)
-    } else if (chunk.includes('[CODE_BLOCK_END]')) {
+    }
+
+    if (hasEnd && inSimpleCodeBlock.value) {
       // 代码块结束
-      const codeContent = chunk.replace('[CODE_BLOCK_END]', '')
-      updateSimpleCodeContent(codeContent)
       completeSimpleCodeFile()
     }
   } catch (error) {
@@ -1871,7 +2038,25 @@ onUnmounted(() => {
     clearInterval(multiFileStreamTimer.value)
     multiFileStreamTimer.value = null
   }
-  // EventSource 会在组件卸载时自动清理
+  // 主动关闭 SSE 连接并通知后端取消，确保释放资源
+  const rid = currentRunId.value
+  if (eventSource) {
+    try {
+      eventSource.close()
+      eventSource = null
+    } catch (e) {}
+  }
+  if (rid) {
+    // 异步 fire-and-forget，不阻塞卸载
+    try {
+      fetch((request.defaults.baseURL || '') + '/app/chat/stop', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runId: rid }),
+      })
+    } catch (e) {}
+  }
 })
 </script>
 
@@ -2324,6 +2509,21 @@ onUnmounted(() => {
       margin-top: 16px;
     }
   }
+}
+
+/* 轻量级流式展示，避免频繁语法高亮的性能开销 */
+.code-plain {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 8px 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 520px;
 }
 
 @keyframes blink {
