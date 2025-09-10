@@ -116,6 +116,9 @@ public class AiCodeGeneratorFacade {
      */
     private Flux<String> processTokenStream(TokenStream tokenStream, Long appId, GenerationControl control) {
         return Flux.create(sink -> {
+            // 本轮运行的轻量级重复写入守卫：用于检测明显的循环趋势
+            final java.util.Set<String> writtenPaths = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+            final java.util.concurrent.atomic.AtomicInteger duplicateWriteCount = new java.util.concurrent.atomic.AtomicInteger(0);
             try {
                 java.util.concurrent.atomic.AtomicBoolean completed = new java.util.concurrent.atomic.AtomicBoolean(false);
                 // 当下游取消或释放时，触发控制器取消，以便上层尽早停止
@@ -154,6 +157,30 @@ public class AiCodeGeneratorFacade {
                             try {
                                 if (control != null && control.isCancelled()) {
                                     return;
+                                }
+                                // 可选守卫：检测同一路径的重复写入趋势，给出提示以避免循环
+                                try {
+                                    String toolName = toolExecution.request().name();
+                                    if ("writeFile".equals(toolName)) {
+                                        String args = toolExecution.request().arguments();
+                                        String path = null;
+                                        try {
+                                            cn.hutool.json.JSONObject obj = cn.hutool.json.JSONUtil.parseObj(args);
+                                            path = obj.getStr("relativeFilePath");
+                                        } catch (Throwable ignored) {}
+                                        if (path != null) {
+                                            boolean firstTime = writtenPaths.add(path);
+                                            if (!firstTime) {
+                                                int dup = duplicateWriteCount.incrementAndGet();
+                                                if (dup == 3) { // 第3次触发时提示一次
+                                                    AiResponseMessage warn = new AiResponseMessage("\n\n[警告] 检测到重复写入同一路径的趋势(≥3)。系统已对相同内容的重复写入进行跳过处理。建议立即调用【退出工具调用】以结束生成，避免循环。\n\n");
+                                                    sink.next(cn.hutool.json.JSONUtil.toJsonStr(warn));
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (Throwable guardEx) {
+                                    // 守卫失败不影响主流程
                                 }
                                 ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
                                 sink.next(JSONUtil.toJsonStr(toolExecutedMessage));

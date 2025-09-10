@@ -159,50 +159,52 @@
           </div>
         </div>
       </div>
-      <!-- 右侧代码生成展示区域 -->
+      <!-- 右侧区域：生成中显示代码；生成完成后仅展示预览 -->
       <div class="code-generation-section">
-        <div class="section-header">
-          <h3>代码生成过程</h3>
-          <div class="header-actions">
-            <a-button
-              v-if="completedFiles.length > 0"
-              type="link"
-              @click="clearAllFiles"
-              size="small"
-            >
-              清空文件
-            </a-button>
-            <a-button
-              v-if="previewUrl"
-              type="link"
-              @click="openInNewTab"
-              size="small"
-            >
-              <template #icon>
-                <ExportOutlined />
-              </template>
-              预览网站
-            </a-button>
-          </div>
-        </div>
-
-        <div class="code-output-container">
-          <!-- Vue项目类型的当前生成文件 -->
-          <div v-if="currentGeneratingFile && !isSimpleCodeGenerating" class="current-file">
-            <div class="file-header">
-              <div class="file-tab">
-                <FileOutlined class="file-icon" />
-                <span class="file-name">{{ currentGeneratingFile.name }}</span>
-                <a-button
-                  type="link"
-                  size="small"
-                  @click="minimizeCurrentFile"
-                  v-if="currentGeneratingFile.completed"
-                >
-                  <MinusOutlined />
-                </a-button>
-              </div>
+        <!-- 生成中 / 未完成：保留原代码展示块 -->
+        <template v-if="!generationFinished">
+          <div class="section-header">
+            <h3>代码生成过程</h3>
+            <div class="header-actions">
+              <a-button
+                v-if="completedFiles.length > 0"
+                type="link"
+                @click="clearAllFiles"
+                size="small"
+              >
+                清空文件
+              </a-button>
+              <a-button
+                v-if="previewUrl"
+                type="link"
+                @click="openInNewTab"
+                size="small"
+              >
+                <template #icon>
+                  <ExportOutlined />
+                </template>
+                预览网站
+              </a-button>
             </div>
+          </div>
+
+          <div class="code-output-container">
+            <!-- Vue项目类型的当前生成文件 -->
+            <div v-if="currentGeneratingFile && !isSimpleCodeGenerating" class="current-file">
+              <div class="file-header">
+                <div class="file-tab">
+                  <FileOutlined class="file-icon" />
+                  <span class="file-name">{{ currentGeneratingFile.name }}</span>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="minimizeCurrentFile"
+                    v-if="currentGeneratingFile.completed"
+                  >
+                    <MinusOutlined />
+                  </a-button>
+                </div>
+              </div>
               <div class="code-content">
                 <CodeHighlight
                   :code="currentGeneratingFile.content"
@@ -214,53 +216,80 @@
               </div>
             </div>
 
-          <!-- HTML类型的简单代码文件 -->
-          <div v-if="simpleCodeFile" class="current-file">
-            <div class="file-header">
-              <div class="file-tab">
-                <FileOutlined class="file-icon" />
-                <span class="file-name">{{ simpleCodeFile.name }}</span>
-                <a-tag color="blue" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
-                </div>
-            </div>
-            <div class="code-content">
-              <CodeHighlight
-                :code="simpleCodeFile.content"
-                :language="simpleCodeFile.language"
-                :fileName="simpleCodeFile.name"
-                theme="atom-one-dark"
-              />
-              <div class="typing-cursor" v-if="!simpleCodeFile.completed">|</div>
-            </div>
-          </div>
-
-          <!-- MULTI_FILE类型的多文件显示 - 改为和Vue项目一样的样式 -->
-          <div v-if="multiFiles.length > 0">
-            <!-- 当前正在生成的文件 -->
-            <div v-if="currentMultiFile && isMultiFileGenerating" class="current-file">
+            <!-- HTML类型的简单代码文件 -->
+            <div v-if="simpleCodeFile" class="current-file">
               <div class="file-header">
                 <div class="file-tab">
                   <FileOutlined class="file-icon" />
-                  <span class="file-name">{{ currentMultiFile }}</span>
-                  <a-tag color="green" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
+                  <span class="file-name">{{ simpleCodeFile.name }}</span>
+                  <a-tag color="blue" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
                 </div>
               </div>
               <div class="code-content">
                 <CodeHighlight
-                  :code="getCurrentMultiFileContent()"
-                  :language="getCurrentMultiFileLanguage()"
-                  :fileName="currentMultiFile"
+                  :code="simpleCodeFile.content"
+                  :language="simpleCodeFile.language"
+                  :fileName="simpleCodeFile.name"
                   theme="atom-one-dark"
                 />
-                <div class="typing-cursor" v-if="isMultiFileGenerating">|</div>
+                <div class="typing-cursor" v-if="!simpleCodeFile.completed">|</div>
               </div>
             </div>
 
-            <!-- 已完成的多文件列表 -->
+            <!-- MULTI_FILE类型的多文件显示 - 改为和Vue项目一样的样式 -->
+            <div v-if="multiFiles.length > 0">
+              <!-- 当前正在生成的文件 -->
+              <div v-if="currentMultiFile && isMultiFileGenerating" class="current-file">
+                <div class="file-header">
+                  <div class="file-tab">
+                    <FileOutlined class="file-icon" />
+                    <span class="file-name">{{ currentMultiFile }}</span>
+                    <a-tag color="green" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
+                  </div>
+                </div>
+                <div class="code-content">
+                  <CodeHighlight
+                    :code="getCurrentMultiFileContent()"
+                    :language="getCurrentMultiFileLanguage()"
+                    :fileName="currentMultiFile"
+                    theme="atom-one-dark"
+                  />
+                  <div class="typing-cursor" v-if="isMultiFileGenerating">|</div>
+                </div>
+              </div>
+
+              <!-- 已完成的多文件列表 -->
+              <div class="completed-files">
+                <a-collapse v-model:activeKey="activeFileKeys" v-if="multiFiles.length > 0">
+                  <a-collapse-panel
+                    v-for="file in multiFiles"
+                    :key="file.id"
+                  >
+                    <template #header>
+                      <div class="file-panel-header">
+                        <FileOutlined class="file-icon" />
+                        <span class="file-name">{{ file.name }}</span>
+                        <span class="file-path">{{ file.path }}</span>
+                      </div>
+                    </template>
+                    <div class="file-content-wrapper">
+                      <CodeHighlight
+                        :code="file.content"
+                        :language="file.language"
+                        :fileName="file.name"
+                        theme="atom-one-dark"
+                      />
+                    </div>
+                  </a-collapse-panel>
+                </a-collapse>
+              </div>
+            </div>
+
+            <!-- 已完成文件列表 -->
             <div class="completed-files">
-              <a-collapse v-model:activeKey="activeFileKeys" v-if="multiFiles.length > 0">
+              <a-collapse v-model:activeKey="activeFileKeys" v-if="completedFiles.length > 0">
                 <a-collapse-panel
-                  v-for="file in multiFiles"
+                  v-for="file in completedFiles"
                   :key="file.id"
                 >
                   <template #header>
@@ -281,45 +310,51 @@
                 </a-collapse-panel>
               </a-collapse>
             </div>
-          </div>
 
-          <!-- 已完成文件列表 -->
-          <div class="completed-files">
-            <a-collapse v-model:activeKey="activeFileKeys" v-if="completedFiles.length > 0">
-              <a-collapse-panel
-                v-for="file in completedFiles"
-                :key="file.id"
+            <!-- 占位符 -->
+            <div v-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
+              <div class="placeholder-icon">📄</div>
+              <p>AI 生成的代码文件将在这里实时显示</p>
+            </div>
+
+            <div v-else-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && isGenerating" class="code-loading">
+              <a-spin size="large" />
+              <p>正在分析需求，准备生成代码...</p>
+            </div>
+          </div>
+        </template>
+
+        <!-- 生成完成：仅展示渲染后的页面预览 -->
+        <template v-else>
+          <div class="section-header">
+            <h3>预览</h3>
+            <div class="header-actions">
+              <a-button
+                v-if="previewUrl"
+                type="link"
+                @click="openInNewTab"
+                size="small"
               >
-                <template #header>
-                  <div class="file-panel-header">
-                    <FileOutlined class="file-icon" />
-                    <span class="file-name">{{ file.name }}</span>
-                    <span class="file-path">{{ file.path }}</span>
-                  </div>
+                <template #icon>
+                  <ExportOutlined />
                 </template>
-                <div class="file-content-wrapper">
-                  <CodeHighlight
-                    :code="file.content"
-                    :language="file.language"
-                    :fileName="file.name"
-                    theme="atom-one-dark"
-                  />
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
+                在新窗口打开
+              </a-button>
+            </div>
           </div>
-
-          <!-- 占位符 -->
-          <div v-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
-            <div class="placeholder-icon">📄</div>
-            <p>AI 生成的代码文件将在这里实时显示</p>
+          <div class="preview-container">
+            <iframe
+              v-if="previewUrl"
+              :src="previewUrl"
+              class="preview-iframe"
+              frameborder="0"
+              @load="onIframeLoad"
+            />
+            <div v-else class="preview-placeholder">
+              <a-empty description="暂无预览，请先生成或部署" />
+            </div>
           </div>
-
-          <div v-else-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && isGenerating" class="code-loading">
-            <a-spin size="large" />
-            <p>正在分析需求，准备生成代码...</p>
-          </div>
-        </div>
+        </template>
       </div>
     </div>
 
@@ -506,6 +541,8 @@ const historyLoaded = ref(false)
 // 预览相关
 const previewUrl = ref('')
 const previewReady = ref(false)
+// 生成完成后，右侧仅展示预览
+const generationFinished = ref(false)
 
 // 部署相关
 const deploying = ref(false)
@@ -689,6 +726,10 @@ const fetchAppInfo = async () => {
       // 如果有至少2条对话记录，展示对应的网站
       if (messages.value.length >= 2) {
         updatePreview()
+        // 非生成阶段且已有可用预览时，右侧切换为预览展示
+        if (!isGenerating.value) {
+          generationFinished.value = true
+        }
       }
       // 检查是否需要自动发送初始提示词
       // 只有在是自己的应用且没有对话历史时才自动发送
@@ -790,6 +831,8 @@ const sendMessage = async () => {
 // 生成代码 - 使用 EventSource 处理流式响应
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   let streamCompleted = false
+  // 新一轮生成开始，标记为未完成，右侧保持代码展示
+  generationFinished.value = false
   // 新一轮生成前，重置“手动停止”标志，防止误判
   stoppedByUser.value = false
   // 重置 SSE 批处理缓冲
@@ -910,6 +953,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       flushToUi()
       streamCompleted = true
       isGenerating.value = false
+      // 标记本轮生成已完成，切换到预览模式
+      generationFinished.value = true
       eventSource?.close()
       eventSource = null
       stoppedByUser.value = false
@@ -2626,6 +2671,29 @@ onUnmounted(() => {
       margin-top: 16px;
     }
   }
+}
+
+/* 预览容器：生成完成后填满右侧面板 */
+.preview-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+}
+
+.preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.preview-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 轻量级流式展示，避免频繁语法高亮的性能开销 */

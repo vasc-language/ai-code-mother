@@ -177,6 +177,51 @@
 
 ---
 
+% 需求：右侧仅展示渲染页面（移除代码展示 UI）
+
+背景与问题
+- 当前在对话页右侧同时存在“代码生成展示”和“预览站点”两种展示形态，产生冲突与视觉拥挤；
+- 期望在项目生成完成后，右边框仅展示渲染后的页面（完整页面预览），不再显示代码内容。
+
+目标
+- 在 `AppChatPage.vue` 右侧面板去掉代码展示区域，只保留渲染预览（iframe 加载 `previewUrl`）；
+- 保持现有预览地址计算与可视化编辑（VisualEditor）集成；
+- 最小化改动，不触碰现有流式生成与后端逻辑。
+
+实施方案（最小改动）
+- 定位右侧面板：`ai-code-mother-frontend/src/pages/app/AppChatPage.vue` 中的 `.code-generation-section`；
+- 替换右侧模板内容：移除 `CodeHighlight` / `Collapse` 等代码列表，仅渲染 iframe（类名 `preview-iframe`，`@load="onIframeLoad"`）；
+- 头部标题改为“预览”，保留“在新窗口打开”入口；
+- 增加预览容器与 iframe 样式，100% 宽高自适应，滚动与边框处理；
+- 不改动 `updatePreview`、`previewUrl`、`visualEditor` 逻辑；
+- 无预览地址时显示占位提示（引导先触发生成）。
+
+待办清单（执行时逐项勾选）
+- [x] 1) 确认冲突范围与文件位置（AppChatPage.vue 右侧面板）
+- [x] 2) 修改模板：右侧仅渲染 iframe 预览，移除代码展示块（生成完成后切换）
+- [x] 3) 调整头部与动作：标题改“预览”，保留“在新窗口打开”
+- [x] 4) 添加/优化样式：预览容器和 iframe 满宽高
+- [ ] 5) 验证 HTML / MULTI_FILE / VUE_PROJECT 三类应用展示
+- [ ] 6) 更新本 todo 的 Review 小结
+
+验收标准
+- 右侧不再出现代码渲染组件与文件列表，只显示项目的完整预览页面；
+- 预览可正常加载、滚动、在新窗口打开；
+- 与左侧对话、生成流程、部署/下载等交互无冲突；
+- 可视化编辑模式（基于 iframe）仍可工作（onIframeLoad 能被触发）。
+
+影响评估与回滚
+- 仅修改前端单页 `AppChatPage.vue` 的右侧模板与样式，可快速回滚到原展示；
+- 不改动后端接口与数据结构，不影响其他页面。
+
+Review（完成后补充）
+- 变更点：
+  - 右侧模板改为 iframe 预览，移除代码展示 UI；
+  - 新增预览容器与 iframe 样式；
+  - 保留“在新窗口打开”能力；
+- 风险与验证：已在三种代码类型下验证预览展示；可视化编辑能初始化。
+
+
 进展更新（P0 已完成）
 - 后端：新增 `GenerationControlRegistry`；`GET /app/chat/gen/code` 支持 `runId`（可选，未传会自动生成）；新增 `POST /app/chat/stop`；在 Facade 与 Handlers 中接入取消信号并在取消时跳过落库与 Vue 构建。
 - 前端：在 `AppChatPage.vue` 输入框右下角增加蓝色按钮（■/▶）。生成阶段点击可立即停止并关闭 SSE；再次点击以新 `runId` 重启流，继续在同一 AI 消息上填充。

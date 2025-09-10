@@ -45,7 +45,20 @@ public class FileWriteTool extends BaseTool {
             if (parentDir != null) {
                 Files.createDirectories(parentDir);
             }
-            // 写入文件内容
+            // 幂等：若文件已存在且内容完全一致，则跳过写入
+            if (Files.exists(path) && Files.isRegularFile(path)) {
+                try {
+                    String existing = Files.readString(path);
+                    if (existing != null && existing.equals(content)) {
+                        log.info("检测到相同内容，跳过写入: {}", path.toAbsolutePath());
+                        return "已存在且内容相同（跳过）: " + relativeFilePath;
+                    }
+                } catch (IOException ignore) {
+                    // 读取失败不影响正常写入
+                }
+            }
+
+            // 写入或覆盖文件内容（内容不同则覆盖）
             Files.write(path, content.getBytes(),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
