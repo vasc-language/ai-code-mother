@@ -1753,27 +1753,54 @@ const parseStepInfo = (chunk: string) => {
   }
 }
 
-// HTML和MULTI_FILE专用的简单代码流式处理
+// HTML 专用的简单代码流式处理（严格提取标记区间内的代码）
 const parseSimpleCodeStreaming = (chunk: string, fullContent: string) => {
   try {
-    // 支持前端 micro-batching：一个 batch 可能同时包含多个标记
-    const hasStart = chunk.includes('[CODE_BLOCK_START]')
-    const hasEnd = chunk.includes('[CODE_BLOCK_END]')
+    // 仅提取 [CODE_BLOCK_START] 与 [CODE_BLOCK_END] 之间的内容；忽略区间外文本
+    const START = '[CODE_BLOCK_START]'
+    const END = '[CODE_BLOCK_END]'
 
-    if (hasStart && !inSimpleCodeBlock.value) {
-      // 代码块开始，创建简单的代码文件
-      startSimpleCodeFile()
-    }
+    let remaining = chunk
+    // 循环处理，支持同一分片内多个开始/结束标记
+    while (remaining && remaining.length > 0) {
+      if (!inSimpleCodeBlock.value) {
+        const idxStart = remaining.indexOf(START)
+        if (idxStart === -1) {
+          // 本分片不含开始标记，忽略掉区间外文本
+          break
+        }
 
-    // 去除所有标记，留下纯代码内容
-    const codeContent = chunk.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\]/g, '')
-    if (codeContent && codeContent.length > 0) {
-      updateSimpleCodeContent(codeContent)
-    }
+        // 丢弃开始标记之前的所有文本
+        remaining = remaining.slice(idxStart + START.length)
 
-    if (hasEnd && inSimpleCodeBlock.value) {
-      // 代码块结束
-      completeSimpleCodeFile()
+        // 开启一个新的代码文件（仅在未处于代码块时）
+        startSimpleCodeFile()
+      }
+
+      // 此时处于代码块内，查找结束标记
+      const idxEnd = remaining.indexOf(END)
+      if (idxEnd !== -1) {
+        // 取结束标记之前的内容作为代码，移除中间的 [CODE_STREAM]
+        const segment = remaining.slice(0, idxEnd).replace(/\[CODE_STREAM\]/g, '')
+        if (segment) {
+          updateSimpleCodeContent(segment)
+        }
+
+        // 跳过结束标记，完成当前代码块
+        remaining = remaining.slice(idxEnd + END.length)
+        completeSimpleCodeFile()
+
+        // 继续循环以处理后续内容（可能还有下一个开始标记）
+        continue
+      } else {
+        // 未出现结束标记，整段内容（去除 [CODE_STREAM]）均为代码流的一部分
+        const segment = remaining.replace(/\[CODE_STREAM\]/g, '')
+        if (segment) {
+          updateSimpleCodeContent(segment)
+        }
+        // 本分片消费完毕
+        break
+      }
     }
   } catch (error) {
     console.error('解析简单代码流失败:', error)

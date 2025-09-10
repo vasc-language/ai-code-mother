@@ -55,7 +55,7 @@ const createApp = async () => {
 
   try {
     console.log('开始创建应用，用户输入:', userPrompt.value.trim())
-    
+
     const res = await addApp({
       initPrompt: userPrompt.value.trim(),
     })
@@ -65,29 +65,29 @@ const createApp = async () => {
     if (res.data.code === 0 && res.data.data) {
       const appId = String(res.data.data)
       console.log('应用创建成功，ID:', appId)
-      
+
       message.success('应用创建成功，正在准备环境...')
-      
+
       // 显示加载提示
       loadingMessage = message.loading('正在验证应用状态，请稍候...', 0)
-      
+
       // 改进的重试机制
       const maxRetries = 5  // 增加重试次数
       let retryCount = 0
       let navigateSuccess = false
-      
+
       while (retryCount < maxRetries && !navigateSuccess) {
         try {
           // 动态调整等待时间：第一次立即检查，后续逐渐增加等待时间
           const waitTime = retryCount === 0 ? 100 : Math.min(1000 + retryCount * 800, 3000)
           console.log(`第 ${retryCount + 1} 次验证，等待时间: ${waitTime}ms`)
-          
+
           await new Promise(resolve => setTimeout(resolve, waitTime))
-          
+
           // 验证应用是否存在 - 修复：保持字符串格式传递ID
           const checkRes = await getAppVoById({ id: appId })
           console.log(`第 ${retryCount + 1} 次验证结果:`, checkRes.data)
-          
+
           if (checkRes.data.code === 0 && checkRes.data.data) {
             console.log('应用验证成功，准备跳转')
             // 关闭加载提示
@@ -95,7 +95,7 @@ const createApp = async () => {
               loadingMessage()
               loadingMessage = null
             }
-            
+
             message.success('应用准备完成，正在跳转...')
             // 如果应用存在，跳转到聊天页面
             await router.push(`/app/chat/${appId}`)
@@ -110,30 +110,30 @@ const createApp = async () => {
           retryCount++
           const errorMsg = error.response?.data?.message || error.message || '未知错误'
           console.warn(`第 ${retryCount} 次验证应用失败:`, errorMsg)
-          
+
           if (retryCount >= maxRetries) {
             console.error('重试次数已达上限，验证失败')
-            
+
             // 关闭加载提示
             if (loadingMessage) {
               loadingMessage()
               loadingMessage = null
             }
-            
+
             // 根据错误类型给出不同的提示
             if (errorMsg.includes('不存在') || errorMsg.includes('NOT_FOUND')) {
               message.warning('应用创建成功，但需要更多时间准备。请稍后从"我的应用"中访问。', 5)
             } else {
               message.error(`应用访问失败: ${errorMsg}。请从"我的应用"中重新尝试。`, 4)
             }
-            
+
             // 刷新我的应用列表
             await loadMyApps()
             // 清空输入框
             userPrompt.value = ''
             break
           }
-          
+
           // 更新加载提示
           if (loadingMessage && retryCount < maxRetries) {
             loadingMessage()
@@ -276,7 +276,7 @@ onMounted(() => {
           type="default"
           @click="
             setPrompt(
-              '创建一个现代化的个人博客网站，包含文章列表、详情页、分类标签、搜索功能、评论系统和个人简介页面。采用简洁的设计风格，支持响应式布局，文章支持Markdown格式，首页展示最新文章和热门推荐。',
+              '创建一个简洁优雅的个人介绍博客，使用原生多文件模式，包含响应式设计和基本交互功能。使用语义化HTML结构，和现代CSS Grid和Flexbox布局，添加平滑滚动和主题切换功能。',
             )
           "
           >个人博客网站</a-button
@@ -285,10 +285,10 @@ onMounted(() => {
           type="default"
           @click="
             setPrompt(
-              '设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。',
+              '创建一个功能完整的待办事项列表单文件应用，包含添加任务、标记完成、删除任务和本地存储功能。',
             )
           "
-          >企业官网</a-button
+          >待办事项列表</a-button
         >
         <a-button
           type="default"
