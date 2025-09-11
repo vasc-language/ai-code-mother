@@ -3,12 +3,12 @@
     <div class="footer-content">
       <p class="copyright">
         <a
-          href="https://www.codefather.cn"
+          href="https://github.com/vasc-language/ai-code-mother"
           target="_blank"
           rel="noopener noreferrer"
           class="author-link"
         >
-          项目地址 by 程序员鱼皮
+          项目地址 by vasc-language
         </a>
       </p>
     </div>
