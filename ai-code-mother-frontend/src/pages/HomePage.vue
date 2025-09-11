@@ -14,6 +14,16 @@ const loginUserStore = useLoginUserStore()
 const userPrompt = ref('')
 const creating = ref(false)
 
+// 在输入框中：Enter 发送，Shift+Enter 换行
+const onPromptKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    if (!creating.value) {
+      createApp()
+    }
+  }
+}
+
 // 我的应用数据
 const myApps = ref<API.AppVO[]>([])
 const myAppsPage = reactive({
@@ -260,6 +270,7 @@ onMounted(() => {
           :rows="4"
           :maxlength="1000"
           class="prompt-input"
+          @keydown="onPromptKeydown"
         />
         <div class="input-actions">
           <a-button type="primary" size="large" @click="createApp" :loading="creating">
@@ -294,10 +305,10 @@ onMounted(() => {
           type="default"
           @click="
             setPrompt(
-              '构建一个功能完整的在线商城，包含商品展示、购物车、用户注册登录、订单管理、支付结算等功能。设计现代化的商品卡片布局，支持商品搜索筛选、用户评价、优惠券系统和会员积分功能。',
+              '设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。',
             )
           "
-          >在线商城</a-button
+          >企业官网</a-button
         >
         <a-button
           type="default"

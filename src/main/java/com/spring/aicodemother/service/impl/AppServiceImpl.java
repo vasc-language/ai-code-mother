@@ -16,7 +16,6 @@ import com.spring.aicodemother.core.handler.StreamHandlerExecutor;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
-import com.spring.aicodemother.langgraph4j.utils.SpringContextUtil;
 import com.spring.aicodemother.model.dto.app.AppAddRequest;
 import com.spring.aicodemother.model.enums.ChatHistoryMessageTypeEnum;
 import com.spring.aicodemother.model.enums.CodeGenTypeEnum;
@@ -102,6 +101,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+
+        // 5.1 若为 Vue 工程模式，尝试命中预置模板并进行首次目录拷贝，同时为当前轮拼接模板说明
+        String finalMessage = message;
+        try {
+            if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
+                String presetKey = matchPresetTemplate(message);
+                if (StrUtil.isNotBlank(presetKey)) {
+                    boolean copied = ensurePresetCopied(appId, presetKey);
+                    finalMessage = buildTemplateAwareMessage(message, presetKey, copied);
+                    log.info("[TEMPLATE-CACHED] appId={}, preset='{}', copied={}", appId, presetKey, copied);
+                } else {
+                    log.info("[TEMPLATE-NO-HIT] appId={}, 未命中预置模板", appId);
+                }
+            }
+        } catch (Exception e) {
+            // 不阻断主流程，模板机制失败时继续按原逻辑生成
+            log.warn("[TEMPLATE-ERROR] appId={}, 处理预置模板时出错：{}", appId, e.getMessage());
+        }
         // 6. 设置监控上下文
         MonitorContextHolder.setContext(
                 MonitorContext.builder()
@@ -109,8 +126,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                         .appId(appId.toString())
                         .build()
         );
-        // 7. 调用 AI 生成代码（流式）并绑定取消信号
-        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId, control);
+        // 7. 调用 AI 生成代码（流式）并绑定取消信号（若命中模板，则使用增强后的 finalMessage）
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(finalMessage, codeGenTypeEnum, appId, control);
         // 8. 收集AI响应内容并在完成后记录到对话历史（根据取消状态抑制副作用）
         java.util.function.BooleanSupplier cancelled = (control == null) ? (() -> false) : control::isCancelled;
         return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum,
@@ -119,6 +136,88 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                     // 无论成功与否，最后流结束都清除
                     MonitorContextHolder.clearContext();
                 });
+    }
+
+    /**
+     * 命中模板：当前仅支持两个精确匹配的中文提示词
+     * @param userMessage 用户输入
+     * @return 预置模板 key：portfolio 或 enterprise，未命中返回 null
+     */
+    private String matchPresetTemplate(String userMessage) {
+        if (userMessage == null) return null;
+        String trimmed = userMessage.trim();
+        // 模板1：作品展示网站
+        String tpl1 = "制作一个精美的作品展示网站，适合设计师、摄影师、艺术家等创作者。包含作品画廊、项目详情页、个人简历、联系方式等模块。采用瀑布流或网格布局展示作品，支持图片放大预览和作品分类筛选。";
+        // 模板2：企业官网
+        String tpl2 = "设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。";
+        if (tpl1.equals(trimmed)) return "portfolio";
+        if (tpl2.equals(trimmed)) return "enterprise";
+        return null;
+    }
+
+    /**
+     * 若命中模板：仅在目标目录不存在或为空时，复制模板到项目根目录
+     * @param appId 应用ID
+     * @param presetKey 预置模板key
+     * @return 是否发生了复制
+     */
+    private boolean ensurePresetCopied(Long appId, String presetKey) {
+        String targetDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + (CodeGenTypeEnum.VUE_PROJECT.getValue() + "_" + appId);
+        File targetDir = new File(targetDirPath);
+        boolean needCopy = isDirEmpty(targetDir);
+        if (!needCopy) {
+            return false;
+        }
+        String templateDirName = getPresetTemplateDirName(presetKey);
+        if (templateDirName == null) {
+            return false;
+        }
+        String templateDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + templateDirName;
+        File templateDir = new File(templateDirPath);
+        ThrowUtils.throwIf(!templateDir.exists() || !templateDir.isDirectory(), ErrorCode.NOT_FOUND_ERROR, "预置模板不存在");
+        try {
+            FileUtil.copyContent(templateDir, targetDir, true);
+            return true;
+        } catch (Exception e) {
+            log.warn("复制预置模板失败: from={} to={}, err={}", templateDirPath, targetDirPath, e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean isDirEmpty(File dir) {
+        if (dir == null) return true;
+        if (!dir.exists()) return true;
+        if (!dir.isDirectory()) return true;
+        File[] files = dir.listFiles(file -> !".DS_Store".equals(file.getName()));
+        return files == null || files.length == 0;
+    }
+
+    private String getPresetTemplateDirName(String presetKey) {
+        if ("portfolio".equals(presetKey)) {
+            return "vue_project_323345718267260928";
+        }
+        if ("enterprise".equals(presetKey)) {
+            return "vue_project_317749662884204544";
+        }
+        return null;
+    }
+
+    /**
+     * 拼接模板使用说明（仅对当前轮的提示词增强，不影响对话历史）
+     */
+    private String buildTemplateAwareMessage(String original, String presetKey, boolean copied) {
+        String presetDesc = "portfolio".equals(presetKey) ? "作品展示网站模板" : ("enterprise".equals(presetKey) ? "企业官网模板" : "预置模板");
+        StringBuilder sb = new StringBuilder();
+        sb.append(original == null ? "" : original.trim());
+        sb.append("\n\n[模板信息] ");
+        sb.append("已为本项目准备预置代码：").append(presetDesc).append("。");
+        if (copied) {
+            sb.append("已将模板文件复制到项目根目录（vue_project）。");
+        } else {
+            sb.append("项目目录已存在模板文件，继续在此基础上修改。");
+        }
+        sb.append(" 请先使用【读取目录】与【读取文件】了解结构，再基于需要进行【文件修改】或【写入文件】的最小变更，避免重复创建已存在的文件。完成后调用【退出工具】结束本轮任务。");
+        return sb.toString();
     }
 
 

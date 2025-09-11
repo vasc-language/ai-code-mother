@@ -204,6 +204,24 @@
 - [ ] 5) 验证 HTML / MULTI_FILE / VUE_PROJECT 三类应用展示
 - [ ] 6) 更新本 todo 的 Review 小结
 
+% 键盘交互：Enter 发送，Shift+Enter 换行
+
+目标
+- 统一文本输入的键盘行为：普通 Enter 发送；Shift+Enter 换行。
+
+修改项
+- [x] AppChatPage.vue：
+  - 去除“Enter 停止生成”的全局快捷键，改为 Esc 停止；
+  - 文本域 `@keydown` 统一走 `onInputKeydown`，判断 `e.shiftKey`；
+  - 仅在 `btnState === 'send'` 时触发 `sendMessage()`。
+- [x] HomePage.vue：
+  - 文本域增加 `@keydown="onPromptKeydown"`，Enter 触发 `createApp()`；
+  - Shift+Enter 保留换行。
+
+验收标准
+- 在 AppChatPage：按 Enter 发送消息；按 Shift+Enter 换行；不会触发“停止”。
+- 在 HomePage：按 Enter 触发创建应用；按 Shift+Enter 换行。
+
 验收标准
 - 右侧不再出现代码渲染组件与文件列表，只显示项目的完整预览页面；
 - 预览可正常加载、滚动、在新窗口打开；
@@ -220,6 +238,36 @@ Review（完成后补充）
   - 新增预览容器与 iframe 样式；
   - 保留“在新窗口打开”能力；
 - 风险与验证：已在三种代码类型下验证预览展示；可视化编辑能初始化。
+
+Review（本次修改小结）
+- 修改文件：
+  - `ai-code-mother-frontend/src/pages/app/AppChatPage.vue`
+- 主要改动：
+  - 引入 `generationFinished` 状态；生成完成后右侧切换为“预览”模式，仅展示 iframe；
+  - 生成开始时复位为未完成；done 事件置为完成；初始化时如已有对话则显示预览；
+  - 预览头部新增“编辑模式”按钮（位于“在新窗口打开”左侧），调用 `toggleEditMode()` 并高亮活跃态；
+  - 新增 `.preview-container`、`.preview-iframe` 样式，保证预览区满宽高；
+- 不涉及后端改动；未影响已有 SSE、下载、部署逻辑。
+- 回归建议：
+  - 生成中仍应展示代码过程；生成结束自动切换预览；
+  - 预览加载后“编辑模式”可用，选中元素信息能在左侧出现；
+  - 新一轮生成开始时，预览面板切回代码展示，编辑模式按钮不可用。
+
+% 可视化修改功能：新增“编辑模式”按钮
+
+目标
+- 在右侧预览头部操作区，新增“编辑模式”按钮，位于“在新窗口打开”左侧，复用 `visualEditor.toggleEditMode()`。
+
+待办清单（执行时逐项勾选）
+- [x] 1) 定位预览操作区（AppChatPage.vue -> 预览模式 `.section-header .header-actions`）
+- [x] 2) 新增按钮 `<a-button>` 文案“编辑模式”，绑定 `@click="toggleEditMode"`
+- [x] 3) 绑定激活态样式 `:class="{ 'edit-mode-active': isEditMode }"`
+- [x] 4) 仅在有 `previewUrl` 时可用（`:disabled="!previewUrl"`）
+- [x] 5) 验证：iframe onload 初始化 VisualEditor，按钮可切换与高亮
+
+验收标准
+- 点击“编辑模式”可开启/关闭可视化编辑，选中元素信息可在左侧提示条显示；
+- 生成过程中该按钮不可用或隐藏（当前预览仅在生成完成后显示，已满足）。
 
 
 进展更新（P0 已完成）
@@ -487,3 +535,55 @@ Review（完成后补充）
 
 回退方案
 - 保留旧发送按钮代码（注释），出现异常可快速还原为双按钮方案。
+
+---
+
+% 预置模板缓存与快速拷贝（Vue 工程）实现方案与待办清单（需确认后执行）
+
+背景与目标
+- 背景：用户在 HomePage.vue 通过快捷按钮输入固定提示词时，希望直接复用已生成的 Vue 工程模板，减少用户等待首包时间；随后再让 AI 基于模板进行二次修改。
+- 目标：
+  - 在“每次调用 AI 之前”，先根据用户提示词匹配预置模板；
+  - 若匹配成功，将模板工程复制到应用生成目录 `tmp/code_output/vue_project_{appId}`；
+  - 将“模板信息与使用说明”附加到本次用户消息，供 AI 使用文件工具二次处理；
+  - 仅在 VUE_PROJECT 类型且目标目录不存在或为空时执行复制，避免覆盖用户已有成果。
+
+模板与匹配规则
+- 模板1路径：`tmp/code_output/vue_project_323345718267260928`
+  - 触发提示词（完全匹配）：
+    “制作一个精美的作品展示网站，适合设计师、摄影师、艺术家等创作者。包含作品画廊、项目详情页、个人简历、联系方式等模块。采用瀑布流或网格布局展示作品，支持图片放大预览和作品分类筛选。”
+- 模板2路径：`tmp/code_output/vue_project_317749662884204544`
+  - 触发提示词（完全匹配）：
+    “设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。”
+
+技术方案（最小改动）
+- 改造点：`src/main/java/com/spring/aicodemother/service/impl/AppServiceImpl.java` → `chatToGenCode(...)`
+  - 在调用 `aiCodeGeneratorFacade.generateAndSaveCodeStream(...)` 之前：
+    1）根据 `message` 做模板精确匹配；
+    2）若 `app.codeGenType == VUE_PROJECT` 且 `tmp/code_output/vue_project_{appId}` 不存在或为空：
+       - 从模板目录复制到目标目录（使用 `FileUtil.copyContent`）；
+    3）构造新的 `finalMessage = 原message + 模板说明附加段`，提示 AI：
+       - 已预置模板至项目根目录；
+       - 先用【读取目录/读取文件】工具了解结构，再按需【修改/写入/删除】；
+       - 完成后调用【退出工具】；
+    4）后续仍按原逻辑流式生成，模板作为“起始基底”。
+
+边界与安全
+- 仅首次复制：检测目标目录是否为空，避免覆盖已有代码。
+- 非 VUE_PROJECT 类型不执行复制，保持现有逻辑。
+- 日志中打印匹配结果与来源模板，便于定位问题。
+
+待办清单（执行时逐项勾选）
+- [ ] 1) 后端：实现模板匹配与复制逻辑（AppServiceImpl.chatToGenCode）
+- [ ] 2) 后端：附加模板说明到用户消息（仅当前轮）
+- [ ] 3) 后端：完善日志（命中/未命中、路径、是否首拷贝）
+- [ ] 4) 验证：HomePage.vue 快捷提示词触发模板1/2，首轮进入聊天页能快速预览
+- [ ] 5) 验证：第二次生成或已有文件时不重复覆盖；非精确提示词不触发
+- [ ] 6) 文档：在 todo.md 增加 review 小结（修改点与验证要点）
+
+Review（待功能完成后补充）
+- 变更文件：
+  - `src/main/java/com/spring/aicodemother/service/impl/AppServiceImpl.java`
+- 主要改动：在 AI 生成前注入“模板缓存拷贝 + 提示词增强”。
+- 风险：误覆盖用户已有项目 → 通过“首次复制”与类型门禁规避。
+- 兼容性：不影响 HTML / MULTI_FILE 流程；仅在 Vue 工程与特定提示词下生效。

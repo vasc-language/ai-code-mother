@@ -195,3 +195,48 @@
 
 备注
 - 若后续需要新增 Esc=停止 的快捷键，可在同一全局 keydown 中匹配 e.key==='Escape' 并复用 onToggleStream() 实现。
+
+---
+
+% 预置模板缓存与快速拷贝（Vue 工程，命中 HomePage 快捷提示词）
+
+目标
+- 在每次调用 AI 之前，先基于用户提示词匹配预置 Vue 模板；命中则把模板工程复制到 `tmp/code_output/vue_project_{appId}`，并把“模板使用说明”仅附加到本轮提示词，指导 AI 用读/写/改工具在模板上做最小变更。非命中或非 `VUE_PROJECT` 类型保持原流程。
+
+实现位置与关键改动（后端）
+- 文件：`src/main/java/com/spring/aicodemother/service/impl/AppServiceImpl.java`
+  - 方法：`chatToGenCode(Long appId, String message, User loginUser, GenerationControl control)`
+  - 新增逻辑：
+    - `matchPresetTemplate(message)`: 精确匹配两条中文提示词（与 HomePage 快捷按钮一致）。
+    - `ensurePresetCopied(appId, presetKey)`: 若目标目录不存在或为空，复制模板到 `vue_project_{appId}`。
+    - `buildTemplateAwareMessage(original, presetKey, copied)`: 构造仅用于本轮调用的增强提示词（不落库），提醒 AI 先读取目录/文件，再进行最小修改，完成后调用退出工具。
+    - 使用 `finalMessage` 代替 `message` 进入 `aiCodeGeneratorFacade.generateAndSaveCodeStream(...)`。
+  - 日志：
+    - 命中并处理：`[TEMPLATE-CACHED] appId=..., preset='portfolio|enterprise', copied=true|false`
+    - 未命中：`[TEMPLATE-NO-HIT] appId=...`
+    - 异常不中断主流程：`[TEMPLATE-ERROR] ...`
+
+预置模板目录与触发规则
+- 模板1（作品展示）：`tmp/code_output/vue_project_323345718267260928`
+  - 触发文案（精确匹配）：制作一个精美的作品展示网站……（与首页“作品展示网站”快捷按钮一致）
+- 模板2（企业官网）：`tmp/code_output/vue_project_317749662884204544`
+  - 触发文案（精确匹配）：设计一个专业的企业官网……（与首页“企业官网”快捷按钮一致）
+
+安全与边界
+- 仅在 `codeGenType == VUE_PROJECT` 时生效。
+- 首拷贝判定：仅当 `tmp/code_output/vue_project_{appId}` 目录不存在、非目录或为空时复制；避免覆盖用户已有成果。
+- 模板不可用或复制失败不影响主流程（降级继续按原逻辑生成）。
+
+验收要点（简）
+- 日志出现：`[TEMPLATE-CACHED] ... copied=true`，随后再次生成为 `copied=false`。
+- 目标目录存在模板文件：`ls -la tmp/code_output/vue_project_{appId}`。
+- 聊天区可见工具调用顺序：先 `readDir/readFile`，再 `writeFile/modify`，非从零搭脚手架。
+- 非命中/非 Vue 工程：日志 `[TEMPLATE-NO-HIT]`，流程不受影响。
+
+影响面与回退
+- 仅触达后端 `AppServiceImpl` 生成前置逻辑；对 HTML/MULTI_FILE 流程零影响。
+- 出现异常自动降级（不复制、不增强提示词），无需回滚即可继续使用。
+
+后续建议
+- 支持“近似匹配/关键词映射”，并将模板映射抽取为可配置项（如 `application.yaml`）。
+- 引入模板校验（必要文件存在性、`package.json`/`vite.config.*` 基础合法性）并在日志中提示。

@@ -119,7 +119,7 @@
                 :placeholder="getInputPlaceholder()"
                 :rows="4"
                 :maxlength="1000"
-                @keydown.enter.prevent="sendMessage"
+                @keydown="onInputKeydown"
                 :disabled="isGenerating || !isOwner"
               />
             </a-tooltip>
@@ -129,7 +129,7 @@
               :placeholder="getInputPlaceholder()"
               :rows="4"
               :maxlength="1000"
-              @keydown.enter.prevent="sendMessage"
+              @keydown="onInputKeydown"
               :disabled="isGenerating"
             />
             <!-- 合一主按钮：发送 / 停止 / 继续（非作者可见但禁用） -->
@@ -329,6 +329,15 @@
           <div class="section-header">
             <h3>预览</h3>
             <div class="header-actions">
+              <a-button
+                type="default"
+                size="small"
+                :class="{ 'edit-mode-active': isEditMode }"
+                :disabled="!previewUrl"
+                @click="toggleEditMode"
+              >
+                编辑模式
+              </a-button>
               <a-button
                 v-if="previewUrl"
                 type="link"
@@ -598,6 +607,16 @@ const primaryActionTitle = computed(() => {
   }
 })
 
+// 文本框按键：Enter 发送，Shift+Enter 换行
+const onInputKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    if (btnState.value === 'send') {
+      sendMessage()
+    }
+  }
+}
+
 const onPrimaryActionClick = async () => {
   if (!isOwner.value) {
     message.info('无法在别人的作品下对话哦~')
@@ -623,11 +642,10 @@ const showAppDetail = () => {
   appDetailVisible.value = true
 }
 
-// 全局快捷键：生成中按 Enter 触发“停止”
+// 全局快捷键：不再用 Enter 终止，保留 Esc 停止（可选）
 const globalKeyHandler = (e: KeyboardEvent) => {
-  if (e.key === 'Enter' && isGenerating.value) {
+  if (e.key === 'Escape' && isGenerating.value) {
     e.preventDefault()
-    // 仅当拥有者时可操作；非拥有者无效果（按钮已禁用）
     if (isOwner.value) {
       onToggleStream()
     }
