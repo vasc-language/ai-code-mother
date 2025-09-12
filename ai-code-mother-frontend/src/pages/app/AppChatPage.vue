@@ -336,7 +336,7 @@
                 :disabled="!previewUrl"
                 @click="toggleEditMode"
               >
-                编辑模式
+                {{ isEditMode ? '退出编辑模式' : '编辑模式' }}
               </a-button>
               <a-button
                 v-if="previewUrl"

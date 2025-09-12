@@ -74,6 +74,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
 
+    @Resource
+    private com.spring.aicodemother.ai.AppNameGeneratorServiceFactory appNameGeneratorServiceFactory;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // Backward compatibility: run without external cancellation
@@ -230,8 +233,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         App app = new App();
         BeanUtil.copyProperties(appAddRequest, app);
         app.setUserId(loginUser.getId());
-        // 应用名称暂时为 initPrompt 前 12 位
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+        // 使用 AI 生成简洁项目名称（失败则回退到截断策略）
+        String appName = null;
+        try {
+            var nameService = appNameGeneratorServiceFactory.createAppNameGeneratorService();
+            String rawName = nameService.generateName(initPrompt);
+            if (StrUtil.isNotBlank(rawName)) {
+                // 清洗：去除引号/换行/特殊符号，限制长度
+                appName = rawName.replaceAll("[\r\n\t]", " ")
+                        .replaceAll("^[\"'`，。！？,.\s]+|[\"'`，。！？,.\s]+$", "")
+                        .trim();
+                if (appName.length() > 20) {
+                    appName = appName.substring(0, 20);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("AI 生成项目名称失败，使用回退策略：{}", e.getMessage());
+        }
+        if (StrUtil.isBlank(appName)) {
+            appName = initPrompt.substring(0, Math.min(initPrompt.length(), 12));
+        }
+        app.setAppName(appName);
         // 使用 AI 智能选择代码生成类型（多例模式）
         AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
         CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
