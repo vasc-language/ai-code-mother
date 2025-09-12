@@ -238,5 +238,54 @@
 - 出现异常自动降级（不复制、不增强提示词），无需回滚即可继续使用。
 
 后续建议
+
+---
+
+% 生成项目时用 Qwen 生成精简项目名，并在三处页面展示（实现说明）
+
+目标
+- 创建应用时，不再直接用用户 `prompt` 作为应用名称，而是调用阿里通义千问 `qwen-turbo` 生成“精简、可展示”的项目名，并在前端三处展示：
+  - 首页「我的作品」卡片标题
+  - 首页「精选案例/作品集」卡片标题
+  - 项目生成页面顶部标题
+
+后端实现
+- 新增 AI 命名服务（基于 langchain4j + OpenAI 兼容接口指向 DashScope）：
+  - `src/main/java/com/spring/aicodemother/ai/AppNameGeneratorService.java`
+    - `@SystemMessage(fromResource = "prompt/app-name-system-prompt.txt")`
+    - `String generateName(String userPrompt)`：仅返回名称文本
+  - `src/main/java/com/spring/aicodemother/ai/AppNameGeneratorServiceFactory.java`
+    - 复用 `routingChatModelPrototype`（`qwen-turbo`），每次创建原型实例，`AiServices.builder(...).chatModel(chatModel).build()`
+- 系统提示词：`src/main/resources/prompt/app-name-system-prompt.txt`
+  - 约束仅输出名称、无标点引号、语言随输入、中文 4-10 字、英文 Title Case 等
+- 接入创建流程：`src/main/java/com/spring/aicodemother/service/impl/AppServiceImpl.java`
+  - 在 `createApp(AppAddRequest, User)` 中：
+    1) 调用 `AppNameGeneratorService.generateName(initPrompt)`
+    2) 清洗结果：去除换行/引号/首尾标点，长度上限 20
+    3) 失败兜底：回退为 `initPrompt` 前 12 个字符
+    4) 将结果写入 `app.setAppName(appName)` 并落库
+
+配置要求
+- `src/main/resources/application.yml`
+  - `langchain4j.open-ai.routing-chat-model.base-url: https://dashscope.aliyuncs.com/compatible-mode/v1`
+  - `langchain4j.open-ai.routing-chat-model.model-name: qwen-turbo`
+  - `langchain4j.open-ai.routing-chat-model.api-key: <DashScope API Key>`
+- 未配置 API Key 时仍可使用（触发兜底命名策略）
+
+前端展示（无需改动）
+- 卡片组件 `AppCard.vue` 使用 `app.appName` 作为标题
+- 首页两区块（我的作品、精选案例）渲染 `AppCard`
+- 生成页面 `AppChatPage.vue` 顶部标题展示 `appInfo.appName`
+
+测试与验收
+- 输入多样化 prompt 创建应用，观察：
+  - 首页「我的作品」与「精选案例」卡片标题显示为 AI 生成的简名
+  - 进入项目生成页面顶部标题为同一简名
+  - 后端日志可看到 qwen 调用；异常时名称回退为前 12 字
+
+兼容性与回退
+- 改动仅限后端创建逻辑；不影响既有接口与前端渲染
+- AI 不可用时自动回退，不阻断创建流程
+
 - 支持“近似匹配/关键词映射”，并将模板映射抽取为可配置项（如 `application.yaml`）。
 - 引入模板校验（必要文件存在性、`package.json`/`vite.config.*` 基础合法性）并在日志中提示。

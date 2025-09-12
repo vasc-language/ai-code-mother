@@ -1,6 +1,7 @@
 ### CUSTOM ###
 *.md
 application-local.yml
+application-prod.yml
 application-local.properties
 *.env
 .env*

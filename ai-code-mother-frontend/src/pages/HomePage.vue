@@ -258,7 +258,7 @@ onMounted(() => {
     <div class="container">
       <!-- 网站标题和描述 -->
       <div class="hero-section">
-        <h1 class="hero-title">AI 应用生成平台</h1>
+        <h1 class="hero-title">AI 零代码应用生成平台</h1>
         <p class="hero-description">一句话轻松创建网站应用</p>
       </div>
 
@@ -296,19 +296,19 @@ onMounted(() => {
           type="default"
           @click="
             setPrompt(
-              '创建一个功能完整的待办事项列表单文件应用，包含添加任务、标记完成、删除任务和本地存储功能。',
+              '设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。',
             )
           "
-          >待办事项列表</a-button
+          >企业官网网站</a-button
         >
         <a-button
           type="default"
           @click="
             setPrompt(
-              '设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。',
+              '创建一个功能完整的待办事项列表单文件应用，包含添加任务、标记完成、删除任务和本地存储功能。',
             )
           "
-          >企业官网</a-button
+        >待办事项列表</a-button
         >
         <a-button
           type="default"
@@ -760,7 +760,7 @@ onMounted(() => {
   .container {
     padding: var(--spacing-lg);
   }
-  
+
   .hero-section {
     padding: var(--spacing-3xl) 0 var(--spacing-2xl);
     margin-bottom: var(--spacing-lg);
@@ -784,11 +784,11 @@ onMounted(() => {
     justify-content: center;
     padding: var(--spacing-lg);
   }
-  
+
   .section {
     padding: var(--spacing-lg);
   }
-  
+
   .section-title {
     font-size: var(--font-size-2xl);
   }
