@@ -13,6 +13,7 @@
           v-model:value="searchParams.codeGenType"
           placeholder="选择生成类型"
           style="width: 150px"
+          class="gen-type-select"
         >
           <a-select-option value="">全部</a-select-option>
           <a-select-option
@@ -305,5 +306,68 @@ const deleteApp = async (id: number | undefined) => {
 
 :deep(.ant-table-tbody > tr > td) {
   vertical-align: middle;
+}
+
+/* 修复生成类型选择框的文字对齐 */
+.gen-type-select :deep(.ant-select-selector) {
+  display: flex !important;
+  align-items: center !important;
+  height: 32px !important;
+  line-height: 32px !important;
+}
+
+.gen-type-select :deep(.ant-select-selection-placeholder) {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  line-height: normal !important;
+  color: var(--gray-400) !important;
+  font-family: var(--font-family-primary) !important;
+}
+
+.gen-type-select :deep(.ant-select-selection-item) {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  line-height: normal !important;
+  font-family: var(--font-family-primary) !important;
+}
+
+/* 修复分页组件的文字对齐 */
+:deep(.ant-pagination-options-size-changer) {
+  display: flex !important;
+  align-items: center !important;
+  height: 32px !important;
+}
+
+:deep(.ant-pagination-options-size-changer .ant-select) {
+  height: 32px !important;
+}
+
+:deep(.ant-pagination-options-size-changer .ant-select-selector) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;
+  padding: 0 8px !important;
+  border-radius: var(--radius-md) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+:deep(.ant-pagination-options-size-changer .ant-select-selection-item) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  text-align: center !important;
+  font-family: var(--font-family-primary) !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: var(--font-weight-medium) !important;
+  color: var(--gray-700) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 </style>

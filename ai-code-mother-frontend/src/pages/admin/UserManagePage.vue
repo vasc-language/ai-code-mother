@@ -158,4 +158,46 @@ onMounted(() => {
   background: white;
   margin-top: 16px;
 }
+
+/* 修复分页组件的文字对齐 */
+:deep(.ant-pagination-options-size-changer) {
+  display: flex !important;
+  align-items: center !important;
+  height: 32px !important;
+}
+
+:deep(.ant-pagination-options-size-changer .ant-select) {
+  height: 32px !important;
+}
+
+:deep(.ant-pagination-options-size-changer .ant-select-selector) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;
+  padding: 0 8px !important;
+  border-radius: var(--radius-md) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+:deep(.ant-pagination-options-size-changer .ant-select-selection-item) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  text-align: center !important;
+  font-family: var(--font-family-primary) !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: var(--font-weight-medium) !important;
+  color: var(--gray-700) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+:deep(.ant-table-tbody > tr > td) {
+  vertical-align: middle;
+}
 </style>
