@@ -210,7 +210,7 @@
                   :code="currentGeneratingFile.content"
                   :language="currentGeneratingFile.language"
                   :fileName="currentGeneratingFile.name"
-                  theme="atom-one-dark"
+                  theme="github"
                 />
                 <div class="typing-cursor" v-if="!currentGeneratingFile.completed">|</div>
               </div>
@@ -230,7 +230,7 @@
                   :code="simpleCodeFile.content"
                   :language="simpleCodeFile.language"
                   :fileName="simpleCodeFile.name"
-                  theme="atom-one-dark"
+                  theme="github"
                 />
                 <div class="typing-cursor" v-if="!simpleCodeFile.completed">|</div>
               </div>
@@ -252,7 +252,7 @@
                     :code="getCurrentMultiFileContent()"
                     :language="getCurrentMultiFileLanguage()"
                     :fileName="currentMultiFile"
-                    theme="atom-one-dark"
+                    theme="github"
                   />
                   <div class="typing-cursor" v-if="isMultiFileGenerating">|</div>
                 </div>
@@ -277,7 +277,7 @@
                         :code="file.content"
                         :language="file.language"
                         :fileName="file.name"
-                        theme="atom-one-dark"
+                        theme="github"
                       />
                     </div>
                   </a-collapse-panel>
@@ -304,7 +304,7 @@
                       :code="file.content"
                       :language="file.language"
                       :fileName="file.name"
-                      theme="atom-one-dark"
+                      theme="github"
                     />
                   </div>
                 </a-collapse-panel>

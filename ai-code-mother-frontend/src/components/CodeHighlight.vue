@@ -175,7 +175,8 @@ onMounted(() => {
 
 .code-content {
   position: relative;
-  background: #282c34;
+  /* 使用透明背景以继承父容器（页面为浅色风格，更协调） */
+  background: transparent;
 }
 
 .code-content pre {
