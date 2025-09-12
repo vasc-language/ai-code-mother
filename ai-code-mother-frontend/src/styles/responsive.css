@@ -1,0 +1,425 @@
+/* 响应式布局优化 */
+
+/* 移动设备优先的响应式断点 */
+:root {
+  --mobile-max: 767px;
+  --tablet-min: 768px;
+  --tablet-max: 1023px;
+  --desktop-min: 1024px;
+  --large-min: 1200px;
+  --xlarge-min: 1440px;
+}
+
+/* 基础容器响应式 */
+.container-responsive {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+@media (max-width: 767px) {
+  .container-responsive {
+    padding: 0 var(--spacing-md);
+  }
+}
+
+@media (min-width: 1440px) {
+  .container-responsive {
+    max-width: 1400px;
+    padding: 0 var(--spacing-xl);
+  }
+}
+
+/* 网格系统响应式 */
+.grid-responsive {
+  display: grid;
+  gap: var(--spacing-lg);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+@media (max-width: 767px) {
+  .grid-responsive {
+    gap: var(--spacing-md);
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .grid-responsive {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
+
+/* 文本响应式 */
+.text-responsive-xl {
+  font-size: var(--font-size-5xl);
+  line-height: var(--line-height-tight);
+}
+
+.text-responsive-lg {
+  font-size: var(--font-size-3xl);
+  line-height: var(--line-height-tight);
+}
+
+.text-responsive-md {
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-normal);
+}
+
+@media (max-width: 767px) {
+  .text-responsive-xl {
+    font-size: var(--font-size-3xl);
+  }
+  
+  .text-responsive-lg {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .text-responsive-md {
+    font-size: var(--font-size-lg);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .text-responsive-xl {
+    font-size: var(--font-size-4xl);
+  }
+}
+
+/* 间距响应式 */
+.spacing-responsive-xl {
+  padding: var(--spacing-4xl);
+  margin: var(--spacing-3xl) 0;
+}
+
+.spacing-responsive-lg {
+  padding: var(--spacing-3xl);
+  margin: var(--spacing-xl) 0;
+}
+
+.spacing-responsive-md {
+  padding: var(--spacing-xl);
+  margin: var(--spacing-lg) 0;
+}
+
+@media (max-width: 767px) {
+  .spacing-responsive-xl {
+    padding: var(--spacing-xl);
+    margin: var(--spacing-lg) 0;
+  }
+  
+  .spacing-responsive-lg {
+    padding: var(--spacing-lg);
+    margin: var(--spacing-md) 0;
+  }
+  
+  .spacing-responsive-md {
+    padding: var(--spacing-lg);
+    margin: var(--spacing-sm) 0;
+  }
+}
+
+/* 卡片响应式 */
+.card-responsive {
+  background: var(--card-gradient);
+  backdrop-filter: var(--glass-backdrop);
+  border: var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-xl);
+  transition: var(--transition-normal);
+}
+
+@media (max-width: 767px) {
+  .card-responsive {
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+@media (hover: hover) {
+  .card-responsive:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+  }
+}
+
+/* 按钮响应式 */
+.btn-responsive {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-base);
+  border-radius: var(--radius-lg);
+  min-height: 44px; /* 移动设备触摸友好 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  transition: var(--transition-fast);
+}
+
+.btn-responsive-sm {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  min-height: 36px;
+  border-radius: var(--radius-md);
+}
+
+.btn-responsive-lg {
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-lg);
+  min-height: 52px;
+  border-radius: var(--radius-xl);
+}
+
+@media (max-width: 767px) {
+  .btn-responsive {
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+  
+  .btn-responsive-lg {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    font-size: var(--font-size-base);
+  }
+}
+
+/* 导航响应式 */
+.nav-responsive {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 1023px) {
+  .nav-responsive {
+    gap: var(--spacing-md);
+  }
+}
+
+@media (max-width: 767px) {
+  .nav-responsive {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: stretch;
+  }
+}
+
+/* 表单响应式 */
+.form-responsive .ant-form-item {
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-responsive .ant-input,
+.form-responsive .ant-textarea,
+.form-responsive .ant-select-selector {
+  font-size: var(--font-size-base);
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 44px;
+}
+
+@media (max-width: 767px) {
+  .form-responsive .ant-form-item {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .form-responsive .ant-form-item-label {
+    text-align: left;
+    padding-bottom: var(--spacing-xs);
+  }
+  
+  .form-responsive .ant-input,
+  .form-responsive .ant-textarea,
+  .form-responsive .ant-select-selector {
+    font-size: var(--font-size-lg);
+    padding: var(--spacing-md);
+    min-height: 48px;
+  }
+}
+
+/* 模态框响应式 */
+@media (max-width: 767px) {
+  .ant-modal {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+  }
+  
+  .ant-modal-content {
+    border-radius: var(--radius-lg) !important;
+  }
+  
+  .ant-modal-header {
+    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md) !important;
+  }
+  
+  .ant-modal-body {
+    padding: var(--spacing-md) var(--spacing-lg) !important;
+  }
+  
+  .ant-modal-footer {
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg) !important;
+  }
+}
+
+/* 表格响应式 */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+}
+
+@media (max-width: 1023px) {
+  .ant-table-thead > tr > th {
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+    font-size: var(--font-size-sm) !important;
+  }
+  
+  .ant-table-tbody > tr > td {
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+    font-size: var(--font-size-sm) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .ant-table-thead > tr > th {
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    font-size: var(--font-size-xs) !important;
+  }
+  
+  .ant-table-tbody > tr > td {
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    font-size: var(--font-size-xs) !important;
+  }
+}
+
+/* 分页响应式 */
+@media (max-width: 767px) {
+  .ant-pagination {
+    text-align: center;
+  }
+  
+  .ant-pagination-options {
+    display: none !important;
+  }
+  
+  .ant-pagination-total-text {
+    display: none !important;
+  }
+}
+
+/* 抽屉响应式 */
+@media (max-width: 767px) {
+  .ant-drawer-content-wrapper {
+    width: 100vw !important;
+    max-width: none !important;
+  }
+}
+
+/* 工具类 - 显示/隐藏 */
+.show-mobile {
+  display: none;
+}
+
+.show-tablet {
+  display: none;
+}
+
+.show-desktop {
+  display: block;
+}
+
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  .show-mobile {
+    display: block;
+  }
+  
+  .show-desktop {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .hide-tablet {
+    display: none !important;
+  }
+  
+  .show-tablet {
+    display: block;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 移除悬停效果，优化触摸交互 */
+  .card-responsive:hover,
+  .btn-responsive:hover,
+  .ant-btn:hover {
+    transform: none !important;
+    box-shadow: var(--shadow-md) !important;
+  }
+  
+  /* 增加点击区域 */
+  .ant-btn,
+  .btn-responsive,
+  .ant-input,
+  .ant-select-selector {
+    min-height: 44px !important;
+  }
+  
+  /* 优化间距 */
+  .spacing-responsive-xl,
+  .spacing-responsive-lg,
+  .spacing-responsive-md {
+    padding-top: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+  }
+}
+
+/* 高DPI屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .hero-title,
+  .section-title,
+  .app-title {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* 减少动画 - 用户偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  /* 为未来的暗色模式支持预留 */
+  :root {
+    --dark-bg: #0f172a;
+    --dark-surface: #1e293b;
+    --dark-text: #f1f5f9;
+  }
+}

@@ -1,26 +1,26 @@
 <template>
   <a-layout-header class="header">
-    <a-row :wrap="false">
+    <div class="header-content">
       <!-- 左侧：Logo和标题 -->
-      <a-col flex="200px">
+      <div class="header-left">
         <RouterLink to="/">
-          <div class="header-left">
+          <div class="logo-section">
             <img class="logo" src="@/assets/logo.png" alt="Logo" />
             <h1 class="site-title">零代码应用生成</h1>
           </div>
         </RouterLink>
-      </a-col>
+      </div>
       <!-- 中间：导航菜单 -->
-      <a-col flex="auto">
+      <div class="header-center">
         <a-menu
           v-model:selectedKeys="selectedKeys"
           mode="horizontal"
           :items="menuItems"
           @click="handleMenuClick"
         />
-      </a-col>
+      </div>
       <!-- 右侧：用户操作区域 -->
-      <a-col>
+      <div class="header-right">
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
@@ -42,8 +42,8 @@
             <a-button type="primary" href="/user/login">登录</a-button>
           </div>
         </div>
-      </a-col>
-    </a-row>
+      </div>
+    </div>
   </a-layout-header>
 </template>
 
@@ -133,28 +133,195 @@ const doLogout = async () => {
 
 <style scoped>
 .header {
-  background: #fff;
-  padding: 0 24px;
+  background: var(--glass-gradient);
+  backdrop-filter: var(--glass-backdrop);
+  border: var(--glass-border);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  margin: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+  padding: 0 var(--spacing-xl);
+  transition: var(--transition-normal);
+}
+
+.header:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 64px;
 }
 
 .header-left {
+  flex-shrink: 0;
+}
+
+.logo-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .logo {
-  height: 48px;
-  width: 48px;
+  height: 40px;
+  width: 40px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+}
+
+.logo:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
 }
 
 .site-title {
   margin: 0;
-  font-size: 18px;
-  color: #1890ff;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: var(--transition-fast);
+  white-space: nowrap;
 }
 
-.ant-menu-horizontal {
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  margin: 0 var(--spacing-xl);
+}
+
+.header-right {
+  flex-shrink: 0;
+}
+
+.user-login-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* Ant Design Menu 样式覆盖 */
+:deep(.ant-menu-horizontal) {
   border-bottom: none !important;
+  background: transparent !important;
+  line-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.ant-menu-item) {
+  border-radius: var(--radius-md);
+  margin: 0 var(--spacing-sm);
+  font-weight: var(--font-weight-medium);
+  transition: var(--transition-fast);
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.ant-menu-item:hover) {
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: var(--primary-color) !important;
+}
+
+:deep(.ant-menu-item-selected) {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: var(--primary-color) !important;
+}
+
+:deep(.ant-menu-item-selected::after) {
+  display: none;
+}
+
+/* 用户下拉菜单样式 */
+:deep(.ant-dropdown-menu) {
+  background: var(--glass-gradient);
+  backdrop-filter: var(--glass-backdrop);
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: var(--spacing-sm);
+}
+
+:deep(.ant-dropdown-menu-item) {
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+}
+
+:deep(.ant-dropdown-menu-item:hover) {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+}
+
+/* 头像样式 */
+:deep(.ant-avatar) {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+}
+
+:deep(.ant-avatar:hover) {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+}
+
+/* 登录按钮样式 */
+:deep(.ant-btn-primary) {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+}
+
+:deep(.ant-btn-primary:hover) {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .header {
+    margin: 0 var(--spacing-sm) var(--spacing-md) var(--spacing-sm);
+    padding: 0 var(--spacing-lg);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+  
+  .header-content {
+    height: 56px;
+  }
+  
+  .site-title {
+    font-size: var(--font-size-base);
+  }
+  
+  .logo {
+    height: 32px;
+    width: 32px;
+  }
+  
+  .header-center {
+    margin: 0 var(--spacing-md);
+  }
+  
+  :deep(.ant-menu-horizontal) {
+    line-height: 56px;
+  }
+  
+  :deep(.ant-menu-item) {
+    height: 32px;
+    margin: 0 var(--spacing-xs);
+    font-size: var(--font-size-sm);
+  }
 }
 </style>

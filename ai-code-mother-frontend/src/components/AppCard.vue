@@ -56,26 +56,60 @@ const handleViewWork = () => {
 
 <style scoped>
 .app-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
+  background: var(--card-gradient);
+  backdrop-filter: var(--glass-backdrop);
+  border: var(--glass-border);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition:
-    transform 0.3s,
-    box-shadow 0.3s;
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition-normal);
   cursor: pointer;
+  position: relative;
+}
+
+.app-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  opacity: 0;
+  transition: var(--transition-normal);
+}
+
+.app-card:hover::before {
+  opacity: 1;
 }
 
 .app-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--shadow-2xl);
+}
+
+.app-card--featured {
+  background: linear-gradient(135deg, 
+    rgba(99, 102, 241, 0.05) 0%, 
+    rgba(236, 72, 153, 0.05) 50%, 
+    rgba(255, 255, 255, 0.9) 100%);
+  border: 2px solid rgba(99, 102, 241, 0.2);
+}
+
+.app-card--featured::before {
+  opacity: 1;
+  background: linear-gradient(90deg, 
+    var(--primary-color) 0%, 
+    var(--secondary-color) 50%, 
+    var(--success-color) 100%);
 }
 
 .app-preview {
-  height: 180px;
-  background: #f5f5f5;
+  height: 200px;
+  background: var(--gray-100);
+  background-image: 
+    linear-gradient(45deg, transparent 40%, rgba(99, 102, 241, 0.05) 50%, transparent 60%),
+    radial-gradient(circle at center, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -87,11 +121,21 @@ const handleViewWork = () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: var(--transition-normal);
+}
+
+.app-card:hover .app-preview img {
+  transform: scale(1.1);
 }
 
 .app-placeholder {
-  font-size: 48px;
-  color: #d9d9d9;
+  font-size: var(--font-size-4xl);
+  color: var(--gray-300);
+  font-weight: var(--font-weight-light);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .app-overlay {
@@ -100,12 +144,15 @@ const handleViewWork = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, 
+    rgba(0, 0, 0, 0.6) 0%, 
+    rgba(99, 102, 241, 0.4) 100%);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: var(--transition-normal);
 }
 
 .app-card:hover .app-overlay {
@@ -113,10 +160,12 @@ const handleViewWork = () => {
 }
 
 .app-info {
-  padding: 16px;
+  padding: var(--spacing-lg);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
 }
 
 .app-info-left {
@@ -129,21 +178,123 @@ const handleViewWork = () => {
 }
 
 .app-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 4px;
-  color: #1a1a1a;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-primary);
+  margin: 0 0 var(--spacing-xs);
+  color: var(--gray-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: var(--transition-fast);
+}
+
+.app-card:hover .app-title {
+  color: var(--primary-color);
+}
+
+.app-author {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--gray-500);
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.app-author {
-  font-size: 14px;
-  color: #666;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Ant Design 组件样式覆盖 */
+:deep(.ant-btn) {
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-medium);
+  transition: var(--transition-fast);
+  backdrop-filter: blur(10px);
+}
+
+:deep(.ant-btn-primary) {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.ant-btn-primary:hover) {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+:deep(.ant-btn-default) {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: var(--gray-600);
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.ant-btn-default:hover) {
+  background: rgba(255, 255, 255, 1);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+:deep(.ant-avatar) {
+  background: var(--primary-color);
+  color: var(--white);
+  font-weight: var(--font-weight-medium);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+}
+
+.app-card:hover :deep(.ant-avatar) {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+  transform: scale(1.1);
+}
+
+/* 动画效果 */
+@keyframes cardShimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+.app-card--featured::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(99, 102, 241, 0.1), 
+    transparent);
+  background-size: 200px 100%;
+  animation: cardShimmer 2s infinite;
+  pointer-events: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .app-preview {
+    height: 160px;
+  }
+  
+  .app-info {
+    padding: var(--spacing-md);
+  }
+  
+  .app-title {
+    font-size: var(--font-size-base);
+  }
+  
+  .app-author {
+    font-size: var(--font-size-xs);
+  }
 }
 </style>
