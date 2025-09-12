@@ -53,7 +53,7 @@ import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-import { LogoutOutlined, HomeOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, HomeOutlined, UserOutlined, AppstoreOutlined, GithubOutlined } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -74,16 +74,19 @@ const originItems = [
   },
   {
     key: '/admin/userManage',
+    icon: () => h(UserOutlined),
     label: '用户管理',
     title: '用户管理',
   },
   {
     key: '/admin/appManage',
+    icon: () => h(AppstoreOutlined),
     label: '应用管理',
     title: '应用管理',
   },
   {
     key: 'others',
+    icon: () => h(GithubOutlined),
     label: h('a', { href: 'https://github.com/vasc-language/ai-code-mother', target: '_blank' }, '项目仓库'),
     title: '项目仓库',
   },
@@ -225,6 +228,12 @@ const doLogout = async () => {
   height: 40px;
   display: flex;
   align-items: center;
+  padding: 0 var(--spacing-md);
+}
+
+:deep(.ant-menu-item .anticon) {
+  margin-right: 6px;
+  font-size: 16px;
 }
 
 :deep(.ant-menu-item:hover) {
