@@ -12,12 +12,18 @@
       </div>
       <!-- 中间：导航菜单 -->
       <div class="header-center">
-        <a-menu
-          v-model:selectedKeys="selectedKeys"
-          mode="horizontal"
-          :items="menuItems"
-          @click="handleMenuClick"
-        />
+        <div class="custom-menu">
+          <div 
+            v-for="item in menuItems" 
+            :key="item.key"
+            class="menu-item"
+            :class="{ 'menu-item-selected': selectedKeys.includes(item.key) }"
+            @click="handleMenuItemClick(item)"
+          >
+            <component :is="item.icon" v-if="item.icon" class="menu-icon" />
+            <span class="menu-label">{{ getMenuLabel(item) }}</span>
+          </div>
+        </div>
       </div>
       <!-- 右侧：用户操作区域 -->
       <div class="header-right">
@@ -119,6 +125,28 @@ const handleMenuClick: MenuProps['onClick'] = (e) => {
   }
 }
 
+// 处理自定义菜单项点击
+const handleMenuItemClick = (item: any) => {
+  const key = item.key as string
+  selectedKeys.value = [key]
+  
+  if (key === 'others') {
+    // 项目仓库是外部链接
+    window.open('https://github.com/vasc-language/ai-code-mother', '_blank')
+  } else if (key.startsWith('/')) {
+    // 内部路由跳转
+    router.push(key)
+  }
+}
+
+// 获取菜单标签文本
+const getMenuLabel = (item: any) => {
+  if (typeof item.label === 'string') {
+    return item.label
+  }
+  return item.title || ''
+}
+
 // 退出登录
 const doLogout = async () => {
   const res = await userLogout()
@@ -198,6 +226,8 @@ const doLogout = async () => {
   display: flex;
   justify-content: center;
   margin: 0 var(--spacing-xl);
+  min-width: 400px;
+  overflow: visible;
 }
 
 .header-right {
@@ -210,44 +240,47 @@ const doLogout = async () => {
   gap: var(--spacing-md);
 }
 
-/* Ant Design Menu 样式覆盖 */
-:deep(.ant-menu-horizontal) {
-  border-bottom: none !important;
-  background: transparent !important;
-  line-height: 64px;
+/* 自定义菜单样式 */
+.custom-menu {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-sm);
+  flex-wrap: nowrap;
 }
 
-:deep(.ant-menu-item) {
-  border-radius: var(--radius-md);
-  margin: 0 var(--spacing-sm);
-  font-weight: var(--font-weight-medium);
-  transition: var(--transition-fast);
-  height: 40px;
+.menu-item {
   display: flex;
   align-items: center;
+  gap: 6px;
   padding: 0 var(--spacing-md);
+  height: 40px;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  transition: var(--transition-fast);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-:deep(.ant-menu-item .anticon) {
-  margin-right: 6px;
+.menu-item:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+}
+
+.menu-item-selected {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary-color);
+}
+
+.menu-icon {
   font-size: 16px;
+  flex-shrink: 0;
 }
 
-:deep(.ant-menu-item:hover) {
-  background: rgba(99, 102, 241, 0.1) !important;
-  color: var(--primary-color) !important;
-}
-
-:deep(.ant-menu-item-selected) {
-  background: rgba(99, 102, 241, 0.15) !important;
-  color: var(--primary-color) !important;
-}
-
-:deep(.ant-menu-item-selected::after) {
-  display: none;
+.menu-label {
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 /* 用户下拉菜单样式 */
@@ -320,17 +353,31 @@ const doLogout = async () => {
   }
   
   .header-center {
-    margin: 0 var(--spacing-md);
-  }
-  
-  :deep(.ant-menu-horizontal) {
-    line-height: 56px;
-  }
-  
-  :deep(.ant-menu-item) {
-    height: 32px;
     margin: 0 var(--spacing-xs);
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    overflow: visible;
+  }
+  
+  .custom-menu {
+    gap: var(--spacing-xs);
+    flex-wrap: nowrap;
+    overflow: visible;
+  }
+  
+  .menu-item {
+    height: 32px;
+    padding: 0 8px;
     font-size: var(--font-size-sm);
+  }
+  
+  .menu-icon {
+    font-size: 14px;
+  }
+  
+  .menu-label {
+    font-size: 12px;
   }
 }
 </style>
