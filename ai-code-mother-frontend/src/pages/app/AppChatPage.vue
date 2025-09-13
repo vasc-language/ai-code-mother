@@ -1499,53 +1499,140 @@ const filterOutCodeBlocks = (content: string): string => {
   return filteredContent.trim()
 }
 
-// VUE项目专用：只格式化工具调用信息，过滤代码片段
+// —— 工具辅助：HTML 转义 ——
+const escapeHtml = (s: string): string => {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+// —— 工具辅助：行级 LCS 对比 ——
+type DiffOp = { type: 'equal' | 'add' | 'remove', value: string }
+const diffLines = (oldStr: string, newStr: string): DiffOp[] => {
+  const a = oldStr.replace(/\r\n/g, '\n').split('\n')
+  const b = newStr.replace(/\r\n/g, '\n').split('\n')
+  const n = a.length
+  const m = b.length
+  const dp: number[][] = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0))
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1])
+    }
+  }
+  const ops: DiffOp[] = []
+  let i = 0, j = 0
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      ops.push({ type: 'equal', value: a[i] })
+      i++
+      j++
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      ops.push({ type: 'remove', value: a[i] })
+      i++
+    } else {
+      ops.push({ type: 'add', value: b[j] })
+      j++
+    }
+  }
+  while (i < n) { ops.push({ type: 'remove', value: a[i++] }) }
+  while (j < m) { ops.push({ type: 'add', value: b[j++] }) }
+  return ops
+}
+
+// —— 生成左右对比 HTML ——
+const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): string => {
+  const ops = diffLines(oldCnt, newCnt)
+  let leftRows: string[] = []
+  let rightRows: string[] = []
+  let lno = 1, rno = 1
+  for (const op of ops) {
+    if (op.type === 'equal') {
+      const val = escapeHtml(op.value)
+      leftRows.push(`<div class="line unchanged"><span class="gutter">${lno++}</span><span class="content">${val}</span></div>`) 
+      rightRows.push(`<div class="line unchanged"><span class="gutter">${rno++}</span><span class="content">${val}</span></div>`) 
+    } else if (op.type === 'remove') {
+      const val = escapeHtml(op.value)
+      leftRows.push(`<div class="line removed"><span class="gutter">${lno++}</span><span class="content">${val}</span></div>`) 
+      rightRows.push(`<div class="line empty"><span class="gutter"></span><span class="content"></span></div>`) 
+    } else if (op.type === 'add') {
+      const val = escapeHtml(op.value)
+      leftRows.push(`<div class="line empty"><span class="gutter"></span><span class="content"></span></div>`) 
+      rightRows.push(`<div class="line added"><span class="gutter">${rno++}</span><span class="content">${val}</span></div>`) 
+    }
+  }
+  const safePath = escapeHtml(filePath || '未知文件')
+  return (
+    `<div class="diff-container">
+      <div class="diff-header">
+        <span class="tool">修改文件</span>
+        <span class="file-path">${safePath}</span>
+      </div>
+      <div class="diff-columns">
+        <div class="diff-col">
+          <div class="diff-title">替换前</div>
+          <div class="diff-code">${leftRows.join('')}</div>
+        </div>
+        <div class="diff-col">
+          <div class="diff-title">替换后</div>
+          <div class="diff-code">${rightRows.join('')}</div>
+        </div>
+      </div>
+    </div>`
+  )
+}
+
+// VUE项目专用：只格式化工具调用信息，过滤代码片段（对“修改文件”特殊渲染差异对比）
 const formatVueProjectContent = (content: string): string => {
   if (!content) return ''
-  
+
   let formattedContent = content
 
-  // 移除完整代码块（```language code ```）
-  formattedContent = formattedContent.replace(/```[\w-]*\n[\s\S]*?```/g, '')
+  // 1) 先将“修改文件”工具的替换前/后片段转换为自定义对比 HTML（保留其内容）
+  const modifyPattern = /\[工具调用\]\s*修改文件\s+([^\n\r]+)[\s\S]*?替换前：\s*```(?:[\w-]*)?\s*([\s\S]*?)\s*```[\s\S]*?替换后：\s*```(?:[\w-]*)?\s*([\s\S]*?)\s*```/g
+  formattedContent = formattedContent.replace(modifyPattern, (_m, filePath: string, oldBlock: string, newBlock: string) => {
+    try {
+      return buildModifyDiffHtml(filePath, oldBlock, newBlock)
+    } catch (e) {
+      console.warn('构建修改文件对比失败，将回退为原文本:', e)
+      return _m
+    }
+  })
 
-  // 移除不完整的代码块（```开头但没有结束的）
+  // 2) 再移除其余完整/不完整代码块（避免影响其它工具的清理逻辑）
+  formattedContent = formattedContent.replace(/```[\w-]*\n[\s\S]*?```/g, '')
   formattedContent = formattedContent.replace(/```[\w-]*\n[\s\S]*$/g, '')
 
-  // 移除特殊标记
+  // 3) 移除特殊标记与 MULTI_FILE 标记
   formattedContent = formattedContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\]/g, '')
-
-  // 移除MULTI_FILE相关标记
   formattedContent = formattedContent.replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
   formattedContent = formattedContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
   formattedContent = formattedContent.replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
 
-  // 移除步骤信息
+  // 4) 移除步骤信息
   formattedContent = formattedContent.replace(/STEP\s+\d+:[\s\S]*?(?=\n\n|$)/g, '')
 
-  // 移除单行代码（`code`）但保留必要的标记文本
+  // 5) 移除单行代码反引号
   formattedContent = formattedContent.replace(/`([^`\n]+)`/g, '$1')
 
-  // 移除包含MULTI_FILE_CONTENT的整行
+  // 6) 清理特定残留行
   formattedContent = formattedContent.replace(/^.*\[MULTI_FILE_CONTENT:.*$/gm, '')
 
-  // 关键修复：在所有工具调用标记前后添加换行符，确保它们被正确分隔
+  // 7) 工具标记格式化（其余工具保持原有样式）
   formattedContent = formattedContent.replace(/(\[选择工具\])/g, '\n$1')
   formattedContent = formattedContent.replace(/(\[工具调用\])/g, '\n$1')
-
-  // 将工具调用格式化为更易读的格式，确保有换行效果
-  // [选择工具] 格式化为加粗并换行，匹配到下一个方括号或结尾为止
   formattedContent = formattedContent.replace(/\[选择工具\]\s*([^\[\n\r]*)/g, (match, toolName) => {
     return `**[选择工具]** ${toolName.trim()}\n\n`
   })
-
-  // [工具调用] 格式化为加粗并换行，匹配到下一个方括号或结尾为止
-  formattedContent = formattedContent.replace(/\[工具调用\]\s*([^\[\n\r]*)/g, (match, content) => {
-    return `**[工具调用]** ${content.trim()}\n\n`
+  formattedContent = formattedContent.replace(/\[工具调用\]\s*([^\[\n\r]*)/g, (match, info) => {
+    return `**[工具调用]** ${info.trim()}\n\n`
   })
 
-  // 清理多余的空行
+  // 8) 清理多余空行
   formattedContent = formattedContent.replace(/\n\s*\n\s*\n/g, '\n\n')
-  formattedContent = formattedContent.replace(/^\n+/, '') // 移除开头的空行
+  formattedContent = formattedContent.replace(/^\n+/, '')
 
   return formattedContent.trim()
 }

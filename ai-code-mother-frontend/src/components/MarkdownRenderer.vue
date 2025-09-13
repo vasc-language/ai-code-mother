@@ -214,4 +214,82 @@ const renderedMarkdown = computed(() => {
   color: #6f42c1;
   font-weight: 600;
 }
+
+/* —— 修改文件 Diff 渲染样式 —— */
+.markdown-content :deep(.diff-container) {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  margin: 12px 0;
+}
+.markdown-content :deep(.diff-container .diff-header) {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+  color: #555;
+}
+.markdown-content :deep(.diff-container .diff-header .tool) {
+  display: inline-block;
+  background: #fff7e6;
+  color: #d46b08;
+  border: 1px solid #ffd591;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-right: 8px;
+  font-weight: 600;
+}
+.markdown-content :deep(.diff-container .diff-header .file-path) {
+  color: #888;
+}
+.markdown-content :deep(.diff-container .diff-columns) {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px 12px 12px;
+}
+.markdown-content :deep(.diff-container .diff-col) {
+  width: 50%;
+}
+.markdown-content :deep(.diff-container .diff-title) {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 6px;
+}
+.markdown-content :deep(.diff-container .diff-code) {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+.markdown-content :deep(.diff-container .diff-code .line) {
+  display: flex;
+  padding: 0 10px;
+}
+.markdown-content :deep(.diff-container .diff-code .line .gutter) {
+  width: 3em;
+  color: #999;
+  text-align: right;
+  padding-right: 8px;
+  user-select: none;
+}
+.markdown-content :deep(.diff-container .diff-code .line .content) {
+  flex: 1;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.markdown-content :deep(.diff-container .line.added) {
+  background: #e6ffed;
+}
+.markdown-content :deep(.diff-container .line.removed) {
+  background: #ffeef0;
+}
+.markdown-content :deep(.diff-container .line.unchanged) {
+  background: transparent;
+}
+.markdown-content :deep(.diff-container .line.empty .content) {
+  color: #bbb;
+}
 </style>
