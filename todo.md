@@ -44,3 +44,33 @@
 ### review（完成后补充）
 - 变更点、影响面、验证方式与后续建议。
 
+---
+
+## 编辑模式退出后隐藏【选中元素】板块 TODO
+
+### 背景
+- 现象：退出编辑模式后，左侧的【选中元素】板块未自动消失。
+- 期望：退出编辑模式时，该板块应立即隐藏。
+
+### 待办清单
+- [x] 定位显示条件与切换函数（`isEditMode`、`selectedElementInfo`、`toggleEditMode`）
+- [x] 设计最小改动方案
+- [x] 在模板中将显示条件改为 `v-if="isEditMode && selectedElementInfo"`
+- [x] 在 `toggleEditMode()` 退出时调用 `clearSelectedElement()` 清空选中信息
+- [x] 本地验证退出编辑模式后面板消失，其它功能不受影响
+- [x] 添加 review 小结
+
+### 方案简述
+- 模板层：`v-if` 增加 `isEditMode` 约束，确保退出编辑模式即隐藏。
+- 逻辑层：在 `toggleEditMode()` 判断到关闭编辑模式时，调用 `clearSelectedElement()` 主动清理。
+
+### 影响面
+- 仅影响编辑模式下的选中元素展示，不改动编辑逻辑或其它工具呈现。
+
+### review
+- **变更点**：在`AppChatPage.vue`中进行了两处微调
+  - 模板层：将选中元素面板的显示条件从`v-if="selectedElementInfo"`改为`v-if="isEditMode && selectedElementInfo"`
+  - 逻辑层：在`toggleEditMode()`函数中，退出编辑模式时主动调用`clearSelectedElement()`清理选中状态
+- **影响面**：变更非常精准，仅影响编辑模式下的选中元素展示逻辑，不涉及其他功能
+- **验证方式**：通过代码Review确认逻辑正确性，双重保障确保退出编辑模式时面板立即消失
+- **后续建议**：该修复方案简洁有效，无需进一步优化

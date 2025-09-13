@@ -74,7 +74,7 @@
 
         <!-- 选中元素信息展示 -->
         <a-alert
-          v-if="selectedElementInfo"
+          v-if="isEditMode && selectedElementInfo"
           class="selected-element-alert"
           type="info"
           closable
@@ -1350,6 +1350,10 @@ const toggleEditMode = () => {
   }
   const newEditMode = visualEditor.toggleEditMode()
   isEditMode.value = newEditMode
+  // 退出编辑模式时，清除左侧选中元素面板
+  if (!newEditMode && selectedElementInfo.value) {
+    clearSelectedElement()
+  }
 }
 
 const clearSelectedElement = () => {
