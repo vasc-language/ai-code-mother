@@ -19,6 +19,8 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.swing.*;
 import java.time.Duration;
@@ -30,7 +32,8 @@ import java.time.Duration;
 @Slf4j
 public class AiCodeGeneratorServiceFactory {
 
-    @Resource(name = "openAiChatModel")
+    @Autowired(required = false)
+    @Qualifier("openAiChatModel")
     private ChatModel chatModel;
 
     @Resource
@@ -114,11 +117,16 @@ public class AiCodeGeneratorServiceFactory {
             case HTML, MULTI_FILE -> {
                 // 使用多例模式的 StreamingChatModel 解决并发问题
                 StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
-                yield AiServices.builder(AiCodeGeneratorService.class)
-                        .chatModel(chatModel)
+                var builder = AiServices.builder(AiCodeGeneratorService.class)
                         .streamingChatModel(openAiStreamingChatModel)
                         .chatMemory(chatMemory)
-                        .inputGuardrails(new PromptSafetyInputGuardrail()) // 添加输入护轨
+                        .inputGuardrails(new PromptSafetyInputGuardrail());
+                if (chatModel != null) {
+                    builder = builder.chatModel(chatModel);
+                } else {
+                    log.warn("openAiChatModel 不可用，已仅使用 StreamingChatModel 运行（功能将受限）");
+                }
+                yield builder
                         // 不建议添加，AI 内容相应输出无法及时流式输出
                         // .outputGuardrails(new RetryOutputGuardrail()) // 添加输出护轨
                         .build();

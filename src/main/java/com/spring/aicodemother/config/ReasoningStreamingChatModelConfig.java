@@ -8,6 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.util.StringUtils;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 
 import java.util.List;
 
@@ -39,16 +41,30 @@ public class ReasoningStreamingChatModelConfig {
     @Bean
     @Scope("prototype")
     public StreamingChatModel reasoningStreamingChatModelPrototype() {
+        if (!StringUtils.hasText(apiKey) || !StringUtils.hasText(baseUrl) || !StringUtils.hasText(modelName)) {
+            return new FallbackStreamingChatModel("reasoning-streaming-chat-model 未配置，使用占位模型");
+        }
         return OpenAiStreamingChatModel.builder()
-                .apiKey(apiKey)
-                .baseUrl(baseUrl)
-                .modelName(modelName)
-                .maxTokens(maxTokens)
-                .temperature(temperature)
-                .logRequests(logRequests)
-                .logResponses(logResponses)
-                .listeners(List.of(aiModelMonitorListener))
-                .build();
+            .apiKey(apiKey)
+            .baseUrl(baseUrl)
+            .modelName(modelName)
+            .maxTokens(maxTokens)
+            .temperature(temperature)
+            .logRequests(logRequests)
+            .logResponses(logResponses)
+            .listeners(List.of(aiModelMonitorListener))
+            .build();
+    }
+
+    /** 占位 StreamingChatModel，与普通占位一致 */
+    static class FallbackStreamingChatModel implements StreamingChatModel {
+        private final String message;
+        FallbackStreamingChatModel(String message) { this.message = message; }
+        @Override
+        public void doChat(dev.langchain4j.model.chat.request.ChatRequest chatRequest,
+                           StreamingChatResponseHandler handler) {
+            handler.onError(new IllegalStateException(message));
+        }
     }
 }
 

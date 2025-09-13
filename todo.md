@@ -41,10 +41,89 @@
 - 不新增第三方依赖，采用内置轻量对比实现；
 - 仅修改 `AppChatPage.vue`，保证改动范围可控。
 
-### review（完成后补充）
-- 变更点、影响面、验证方式与后续建议。
+### review
+- 变更点
+  - `RedissonConfig`：为 `spring.data.redis` 注入默认值，避免占位符报错。
+  - `CosClientConfig`：条件创建 `COSClient`；未配置不注册 Bean。
+  - `CosManager`：`COSClient` 可选注入并判空返回，避免启动失败。
+  - `StreamingChatModelConfig` / `ReasoningStreamingChatModelConfig`：缺少关键配置时返回安全占位模型。
+  - `AiCodeGenTypeRoutingServiceFactory`：增加本地启发式回退，不依赖路由模型也可创建。
+  - `AppNameGeneratorServiceFactory`：增加本地命名回退，避免模型缺失阻断。
+  - `ImageCollectionServiceFactory` / `ImageCollectionPlanServiceFactory` / `CodeQualityCheckServiceFactory`：`openAiChatModel` 可选注入 + 条件创建。
+  - `AiCodeGeneratorServiceFactory`：`openAiChatModel` 可选注入；缺失时仅用 Streaming 模型运行。
+- 影响面
+  - 在不提供任何敏感信息时，应用可正常启动；AI 相关功能按需降级，调用时报错但不影响主进程存活。
+  - 数据库仍为硬依赖，需提供连接信息后方可正常工作。
+- 验证建议
+  - 移除 `application-prod.yml` 中所有敏感值，仅保留键；激活 `prod`：`SPRING_PROFILES_ACTIVE=prod` 启动，确认能起。
+  - 逐步补齐 DB、Redis、AI、COS 配置，分别验证对应功能恢复。
+  - 关注日志中关于占位模型与回退策略的告警信息。
 
 ---
+
+## 生产环境配置安全与可启动性修复 TODO
+
+### 背景
+- 需求：在生产环境去除 `application-prod.yml` 中的敏感信息（API Key / 数据库密码等）后，应用仍需能正常启动。
+- 风险：部分 Bean 通过 `@Value`/自动装配强依赖配置，缺失即启动失败（占位符无法解析、必需 Bean 不存在、第三方 SDK 构建失败等）。
+
+### 待办清单
+- [x] 通读生产配置与相关配置类，定位强依赖项
+- [ ] 列出缺失将导致启动失败的配置项与影响范围
+- [ ] 设计最小改动的降级/兜底方案（不暴露敏感信息）
+- [ ] 修改关键配置类以增加默认值或安全降级，避免启动失败
+- [ ] 验证能在无敏感配置下启动（功能可按需降级）
+- [ ] 添加 review 小结
+
+### 预检要点（将完善）
+- DataSource（MySQL）：`spring.datasource.{url,username,password}` 缺失/留空将直接启动失败（无法创建 DataSource）。
+- Redisson：`RedissonConfig` 使用 `@Value` 无默认值（`spring.data.redis.{host,port,password,database}` 缺失时报占位符错误，阻断启动）。
+- LangChain4j 模型：
+  - `openAiChatModel`（Starter 自动装配）缺失 → 多处 `@Resource(name="openAiChatModel")` 注入失败（`AiCodeGeneratorServiceFactory`、`ImageCollection*ServiceFactory`、`CodeQualityCheckServiceFactory`）。
+  - `StreamingChatModelConfig` / `ReasoningStreamingChatModelConfig` 对 `api-key/base-url/model-name` 强依赖，缺失将 `build()` 抛异常。
+- COS 客户端：`CosClientConfig.cosClient()` 在 `secretId/secretKey/region/bucket/host` 缺失时构造 SDK 抛异常，阻断启动；`CosManager` 下游需判空降级。
+- 路由模型/命名服务：
+  - `AiCodeGenTypeRoutingServiceFactory`、`AppNameGeneratorServiceFactory` 启动即创建并拉取 `routingChatModelPrototype`，配置缺失将抛异常并阻断启动；需回退到本地启发式实现。
+- 其它第三方 API（Pexels/Pixabay/DashScope）：多为运行期失败/返回空结果，不会阻断启动。
+
+### 执行记录（完成后逐条勾选）
+- [x] Redisson 默认值与安全占位（`RedissonConfig` 为占位符提供默认值）
+- [x] COS 客户端可选注入与判空降级（`CosClientConfig` 条件创建、`CosManager` 可选注入并判空返回）
+- [x] Streaming/Reasoning 模型缺参时返回安全占位模型（两处 `*StreamingChatModelConfig` 返回占位实现）
+- [x] 路由/命名服务增加本地启发式回退（`AiCodeGenTypeRoutingServiceFactory`、`AppNameGeneratorServiceFactory`）
+- [x] 依赖 `openAiChatModel` 的工厂在缺失时条件创建（`ImageCollection*`、`CodeQualityCheck*` 三处）
+- [x] 预置模板本地缺失时，从 classpath:`/static/<模板名>` 回退复制到目标目录（`AppServiceImpl.ensurePresetCopied`）
+- [x] 模板命中策略由精确匹配改为关键词匹配（`AppServiceImpl.matchPresetTemplate`）
+
+### 降级与规避建议（已实施）
+- 数据库：生产环境必须提供 `spring.datasource.{url,username,password}`，否则无法启动（本次未改动 DataSource 逻辑）。
+- Redisson：为 `spring.data.redis` 注入默认值，避免占位符缺失阻断启动；运行期如连接失败，仅影响限流/会话相关能力。
+- LangChain4j 模型：
+  - Streaming/Reasoning：缺少 `api-key/base-url/model-name` 时返回占位模型，调用时报错但不影响启动。
+  - `openAiChatModel`：将依赖此 Bean 的工厂改为条件创建/可选注入；核心代码生成路径仅依赖 Streaming 模型，未配置时也能启动（功能受限）。
+- COS：未配置密钥时不创建 `COSClient`，上传路径返回空并记录日志，不阻断启动。
+- 路由/命名：若路由模型不可用，使用本地启发式策略与本地命名回退，保证创建应用流程可走通。
+
+### 生产部署前自检清单（最小可启动 + 可选能力）
+- 必需：MySQL 数据库
+  - `spring.datasource.url`
+  - `spring.datasource.username`
+  - `spring.datasource.password`
+- 建议：Redis（Session / 限流 / 记忆）
+  - `spring.data.redis.host` / `port`（已有默认值，可用本地 Redis 临时启动）
+  - `spring.data.redis.password`（可留空）
+  - `spring.data.redis.database`（默认 0）
+- 可选：AI 能力（缺失将降级、运行时报错但不影响启动）
+  - `langchain4j.open-ai.streaming-chat-model.{api-key,base-url,model-name}`
+  - `langchain4j.open-ai.reasoning-streaming-chat-model.{api-key,base-url,model-name}`
+  - `langchain4j.open-ai.chat-model.*`（不提供则相关工厂不创建）
+- 可选：COS 对象存储（缺失不上传截图/文件）
+  - `cos.client.{secretId,secretKey,region,bucket,host}`
+- 可选：第三方 API（Pexels、Pixabay、DashScope）
+  - 缺失仅在调用对应工具时报错/返回空。
+
+### review（完成后补充）
+- 变更点、影响面、验证方式与后续建议。
 
 ## 编辑模式退出后隐藏【选中元素】板块 TODO
 

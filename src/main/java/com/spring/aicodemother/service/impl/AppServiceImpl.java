@@ -33,6 +33,8 @@ import com.spring.aicodemother.service.ScreenshotService;
 import com.spring.aicodemother.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -53,6 +55,10 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
+
+    @Value("${code.deploy-host:http://localhost}")
+    private String deployHost;
+
     @Resource
     private UserService userService;
 
@@ -149,13 +155,48 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private String matchPresetTemplate(String userMessage) {
         if (userMessage == null) return null;
         String trimmed = userMessage.trim();
-        // 模板1：作品展示网站
+        // 兼容原始的精确匹配
         String tpl1 = "制作一个精美的作品展示网站，适合设计师、摄影师、艺术家等创作者。包含作品画廊、项目详情页、个人简历、联系方式等模块。采用瀑布流或网格布局展示作品，支持图片放大预览和作品分类筛选。";
-        // 模板2：企业官网
         String tpl2 = "设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。";
         if (tpl1.equals(trimmed)) return "portfolio";
         if (tpl2.equals(trimmed)) return "enterprise";
+
+        // 关键词匹配（更易命中）
+        String text = trimmed.toLowerCase();
+        String[] portfolioHints = new String[]{
+                "作品展示", "作品集", "作品", "画廊", "图库", "摄影", "艺术家", "个人简历", "portfolio",
+                "预览大图", "瀑布流", "网格布局", "筛选", "分类"
+        };
+        String[] enterpriseHints = new String[]{
+                "企业官网", "官网", "企业", "公司", "产品服务", "新闻资讯", "联系我们", "商务风格", "轮播图",
+                "产品展示", "团队介绍", "客户案例", "多语言", "在线客服"
+        };
+
+        int enterpriseScore = countMatches(text, enterpriseHints, userMessage);
+        int portfolioScore = countMatches(text, portfolioHints, userMessage);
+
+        if (enterpriseScore > portfolioScore && enterpriseScore > 0) return "enterprise";
+        if (portfolioScore > 0) return "portfolio";
         return null;
+    }
+
+    private int countMatches(String textLower, String[] hints, String original) {
+        int c = 0;
+        for (String h : hints) {
+            if (h == null || h.isEmpty()) continue;
+            // 中文大小写无感知；英文用 lower 比较
+            if (isAscii(h)) {
+                if (textLower.contains(h.toLowerCase())) c++;
+            } else {
+                if (original.contains(h)) c++;
+            }
+        }
+        return c;
+    }
+
+    private boolean isAscii(String s) {
+        for (int i = 0; i < s.length(); i++) if (s.charAt(i) > 127) return false;
+        return true;
     }
 
     /**
@@ -175,16 +216,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (templateDirName == null) {
             return false;
         }
+        // 优先从本地 tmp 目录拷贝；不存在时回退到 classpath:static 下的模板
         String templateDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + templateDirName;
         File templateDir = new File(templateDirPath);
-        ThrowUtils.throwIf(!templateDir.exists() || !templateDir.isDirectory(), ErrorCode.NOT_FOUND_ERROR, "预置模板不存在");
-        try {
-            FileUtil.copyContent(templateDir, targetDir, true);
-            return true;
-        } catch (Exception e) {
-            log.warn("复制预置模板失败: from={} to={}, err={}", templateDirPath, targetDirPath, e.getMessage());
-            return false;
+        if (templateDir.exists() && templateDir.isDirectory()) {
+            try {
+                FileUtil.copyContent(templateDir, targetDir, true);
+                return true;
+            } catch (Exception e) {
+                log.warn("复制预置模板失败: from={} to={}, err={}", templateDirPath, targetDirPath, e.getMessage());
+                // 继续尝试从 classpath 回退
+            }
         }
+        // 回退：从 classpath:/static/<templateDirName>/** 拷贝
+        boolean copied = copyPresetFromClasspath(templateDirName, targetDir);
+        if (!copied) {
+            log.warn("未找到预置模板（本地与classpath均未命中）：{}", templateDirName);
+        }
+        return copied;
     }
 
     private boolean isDirEmpty(File dir) {
@@ -203,6 +252,51 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             return "vue_project_317749662884204544";
         }
         return null;
+    }
+
+    /**
+     * 从 classpath 的 static 目录复制模板到目标目录
+     */
+    private boolean copyPresetFromClasspath(String templateDirName, File targetDir) {
+        try {
+            PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+            String pattern = "classpath*:/static/" + templateDirName + "/**";
+            org.springframework.core.io.Resource[] resources = resolver.getResources(pattern);
+            if (resources == null || resources.length == 0) {
+                return false;
+            }
+            FileUtil.mkdir(targetDir);
+            int copied = 0;
+            String marker = "/static/" + templateDirName + "/";
+            for (org.springframework.core.io.Resource resource : resources) {
+                try {
+                    String url = resource.getURL().toString();
+                    int idx = url.indexOf(marker);
+                    if (idx < 0) {
+                        continue;
+                    }
+                    String relative = url.substring(idx + marker.length());
+                    if (relative.isEmpty() || relative.endsWith("/")) {
+                        // 目录占位，确保目录存在
+                        FileUtil.mkdir(new File(targetDir, relative));
+                        continue;
+                    }
+                    File dest = new File(targetDir, relative);
+                    FileUtil.mkParentDirs(dest);
+                    try (java.io.InputStream in = resource.getInputStream()) {
+                        FileUtil.writeFromStream(in, dest);
+                        copied++;
+                    }
+                } catch (Exception ex) {
+                    // 可能是目录或不可读资源，忽略继续
+                }
+            }
+            log.info("从 classpath 复制模板 '{}' 完成，文件数={}，目标目录={}", templateDirName, copied, targetDir.getAbsolutePath());
+            return copied > 0;
+        } catch (Exception e) {
+            log.warn("从 classpath 复制模板失败：{}", e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -328,7 +422,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
         // 10. 返回可访问的 URL
-        String appDeployKey = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        // String appDeployKey = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        String appDeployKey = String.format("%s/%s/", deployHost, deployKey);
         // 11. 异步生成截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployKey);
         return appDeployKey;

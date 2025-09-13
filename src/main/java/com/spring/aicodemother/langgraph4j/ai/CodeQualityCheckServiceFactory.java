@@ -6,18 +6,23 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 
 @Slf4j
 @Configuration
 public class CodeQualityCheckServiceFactory {
 
-    @Resource(name = "openAiChatModel")
+    @Autowired(required = false)
+    @Qualifier("openAiChatModel")
     private ChatModel chatModel;
 
     /**
      * 创建代码质量检查 AI 服务
      */
     @Bean
+    @ConditionalOnBean(name = "openAiChatModel")
     public CodeQualityCheckService createCodeQualityCheckService() {
         return AiServices.builder(CodeQualityCheckService.class)
                 .chatModel(chatModel)

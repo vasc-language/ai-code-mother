@@ -27,10 +27,10 @@ CREATE TABLE IF NOT EXISTS `user`
 
 -- 插入数据
 INSERT INTO `user` (`userAccount`, `userPassword`, `userName`, `userAvatar`, `userProfile`, `userRole`) VALUES
-('admin', '12345678', '管理员', 'https://material-center.meitudata.com/material/image/62bc0346cf1202921.png', '我是管理员', 'admin'),
-('admin2', '12345678', '管理员2', 'https://material-center.meitudata.com/material/image/62bc0346cf1202921.png', '我是管理员2', 'admin'),
-('user1', '12345678', '用户1', 'https://material-center.meitudata.com/material/image/62bc0346cf1202921.png', '我是用户1', 'user'),
-('user2', '12345678', '用户2', 'https://material-center.meitudata.com/material/image/62bc0346cf1202921.png', '我是用户2', 'user');
+('admin', '45682a7088aad280cec116864abbdc93', '管理员', 'https://material-center.meitudata.com/material/image/62bc0346cf1202921.png', '我是管理员', 'admin'),
+('admin2', '45682a7088aad280cec116864abbdc93', '管理员2', 'https://material-center.meitudata.com/material/image/62bc0346cf1202921.png', '我是管理员2', 'admin'),
+('user1', '45682a7088aad280cec116864abbdc93', '用户1', 'https://material-center.meitudata.com/material/image/62bc0346cf1202921.png', '我是用户1', 'user'),
+('user2', '45682a7088aad280cec116864abbdc93', '用户2', 'https://material-center.meitudata.com/material/image/62bc0346cf1202921.png', '我是用户2', 'user');
 
 -- 应用表
 create table app

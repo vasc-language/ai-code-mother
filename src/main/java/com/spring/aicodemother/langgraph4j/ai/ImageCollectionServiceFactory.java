@@ -10,12 +10,16 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 
 @Slf4j
 @Configuration
 public class ImageCollectionServiceFactory {
 
-    @Resource(name = "openAiChatModel")
+    @Autowired(required = false)
+    @Qualifier("openAiChatModel")
     private ChatModel chatModel;
 
     @Resource
@@ -34,6 +38,7 @@ public class ImageCollectionServiceFactory {
      * 创建图片收集 AI 服务
      */
     @Bean
+    @ConditionalOnBean(name = "openAiChatModel")
     public ImageCollectionService createImageCollectionService() {
         return AiServices.builder(ImageCollectionService.class)
                 .chatModel(chatModel)

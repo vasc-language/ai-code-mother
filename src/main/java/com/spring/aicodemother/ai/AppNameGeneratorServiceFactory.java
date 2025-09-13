@@ -18,10 +18,21 @@ public class AppNameGeneratorServiceFactory {
      * 创建一个新的 AI 命名服务实例（原型/多例）
      */
     public AppNameGeneratorService createAppNameGeneratorService() {
-        ChatModel chatModel = SpringContextUtil.getBean("routingChatModelPrototype", ChatModel.class);
-        return AiServices.builder(AppNameGeneratorService.class)
-                .chatModel(chatModel)
-                .build();
+        try {
+            ChatModel chatModel = SpringContextUtil.getBean("routingChatModelPrototype", ChatModel.class);
+            return AiServices.builder(AppNameGeneratorService.class)
+                    .chatModel(chatModel)
+                    .build();
+        } catch (Exception e) {
+            log.warn("routingChatModelPrototype 不可用，App 命名使用本地回退：{}", e.getMessage());
+            return prompt -> {
+                if (prompt == null || prompt.isBlank()) return "AI App";
+                String name = prompt.replaceAll("[\r\n\t]", " ")
+                        .replaceAll("^[\"'`，。！？,.\s]+|[\"'`，。！？,.\s]+$", "")
+                        .trim();
+                return name.length() > 20 ? name.substring(0, 20) : name;
+            };
+        }
     }
 
     /**
@@ -32,4 +43,3 @@ public class AppNameGeneratorServiceFactory {
         return createAppNameGeneratorService();
     }
 }
-

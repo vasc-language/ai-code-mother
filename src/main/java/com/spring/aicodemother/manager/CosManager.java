@@ -7,6 +7,7 @@ import com.spring.aicodemother.config.CosClientConfig;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
 
@@ -20,7 +21,7 @@ public class CosManager {
     @Resource
     private CosClientConfig cosClientConfig;
 
-    @Resource
+    @Autowired(required = false)
     private COSClient cosClient;
 
     /**
@@ -31,6 +32,10 @@ public class CosManager {
      * @return 上传结果
      */
     public PutObjectResult putObject(String key, File file) {
+        if (cosClient == null) {
+            log.warn("COSClient 未配置，跳过上传。key={}", key);
+            return null;
+        }
         PutObjectRequest putObjectRequest = new PutObjectRequest(cosClientConfig.getBucket(), key, file);
         return cosClient.putObject(putObjectRequest);
     }
@@ -43,6 +48,10 @@ public class CosManager {
      * @return 文件的访问URL，失败返回null
      */
     public String uploadFile(String key, File file) {
+        if (cosClient == null) {
+            log.warn("COSClient 未配置，无法上传文件: {}", file != null ? file.getName() : "null");
+            return null;
+        }
         // 上传文件
         PutObjectResult result = putObject(key, file);
         if (result != null) {
