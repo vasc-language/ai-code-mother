@@ -61,19 +61,16 @@
             </div>
           </template>
 
-          <a-card-meta>
-            <template #title>
+          <div class="app-info">
+            <div class="app-header">
               <div class="app-title">{{ app.appName }}</div>
-            </template>
-            <template #description>
-              <div class="app-type">
-                <a-tag color="blue">{{ app.codeGenType }}</a-tag>
-              </div>
-              <div class="app-time">
-                创建于 {{ formatTime(app.createTime) }}
-              </div>
-            </template>
-          </a-card-meta>
+              <a-tag color="blue" class="app-type-tag">{{ app.codeGenType }}</a-tag>
+            </div>
+            <div class="app-time">
+              <ClockCircleOutlined class="time-icon" />
+              {{ formatTime(app.createTime) }}
+            </div>
+          </div>
 
           <template #actions>
             <a-tooltip title="使用应用">
@@ -131,6 +128,7 @@ import {
   PlayCircleOutlined,
   EditOutlined,
   DeleteOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons-vue'
 import request from '@/request'
 
@@ -311,21 +309,49 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
+.app-info {
+  padding: 16px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .app-title {
+  flex: 1;
   font-size: 16px;
   font-weight: 600;
+  color: #262626;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 24px;
 }
 
-.app-type {
-  margin: 8px 0;
+.app-type-tag {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .app-time {
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   color: #8c8c8c;
+  line-height: 20px;
+}
+
+.time-icon {
+  font-size: 14px;
+  color: #bfbfbf;
 }
 
 .pagination {

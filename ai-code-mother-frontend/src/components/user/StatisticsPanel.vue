@@ -104,6 +104,10 @@ const formatLastActive = (time: string) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+:deep(.ant-statistic) {
+  text-align: center;
+}
+
 :deep(.ant-statistic-title) {
   font-size: 14px;
   color: #8c8c8c;
@@ -113,6 +117,7 @@ const formatLastActive = (time: string) => {
 :deep(.ant-statistic-content) {
   font-size: 24px;
   font-weight: 600;
+  justify-content: center;
 }
 
 .last-active {
