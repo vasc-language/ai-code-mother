@@ -3,6 +3,8 @@ package com.spring.aicodemother.service;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.spring.aicodemother.model.dto.user.UserQueryRequest;
+import com.spring.aicodemother.model.vo.UserProfileVO;
+import com.spring.aicodemother.model.vo.UserStatisticsVO;
 import com.spring.aicodemother.model.vo.UserVO;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.model.vo.LoginUserVO;
@@ -76,5 +78,21 @@ public interface UserService extends IService<User> {
      * 加密
      */
     String getEncryptPassword(String userPassword);
+
+    /**
+     * 获取用户主页信息（包含用户信息和统计数据）
+     *
+     * @param userId 用户ID
+     * @return 用户主页视图对象
+     */
+    UserProfileVO getUserProfile(Long userId);
+
+    /**
+     * 获取用户统计数据
+     *
+     * @param userId 用户ID
+     * @return 用户统计数据
+     */
+    UserStatisticsVO getUserStatistics(Long userId);
 
 }

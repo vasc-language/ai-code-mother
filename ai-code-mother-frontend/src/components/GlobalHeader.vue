@@ -36,6 +36,11 @@
               </a-space>
               <template #overlay>
                 <a-menu>
+                  <a-menu-item @click="goToProfile">
+                    <UserOutlined />
+                    个人主页
+                  </a-menu-item>
+                  <a-menu-divider />
                   <a-menu-item @click="doLogout">
                     <LogoutOutlined />
                     退出登录
@@ -145,6 +150,11 @@ const getMenuLabel = (item: any) => {
     return item.label
   }
   return item.title || ''
+}
+
+// 跳转到个人主页
+const goToProfile = () => {
+  router.push('/user/profile')
 }
 
 // 退出登录

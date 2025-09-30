@@ -7,7 +7,11 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
+import com.spring.aicodemother.mapper.AppMapper;
 import com.spring.aicodemother.model.dto.user.UserQueryRequest;
+import com.spring.aicodemother.model.entity.App;
+import com.spring.aicodemother.model.vo.UserProfileVO;
+import com.spring.aicodemother.model.vo.UserStatisticsVO;
 import com.spring.aicodemother.model.vo.UserVO;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.mapper.UserMapper;
@@ -15,9 +19,12 @@ import com.spring.aicodemother.model.enums.UserRoleEnum;
 import com.spring.aicodemother.model.vo.LoginUserVO;
 import com.spring.aicodemother.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,6 +38,9 @@ import static com.spring.aicodemother.constant.UserConstant.USER_LOGIN_STATE;
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    @Autowired
+    private AppMapper appMapper;
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -210,5 +220,77 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         final String SALT = "Join2049";
 
         return DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+    }
+
+    @Override
+    public UserProfileVO getUserProfile(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID无效");
+        }
+
+        // 1. 查询用户基本信息
+        User user = this.getById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
+
+        // 2. 获取用户统计数据
+        UserStatisticsVO statistics = this.getUserStatistics(userId);
+
+        // 3. 组装返回结果
+        UserProfileVO profileVO = new UserProfileVO();
+        profileVO.setUser(this.getUserVO(user));
+        profileVO.setStatistics(statistics);
+
+        return profileVO;
+    }
+
+    @Override
+    public UserStatisticsVO getUserStatistics(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID无效");
+        }
+
+        User user = this.getById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
+
+        UserStatisticsVO statistics = new UserStatisticsVO();
+
+        // 1. 统计应用数量
+        QueryWrapper appCountWrapper = QueryWrapper.create()
+                .eq("userId", userId)
+                .eq("isDelete", 0);
+        long appCount = appMapper.selectCountByQuery(appCountWrapper);
+        statistics.setAppCount(appCount);
+
+        // 2. 生成次数（暂时使用应用数量作为代理指标，未来可以从chat表统计）
+        statistics.setGenerateCount(appCount);
+
+        // 3. 累计使用天数
+        LocalDateTime createTime = user.getCreateTime();
+        if (createTime != null) {
+            long joinDays = ChronoUnit.DAYS.between(createTime, LocalDateTime.now());
+            statistics.setJoinDays(joinDays);
+        } else {
+            statistics.setJoinDays(0L);
+        }
+
+        // 4. 最近活跃时间（从用户应用的最新更新时间获取）
+        QueryWrapper lastActiveWrapper = QueryWrapper.create()
+                .select("updateTime")
+                .from("app")
+                .where("userId = ? and isDelete = 0", userId)
+                .orderBy("updateTime", false)
+                .limit(1);
+        App lastApp = appMapper.selectOneByQuery(lastActiveWrapper);
+        if (lastApp != null && lastApp.getUpdateTime() != null) {
+            statistics.setLastActiveTime(lastApp.getUpdateTime());
+        } else {
+            statistics.setLastActiveTime(createTime);
+        }
+
+        return statistics;
     }
 }

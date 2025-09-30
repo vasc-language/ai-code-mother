@@ -1,155 +1,453 @@
-## 修改工具前端呈现修复 TODO
+# 个人主页功能需求文档
 
-### 背景
-- 现象：前端页面（Vue 工程）的“修改工具”仅显示文本，未呈现“替换前/替换后”的对比效果。
-- 成因：VUE_PROJECT 类型消息在 `AppChatPage.vue` 的 `formatVueProjectContent` 中会统一移除代码块，导致 `FileModifyTool` 返回的
-  
-  替换前：```old```
-  替换后：```new```
-  
-  无法正常展示。
-- 后端输出：`[工具调用] 修改文件 <path>`，后续包含“替换前/替换后”各一段三引号代码块。
+## 功能概述
 
-### 目标
-- 仅对“修改文件”工具的输出进行特殊处理，提取“替换前/替换后”内容，渲染为左右并排的差异对比视图；
-- 不影响其它工具在前端的呈现逻辑与样式。
-
-### 待办清单
-- [x] 通读仓库并定位“修改工具”前端展示路径（`AppChatPage.vue` / `MarkdownRenderer.vue`）
-- [x] 梳理后端输出格式（`[工具调用] 修改文件` + `替换前/替换后` 代码块）
-- [ ] 设计并记录解决方案
-- [ ] 最小化修改前端组件以支持左右对比
-- [ ] 本地构建/页面自测仅验证该工具展示
-- [ ] 添加 review 小结
-
-### 方案设计
-- 在 `formatVueProjectContent(content)` 内：
-  - 优先检测并提取形如：`[工具调用] 修改文件 <path>` 后跟“替换前/替换后”代码块的片段；
-  - 将该片段转换为自定义 HTML（`<div class="diff-container">`），包含：
-    - 头部：工具名与文件路径；
-    - 主体：左右两列（`替换前` / `替换后`），逐行对齐渲染；
-    - 使用轻量级行级对比（基于 LCS 的行增删同位置标记），为新增/删除/未变行添加样式类（绿色/红色/默认）；
-  - 再对其余内容继续执行原有的代码块清理与工具标记格式化逻辑，确保不影响其它工具。
-- 样式隔离：在 `AppChatPage.vue` 内新增局部样式类（`.diff-container` 等），避免影响全局与其它工具展示。
-
-### 验收标准
-- VUE_PROJECT 类型时，“修改文件”消息显示左右并排对比，差异有颜色标识；
-- 其它工具消息呈现保持不变；
-- 历史消息与流式生成阶段（SSE 刷新）均能正确展示该对比。
-
-### 备注
-- 不新增第三方依赖，采用内置轻量对比实现；
-- 仅修改 `AppChatPage.vue`，保证改动范围可控。
-
-### review
-- 变更点
-  - `RedissonConfig`：为 `spring.data.redis` 注入默认值，避免占位符报错。
-  - `CosClientConfig`：条件创建 `COSClient`；未配置不注册 Bean。
-  - `CosManager`：`COSClient` 可选注入并判空返回，避免启动失败。
-  - `StreamingChatModelConfig` / `ReasoningStreamingChatModelConfig`：缺少关键配置时返回安全占位模型。
-  - `AiCodeGenTypeRoutingServiceFactory`：增加本地启发式回退，不依赖路由模型也可创建。
-  - `AppNameGeneratorServiceFactory`：增加本地命名回退，避免模型缺失阻断。
-  - `ImageCollectionServiceFactory` / `ImageCollectionPlanServiceFactory` / `CodeQualityCheckServiceFactory`：`openAiChatModel` 可选注入 + 条件创建。
-  - `AiCodeGeneratorServiceFactory`：`openAiChatModel` 可选注入；缺失时仅用 Streaming 模型运行。
-- 影响面
-  - 在不提供任何敏感信息时，应用可正常启动；AI 相关功能按需降级，调用时报错但不影响主进程存活。
-  - 数据库仍为硬依赖，需提供连接信息后方可正常工作。
-- 验证建议
-  - 移除 `application-prod.yml` 中所有敏感值，仅保留键；激活 `prod`：`SPRING_PROFILES_ACTIVE=prod` 启动，确认能起。
-  - 逐步补齐 DB、Redis、AI、COS 配置，分别验证对应功能恢复。
-  - 关注日志中关于占位模型与回退策略的告警信息。
+为AI代码生成平台增加个人主页功能,用户可以查看和编辑个人信息、查看自己创建的应用列表、统计数据等。该功能旨在提升用户体验，增强用户对平台的归属感和使用粘性。
 
 ---
 
-## 生产环境配置安全与可启动性修复 TODO
+## 需求背景
 
-### 背景
-- 需求：在生产环境去除 `application-prod.yml` 中的敏感信息（API Key / 数据库密码等）后，应用仍需能正常启动。
-- 风险：部分 Bean 通过 `@Value`/自动装配强依赖配置，缺失即启动失败（占位符无法解析、必需 Bean 不存在、第三方 SDK 构建失败等）。
+### 业务价值
+- **用户体验提升**：提供统一的个人信息管理入口
+- **数据可视化**：展示用户使用情况和成就
+- **社交元素**：为未来的社交功能（如关注、分享）预留接口
+- **留存提升**：通过数据展示增强用户成就感
 
-### 待办清单
-- [x] 通读生产配置与相关配置类，定位强依赖项
-- [ ] 列出缺失将导致启动失败的配置项与影响范围
-- [ ] 设计最小改动的降级/兜底方案（不暴露敏感信息）
-- [ ] 修改关键配置类以增加默认值或安全降级，避免启动失败
-- [ ] 验证能在无敏感配置下启动（功能可按需降级）
-- [ ] 添加 review 小结
+### 用户痛点
+1. 当前系统缺少个人信息管理界面
+2. 用户无法直观查看自己创建的所有应用
+3. 缺少使用统计数据，用户无法了解自己的使用情况
+4. 头像和个人简介修改不便
 
-### 预检要点（将完善）
-- DataSource（MySQL）：`spring.datasource.{url,username,password}` 缺失/留空将直接启动失败（无法创建 DataSource）。
-- Redisson：`RedissonConfig` 使用 `@Value` 无默认值（`spring.data.redis.{host,port,password,database}` 缺失时报占位符错误，阻断启动）。
-- LangChain4j 模型：
-  - `openAiChatModel`（Starter 自动装配）缺失 → 多处 `@Resource(name="openAiChatModel")` 注入失败（`AiCodeGeneratorServiceFactory`、`ImageCollection*ServiceFactory`、`CodeQualityCheckServiceFactory`）。
-  - `StreamingChatModelConfig` / `ReasoningStreamingChatModelConfig` 对 `api-key/base-url/model-name` 强依赖，缺失将 `build()` 抛异常。
-- COS 客户端：`CosClientConfig.cosClient()` 在 `secretId/secretKey/region/bucket/host` 缺失时构造 SDK 抛异常，阻断启动；`CosManager` 下游需判空降级。
-- 路由模型/命名服务：
-  - `AiCodeGenTypeRoutingServiceFactory`、`AppNameGeneratorServiceFactory` 启动即创建并拉取 `routingChatModelPrototype`，配置缺失将抛异常并阻断启动；需回退到本地启发式实现。
-- 其它第三方 API（Pexels/Pixabay/DashScope）：多为运行期失败/返回空结果，不会阻断启动。
+---
 
-### 执行记录（完成后逐条勾选）
-- [x] Redisson 默认值与安全占位（`RedissonConfig` 为占位符提供默认值）
-- [x] COS 客户端可选注入与判空降级（`CosClientConfig` 条件创建、`CosManager` 可选注入并判空返回）
-- [x] Streaming/Reasoning 模型缺参时返回安全占位模型（两处 `*StreamingChatModelConfig` 返回占位实现）
-- [x] 路由/命名服务增加本地启发式回退（`AiCodeGenTypeRoutingServiceFactory`、`AppNameGeneratorServiceFactory`）
-- [x] 依赖 `openAiChatModel` 的工厂在缺失时条件创建（`ImageCollection*`、`CodeQualityCheck*` 三处）
-- [x] 预置模板本地缺失时，从 classpath:`/static/<模板名>` 回退复制到目标目录（`AppServiceImpl.ensurePresetCopied`）
-- [x] 模板命中策略由精确匹配改为关键词匹配（`AppServiceImpl.matchPresetTemplate`）
+## 功能详细设计
 
-### 降级与规避建议（已实施）
-- 数据库：生产环境必须提供 `spring.datasource.{url,username,password}`，否则无法启动（本次未改动 DataSource 逻辑）。
-- Redisson：为 `spring.data.redis` 注入默认值，避免占位符缺失阻断启动；运行期如连接失败，仅影响限流/会话相关能力。
-- LangChain4j 模型：
-  - Streaming/Reasoning：缺少 `api-key/base-url/model-name` 时返回占位模型，调用时报错但不影响启动。
-  - `openAiChatModel`：将依赖此 Bean 的工厂改为条件创建/可选注入；核心代码生成路径仅依赖 Streaming 模型，未配置时也能启动（功能受限）。
-- COS：未配置密钥时不创建 `COSClient`，上传路径返回空并记录日志，不阻断启动。
-- 路由/命名：若路由模型不可用，使用本地启发式策略与本地命名回退，保证创建应用流程可走通。
+### 1. 个人主页入口
 
-### 生产部署前自检清单（最小可启动 + 可选能力）
-- 必需：MySQL 数据库
-  - `spring.datasource.url`
-  - `spring.datasource.username`
-  - `spring.datasource.password`
-- 建议：Redis（Session / 限流 / 记忆）
-  - `spring.data.redis.host` / `port`（已有默认值，可用本地 Redis 临时启动）
-  - `spring.data.redis.password`（可留空）
-  - `spring.data.redis.database`（默认 0）
-- 可选：AI 能力（缺失将降级、运行时报错但不影响启动）
-  - `langchain4j.open-ai.streaming-chat-model.{api-key,base-url,model-name}`
-  - `langchain4j.open-ai.reasoning-streaming-chat-model.{api-key,base-url,model-name}`
-  - `langchain4j.open-ai.chat-model.*`（不提供则相关工厂不创建）
-- 可选：COS 对象存储（缺失不上传截图/文件）
-  - `cos.client.{secretId,secretKey,region,bucket,host}`
-- 可选：第三方 API（Pexels、Pixabay、DashScope）
-  - 缺失仅在调用对应工具时报错/返回空。
+**位置**：全局导航栏右上角用户区域
 
-### review（完成后补充）
-- 变更点、影响面、验证方式与后续建议。
+**入口方式**：
+- 点击用户头像下拉菜单中的"个人主页"选项
+- 路由路径：`/user/profile/:userId` (支持查看他人主页) 或 `/user/profile` (查看自己主页)
 
-## 编辑模式退出后隐藏【选中元素】板块 TODO
+---
 
-### 背景
-- 现象：退出编辑模式后，左侧的【选中元素】板块未自动消失。
-- 期望：退出编辑模式时，该板块应立即隐藏。
+### 2. 页面布局设计
 
-### 待办清单
-- [x] 定位显示条件与切换函数（`isEditMode`、`selectedElementInfo`、`toggleEditMode`）
-- [x] 设计最小改动方案
-- [x] 在模板中将显示条件改为 `v-if="isEditMode && selectedElementInfo"`
-- [x] 在 `toggleEditMode()` 退出时调用 `clearSelectedElement()` 清空选中信息
-- [x] 本地验证退出编辑模式后面板消失，其它功能不受影响
-- [x] 添加 review 小结
+#### 2.1 顶部用户信息卡片
+展示用户的基本信息，采用卡片式设计
 
-### 方案简述
-- 模板层：`v-if` 增加 `isEditMode` 约束，确保退出编辑模式即隐藏。
-- 逻辑层：在 `toggleEditMode()` 判断到关闭编辑模式时，调用 `clearSelectedElement()` 主动清理。
+**包含内容**：
+- **用户头像**：圆形头像，支持点击放大预览
+- **用户昵称**：大字号显示，突出显示
+- **账号ID**：小字号灰色文字
+- **用户简介**：多行文本，最多显示3行，超出显示省略号
+- **注册时间**：显示格式如"加入于 2025年1月"
+- **用户角色标识**：普通用户/管理员徽章
+- **编辑按钮**：仅查看自己主页时显示，点击进入编辑模式
 
-### 影响面
-- 仅影响编辑模式下的选中元素展示，不改动编辑逻辑或其它工具呈现。
+#### 2.2 统计数据面板
+使用Ant Design的Statistic组件展示关键数据
 
-### review
-- **变更点**：在`AppChatPage.vue`中进行了两处微调
-  - 模板层：将选中元素面板的显示条件从`v-if="selectedElementInfo"`改为`v-if="isEditMode && selectedElementInfo"`
-  - 逻辑层：在`toggleEditMode()`函数中，退出编辑模式时主动调用`clearSelectedElement()`清理选中状态
-- **影响面**：变更非常精准，仅影响编辑模式下的选中元素展示逻辑，不涉及其他功能
-- **验证方式**：通过代码Review确认逻辑正确性，双重保障确保退出编辑模式时面板立即消失
-- **后续建议**：该修复方案简洁有效，无需进一步优化
+**统计维度**：
+- **创建应用数**：用户创建的应用总数
+- **生成次数**：AI代码生成的总次数
+- **累计使用天数**：从注册到现在的天数
+- **最近活跃**：最后一次使用AI生成的时间（如"3天前"）
+
+#### 2.3 我的应用列表
+展示用户创建的所有应用
+
+**列表功能**：
+- **应用卡片**：展示应用名称、描述、创建时间、生成类型
+- **排序选项**：
+  - 最近创建
+  - 最近使用
+  - 应用名称
+- **筛选选项**：
+  - 全部应用
+  - 按生成类型筛选（HTML/多文件项目/Vue应用）
+- **操作按钮**：
+  - 使用应用（跳转到聊天页面）
+  - 编辑应用
+  - 删除应用（仅自己的应用可删除）
+- **分页**：每页显示10个应用，支持翻页
+- **空状态提示**：暂无应用时显示引导创建按钮
+
+#### 2.4 Tab标签页（预留扩展）
+使用Ant Design Tabs组件组织内容
+
+**当前版本Tab**：
+- **我的应用**（默认）
+- **统计概览**（未来扩展：图表化展示使用趋势）
+
+**未来扩展Tab**：
+- 收藏的应用
+- 使用历史
+- 成就勋章
+
+---
+
+### 3. 个人信息编辑功能
+
+#### 3.1 编辑模式触发
+- 点击"编辑资料"按钮进入编辑模式
+- 页面切换为表单编辑状态
+
+#### 3.2 可编辑字段
+- **用户昵称**：文本输入框，长度限制2-20字符
+- **用户头像**：
+  - 方式1：输入图片URL
+  - 方式2：上传图片到腾讯云COS（推荐）
+  - 支持预览功能
+- **用户简介**：多行文本框，长度限制0-200字符
+- **字数统计**：实时显示已输入字符数
+
+#### 3.3 表单验证规则
+- 昵称：必填，2-20字符，不允许特殊字符
+- 头像URL：选填，必须是有效的URL格式
+- 简介：选填，最多200字符
+
+#### 3.4 操作按钮
+- **保存修改**：提交更新请求，成功后刷新页面数据
+- **取消编辑**：退出编辑模式，恢复原始数据
+- **重置密码**：跳转到密码修改页面（未来扩展）
+
+---
+
+### 4. 权限控制
+
+#### 4.1 查看权限
+- **自己的主页**：所有内容可见，显示编辑按钮
+- **他人主页**：仅显示公开信息（头像、昵称、简介、公开应用），不显示编辑按钮
+
+#### 4.2 编辑权限
+- 仅用户本人可编辑自己的信息
+- 管理员可以查看所有用户主页，但不能直接编辑（通过用户管理页面编辑）
+
+#### 4.3 数据权限
+- 应用列表：仅显示用户自己创建的应用（userId匹配）
+- 统计数据：基于用户自己的数据计算
+
+---
+
+## 技术实现方案
+
+### 后端开发任务
+
+#### 1. 数据库层（无需修改）
+当前`user`表已包含所需字段，无需新增表或字段：
+- `id`, `userAccount`, `userName`, `userAvatar`, `userProfile`, `userRole`, `createTime`
+
+#### 2. 接口层开发
+
+##### 2.1 获取用户主页信息
+```
+GET /api/user/profile/{userId}
+```
+**功能**：获取指定用户的主页信息和统计数据
+
+**响应数据**：
+```json
+{
+  "code": 0,
+  "data": {
+    "user": {
+      "id": 123,
+      "userAccount": "join2049",
+      "userName": "Join",
+      "userAvatar": "https://...",
+      "userProfile": "这是我的个人简介",
+      "userRole": "user",
+      "createTime": "2025-01-15T10:30:00"
+    },
+    "statistics": {
+      "appCount": 15,
+      "generateCount": 88,
+      "joinDays": 45,
+      "lastActiveTime": "2025-03-01T14:20:00"
+    }
+  },
+  "message": "ok"
+}
+```
+
+##### 2.2 获取用户应用列表
+```
+GET /api/user/apps/{userId}?page=1&pageSize=10&sortBy=createTime&genType=all
+```
+**功能**：获取指定用户创建的应用列表（分页+排序+筛选）
+
+**请求参数**：
+- `page`: 页码，默认1
+- `pageSize`: 每页数量，默认10
+- `sortBy`: 排序字段（createTime/updateTime/name），默认createTime
+- `genType`: 生成类型筛选（all/HTML/多文件项目/Vue应用）
+
+**响应数据**：
+```json
+{
+  "code": 0,
+  "data": {
+    "total": 15,
+    "records": [
+      {
+        "id": 1,
+        "name": "我的第一个应用",
+        "description": "应用描述",
+        "genType": "HTML",
+        "createTime": "2025-02-01T10:00:00",
+        "updateTime": "2025-02-10T15:30:00"
+      }
+    ]
+  },
+  "message": "ok"
+}
+```
+
+##### 2.3 更新用户信息（已存在，需确认）
+```
+PUT /api/user/update
+```
+**功能**：更新当前登录用户的个人信息
+
+**请求体**：
+```json
+{
+  "userName": "新昵称",
+  "userAvatar": "https://new-avatar.jpg",
+  "userProfile": "新的个人简介"
+}
+```
+
+#### 3. Service层开发
+- `UserService.getUserProfile(Long userId)`: 获取用户主页数据
+- `UserService.getUserStatistics(Long userId)`: 计算用户统计数据
+- `UserService.getUserApps(Long userId, QueryParams params)`: 获取用户应用列表
+
+---
+
+### 前端开发任务
+
+#### 1. 路由配置
+在 `src/router/index.ts` 添加新路由：
+```typescript
+{
+  path: '/user/profile/:userId?',
+  name: '个人主页',
+  component: UserProfilePage,
+}
+```
+
+#### 2. 页面组件开发
+新建 `src/pages/user/UserProfilePage.vue`
+
+**页面结构**：
+```vue
+<template>
+  <div class="user-profile-page">
+    <!-- 用户信息卡片 -->
+    <UserInfoCard
+      :user="userInfo"
+      :editable="isOwnProfile"
+      @edit="handleEdit"
+    />
+
+    <!-- 统计数据面板 -->
+    <StatisticsPanel :statistics="statistics" />
+
+    <!-- Tab标签页 -->
+    <a-tabs v-model:activeKey="activeTab">
+      <a-tab-pane key="apps" tab="我的应用">
+        <!-- 应用列表 -->
+        <UserAppsList
+          :userId="userId"
+          :apps="appsList"
+          :total="totalApps"
+          @page-change="handlePageChange"
+          @sort-change="handleSortChange"
+        />
+      </a-tab-pane>
+    </a-tabs>
+  </div>
+</template>
+```
+
+#### 3. 子组件开发
+
+##### 3.1 `UserInfoCard.vue` - 用户信息卡片
+**功能**：
+- 显示用户基本信息
+- 支持编辑模式切换
+- 表单验证和提交
+
+##### 3.2 `StatisticsPanel.vue` - 统计数据面板
+**功能**：
+- 使用 `<a-statistic>` 展示数字
+- 响应式布局（移动端竖向排列）
+
+##### 3.3 `UserAppsList.vue` - 用户应用列表
+**功能**：
+- 应用卡片展示
+- 排序和筛选功能
+- 分页控件
+- 空状态提示
+
+#### 4. API集成
+后端API开发完成后运行 `npm run openapi2ts` 生成TypeScript客户端
+
+#### 5. 状态管理（可选）
+在 Pinia store 中缓存用户主页数据，减少重复请求
+
+---
+
+## UI/UX设计要求
+
+### 视觉设计
+- **设计风格**：遵循Ant Design设计规范
+- **配色方案**：使用系统主题色（蓝色系）
+- **响应式设计**：支持移动端和桌面端自适应
+- **加载状态**：使用 Skeleton 骨架屏提升体验
+
+### 交互设计
+- **编辑模式**：平滑过渡动画，表单验证实时反馈
+- **数据更新**：保存成功后显示 Message 提示
+- **头像上传**：支持拖拽上传，实时预览
+- **空状态**：友好的空状态提示和引导
+
+---
+
+## 数据统计逻辑
+
+### 统计指标计算
+
+#### 1. 创建应用数
+```sql
+SELECT COUNT(*) FROM app WHERE userId = ? AND isDelete = 0
+```
+
+#### 2. 生成次数
+需要统计用户所有应用的生成记录，可能需要新增`generation_history`表或从现有日志统计
+
+#### 3. 累计使用天数
+```java
+long joinDays = ChronoUnit.DAYS.between(user.getCreateTime(), LocalDateTime.now());
+```
+
+#### 4. 最近活跃时间
+需要记录用户最后一次使用AI生成的时间，可从应用的`updateTime`或聊天记录的`createTime`获取
+
+---
+
+## 测试计划
+
+### 单元测试
+- **后端**：Service层方法测试，覆盖统计逻辑和权限控制
+- **前端**：关键组件的渲染和交互测试
+
+### 集成测试
+- 获取用户主页数据接口测试
+- 更新用户信息接口测试
+- 应用列表分页、排序、筛选测试
+
+### 功能测试
+
+#### 测试用例
+| 用例ID | 测试场景 | 预期结果 |
+|-------|---------|---------|
+| TC-01 | 查看自己的主页 | 显示完整信息和编辑按钮 |
+| TC-02 | 查看他人主页 | 仅显示公开信息，无编辑按钮 |
+| TC-03 | 未登录访问主页 | 跳转到登录页面 |
+| TC-04 | 编辑用户信息 | 表单验证通过，保存成功 |
+| TC-05 | 编辑时输入非法数据 | 显示验证错误提示 |
+| TC-06 | 应用列表分页 | 正确加载下一页数据 |
+| TC-07 | 应用列表排序 | 按指定字段正确排序 |
+| TC-08 | 应用列表筛选 | 仅显示指定类型应用 |
+| TC-09 | 删除应用 | 删除后列表更新，统计数减少 |
+| TC-10 | 统计数据准确性 | 数字与实际数据一致 |
+
+---
+
+## 开发排期
+
+### 第一阶段：后端开发（2-3天）
+- [ ] 设计API接口和响应数据结构
+- [ ] 实现用户主页信息查询接口
+- [ ] 实现用户应用列表查询接口（含分页/排序/筛选）
+- [ ] 实现用户统计数据计算逻辑
+- [ ] 完善用户信息更新接口（如已存在则测试验证）
+- [ ] 编写单元测试和接口文档
+
+### 第二阶段：前端开发（3-4天）
+- [ ] 创建页面路由和基础结构
+- [ ] 开发UserInfoCard组件（含编辑模式）
+- [ ] 开发StatisticsPanel组件
+- [ ] 开发UserAppsList组件
+- [ ] 集成后端API（运行openapi2ts）
+- [ ] 实现编辑功能和表单验证
+- [ ] 响应式布局调整
+
+### 第三阶段：联调测试（1-2天）
+- [ ] 前后端联调测试
+- [ ] 权限控制验证
+- [ ] 边界情况测试
+- [ ] 性能优化（缓存、懒加载）
+- [ ] UI细节调整
+
+### 第四阶段：上线准备（1天）
+- [ ] 代码审查
+- [ ] 文档更新（API文档、用户手册）
+- [ ] 部署到测试环境
+- [ ] 最终验收测试
+
+**预计总工期**：7-10个工作日
+
+---
+
+## 未来扩展方向
+
+### 功能扩展
+- **成就系统**：根据使用情况解锁成就徽章
+- **数据可视化**：使用图表展示使用趋势
+- **社交功能**：关注用户、分享应用
+- **活动记录**：展示用户的操作时间线
+- **主题定制**：用户自定义主页主题颜色
+
+### 技术优化
+- **头像上传优化**：支持裁剪、压缩、多种格式
+- **性能优化**：虚拟滚动加载大量应用
+- **缓存策略**：Redis缓存统计数据
+- **实时更新**：WebSocket推送数据变化
+
+---
+
+## 附录
+
+### 参考页面
+- GitHub个人主页：https://github.com/username
+- CSDN个人中心：https://i.csdn.net/
+- 掘金个人主页：https://juejin.cn/user/xxx
+
+### 相关文档
+- Ant Design Vue 组件文档：https://antdv.com/components/overview-cn
+- MyBatis-Flex 查询文档：https://mybatis-flex.com/
+- Axios 请求文档：https://axios-http.com/
+
+---
+
+## 待办清单
+
+- [ ] **需求确认**：请确认本需求文档是否符合预期
+- [ ] **技术方案评审**：确认后端API设计和前端架构
+- [ ] **启动开发**：确认后开始第一阶段后端开发
+
+---
+
+## Review（待开发完成后补充）
+
+- 实现功能列表
+- 遇到的技术难点和解决方案
+- 性能指标和优化效果
+- 用户反馈收集
