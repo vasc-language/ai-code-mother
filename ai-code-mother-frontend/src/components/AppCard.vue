@@ -7,7 +7,7 @@
       </div>
       <div class="app-overlay">
         <a-space>
-          <a-button type="primary" @click="handleViewChat">查看对话</a-button>
+          <a-button v-if="isOwner" type="primary" @click="handleViewChat">查看对话</a-button>
           <a-button v-if="app.deployKey" type="default" @click="handleViewWork">查看作品</a-button>
         </a-space>
       </div>
@@ -29,6 +29,9 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useLoginUserStore } from '@/stores/loginUser'
+
 interface Props {
   app: API.AppVO
   featured?: boolean
@@ -44,6 +47,13 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+const loginUserStore = useLoginUserStore()
+
+// 判断当前用户是否是应用的创建者
+const isOwner = computed(() => {
+  return loginUserStore.loginUser.id &&
+         props.app.userId === loginUserStore.loginUser.id
+})
 
 const handleViewChat = () => {
   emit('view-chat', props.app.id)
