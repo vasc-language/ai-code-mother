@@ -415,6 +415,27 @@
                     >当前版本</a-tag
                   >
                 </h4>
+              </div>
+              <div class="version-info">
+                <p class="version-info-item">
+                  <ClockCircleOutlined class="version-icon" />
+                  <span><strong>部署时间：</strong>{{
+                    formatDateTime(version.deployedTime)
+                  }}</span>
+                </p>
+                <p v-if="version.user" class="version-info-item">
+                  <UserOutlined class="version-icon" />
+                  <span><strong>部署用户：</strong>{{ version.user.userName }}</span>
+                </p>
+                <p v-if="version.deployUrl" class="version-info-item">
+                  <LinkOutlined class="version-icon" />
+                  <span>
+                    <strong>部署地址：</strong>
+                    <a :href="version.deployUrl" target="_blank">{{
+                      version.deployUrl
+                    }}</a>
+                  </span>
+                </p>
                 <div class="version-actions">
                   <a-button
                     type="link"
@@ -433,22 +454,6 @@
                     <a-button type="link" size="small" danger>回滚</a-button>
                   </a-popconfirm>
                 </div>
-              </div>
-              <div class="version-info">
-                <p>
-                  <strong>部署时间：</strong>{{
-                    formatDateTime(version.deployedTime)
-                  }}
-                </p>
-                <p v-if="version.user">
-                  <strong>部署用户：</strong>{{ version.user.userName }}
-                </p>
-                <p v-if="version.deployUrl">
-                  <strong>部署地址：</strong>
-                  <a :href="version.deployUrl" target="_blank">{{
-                    version.deployUrl
-                  }}</a>
-                </p>
               </div>
             </div>
           </a-timeline-item>
@@ -527,6 +532,9 @@ import {
   FileOutlined,
   MinusOutlined,
   HistoryOutlined,
+  ClockCircleOutlined,
+  UserOutlined,
+  LinkOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -3142,10 +3150,7 @@ onUnmounted(() => {
   }
 
   .version-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
 
   .version-header h4 {
@@ -3154,15 +3159,32 @@ onUnmounted(() => {
     font-weight: 600;
   }
 
-  .version-actions {
+  .version-info {
     display: flex;
+    flex-direction: column;
     gap: 8px;
   }
 
-  .version-info p {
-    margin: 4px 0;
+  .version-info-item {
+    margin: 0;
     color: #666;
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .version-icon {
+    font-size: 16px;
+    color: #1890ff;
+    flex-shrink: 0;
+  }
+
+  .version-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding-left: 24px;
   }
 
   .version-dot {
