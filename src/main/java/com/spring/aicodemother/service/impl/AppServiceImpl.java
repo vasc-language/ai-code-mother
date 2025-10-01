@@ -83,6 +83,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private com.spring.aicodemother.ai.AppNameGeneratorServiceFactory appNameGeneratorServiceFactory;
 
+    @Resource
+    private com.spring.aicodemother.service.AppVersionService appVersionService;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // Backward compatibility: run without external cancellation
@@ -424,7 +427,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 10. 返回可访问的 URL
         // String appDeployKey = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
         String appDeployKey = String.format("%s/%s/", deployHost, deployKey);
-        // 11. 异步生成截图并更新应用封面
+        // 11. 保存版本（部署成功后保存代码版本）
+        try {
+            app.setDeployKey(deployKey); // 确保app对象包含最新的deployKey
+            appVersionService.saveVersion(app, appDeployKey, loginUser);
+            log.info("应用版本保存成功：appId={}", appId);
+        } catch (Exception e) {
+            log.error("保存应用版本失败：appId={}", appId, e);
+            // 版本保存失败不影响部署流程
+        }
+        // 12. 异步生成截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployKey);
         return appDeployKey;
     }

@@ -69,3 +69,24 @@ create table chat_history
     INDEX idx_appId_createTime (appId, createTime) -- 游标查询核心索引
 ) comment '对话历史' collate = utf8mb4_unicode_ci;
 
+-- 应用版本历史表
+create table app_version
+(
+    id           bigint auto_increment comment '版本记录id' primary key,
+    appId        bigint                             not null comment '关联的应用id',
+    versionNum   int                                not null comment '版本号（1, 2, 3...）',
+    versionTag   varchar(32)                        not null comment '版本标签（v1, v2, v3...）',
+    codeContent  longtext                           null comment '代码内容（JSON格式，包含所有文件）',
+    deployKey    varchar(64)                        null comment '部署标识',
+    deployUrl    varchar(512)                       null comment '部署URL',
+    deployedTime datetime                           null comment '部署时间',
+    userId       bigint                             not null comment '部署操作用户id',
+    remark       varchar(512)                       null comment '版本备注说明',
+    createTime   datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    updateTime   datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete     tinyint  default 0                 not null comment '是否删除',
+    INDEX idx_appId (appId),                            -- 提升基于应用的查询性能
+    INDEX idx_appId_versionNum (appId, versionNum),     -- 组合索引加速版本查询
+    UNIQUE KEY uk_appId_versionNum (appId, versionNum)  -- 确保同一应用的版本号唯一
+) comment '应用版本历史' collate = utf8mb4_unicode_ci;
+

@@ -15,6 +15,12 @@
           </template>
           应用详情
         </a-button>
+        <a-button v-if="isOwner" type="default" @click="showVersionHistory">
+          <template #icon>
+            <HistoryOutlined />
+          </template>
+          历史版本
+        </a-button>
         <a-button
           type="primary"
           ghost
@@ -382,6 +388,107 @@
       :deploy-url="deployUrl"
       @open-site="openDeployedSite"
     />
+
+    <!-- 版本历史弹窗 -->
+    <a-modal
+      v-model:open="versionModalVisible"
+      title="版本历史"
+      :width="800"
+      :footer="null"
+      @cancel="closeVersionModal"
+    >
+      <a-spin :spinning="loadingVersions">
+        <a-timeline v-if="versionList.length > 0" mode="left">
+          <a-timeline-item
+            v-for="version in versionList"
+            :key="version.id"
+            :color="version.versionNum === currentVersionNum ? 'green' : 'blue'"
+          >
+            <template #dot>
+              <span class="version-dot">{{ version.versionTag }}</span>
+            </template>
+            <div class="version-item">
+              <div class="version-header">
+                <h4>
+                  {{ version.versionTag }}
+                  <a-tag v-if="version.versionNum === currentVersionNum" color="success"
+                    >当前版本</a-tag
+                  >
+                </h4>
+                <div class="version-actions">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="viewVersionDetail(version)"
+                  >
+                    查看详情
+                  </a-button>
+                  <a-popconfirm
+                    v-if="version.versionNum !== currentVersionNum"
+                    title="确定要回滚到此版本吗？回滚后将恢复该版本的所有代码文件。"
+                    ok-text="确定"
+                    cancel-text="取消"
+                    @confirm="handleRollback(version)"
+                  >
+                    <a-button type="link" size="small" danger>回滚</a-button>
+                  </a-popconfirm>
+                </div>
+              </div>
+              <div class="version-info">
+                <p>
+                  <strong>部署时间：</strong>{{
+                    formatDateTime(version.deployedTime)
+                  }}
+                </p>
+                <p v-if="version.user">
+                  <strong>部署用户：</strong>{{ version.user.userName }}
+                </p>
+                <p v-if="version.deployUrl">
+                  <strong>部署地址：</strong>
+                  <a :href="version.deployUrl" target="_blank">{{
+                    version.deployUrl
+                  }}</a>
+                </p>
+              </div>
+            </div>
+          </a-timeline-item>
+        </a-timeline>
+        <a-empty v-else description="暂无版本历史" />
+      </a-spin>
+    </a-modal>
+
+    <!-- 版本详情弹窗 -->
+    <a-modal
+      v-model:open="versionDetailModalVisible"
+      :title="`版本详情 - ${selectedVersion?.versionTag}`"
+      :width="900"
+      :footer="null"
+    >
+      <div v-if="selectedVersion" class="version-detail">
+        <a-descriptions :column="1" bordered>
+          <a-descriptions-item label="版本号">{{
+            selectedVersion.versionTag
+          }}</a-descriptions-item>
+          <a-descriptions-item label="部署时间">{{
+            formatDateTime(selectedVersion.deployedTime)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="部署用户" v-if="selectedVersion.user">{{
+            selectedVersion.user.userName
+          }}</a-descriptions-item>
+          <a-descriptions-item label="部署地址" v-if="selectedVersion.deployUrl">
+            <a :href="selectedVersion.deployUrl" target="_blank">{{
+              selectedVersion.deployUrl
+            }}</a>
+          </a-descriptions-item>
+          <a-descriptions-item label="部署标识" v-if="selectedVersion.deployKey">{{
+            selectedVersion.deployKey
+          }}</a-descriptions-item>
+          <a-descriptions-item label="备注" v-if="selectedVersion.remark">{{
+            selectedVersion.remark
+          }}</a-descriptions-item>
+        </a-descriptions>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -395,6 +502,10 @@ import {
   deployApp as deployAppApi,
   deleteApp as deleteAppApi,
 } from '@/api/appController'
+import {
+  listVersionsByAppId,
+  rollbackToVersion as rollbackToVersionApi,
+} from '@/api/appVersionController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
@@ -415,6 +526,7 @@ import {
   DownloadOutlined,
   FileOutlined,
   MinusOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -557,6 +669,14 @@ const generationFinished = ref(false)
 const deploying = ref(false)
 const deployModalVisible = ref(false)
 const deployUrl = ref('')
+
+// 版本管理相关
+const versionModalVisible = ref(false)
+const versionDetailModalVisible = ref(false)
+const loadingVersions = ref(false)
+const versionList = ref<API.AppVersionVO[]>([])
+const selectedVersion = ref<API.AppVersionVO | null>(null)
+const currentVersionNum = ref<number>(0)
 
 // 下载相关
 const downloading = ref(false)
@@ -1283,6 +1403,97 @@ const deployApp = async () => {
   } finally {
     deploying.value = false
   }
+}
+
+// 显示版本历史
+const showVersionHistory = async () => {
+  versionModalVisible.value = true
+  await fetchVersionList()
+}
+
+// 获取版本列表
+const fetchVersionList = async () => {
+  if (!appId.value) {
+    message.error('应用ID不存在')
+    return
+  }
+
+  loadingVersions.value = true
+  try {
+    const res = await listVersionsByAppId({
+      appId: appId.value as unknown as number,
+    })
+
+    if (res.data.code === 0 && res.data.data) {
+      versionList.value = res.data.data
+      // 当前版本号为列表中最大的版本号
+      if (versionList.value.length > 0) {
+        currentVersionNum.value = Math.max(
+          ...versionList.value.map((v) => v.versionNum || 0)
+        )
+      }
+    } else {
+      message.error('获取版本列表失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('获取版本列表失败：', error)
+    message.error('获取版本列表失败，请重试')
+  } finally {
+    loadingVersions.value = false
+  }
+}
+
+// 关闭版本历史弹窗
+const closeVersionModal = () => {
+  versionModalVisible.value = false
+}
+
+// 查看版本详情
+const viewVersionDetail = (version: API.AppVersionVO) => {
+  selectedVersion.value = version
+  versionDetailModalVisible.value = true
+}
+
+// 处理版本回滚
+const handleRollback = async (version: API.AppVersionVO) => {
+  if (!appId.value || !version.id) {
+    message.error('参数错误')
+    return
+  }
+
+  try {
+    const res = await rollbackToVersionApi({
+      appId: appId.value as unknown as number,
+      versionId: version.id as unknown as number,
+    })
+
+    if (res.data.code === 0) {
+      message.success('版本回滚成功')
+      // 关闭模态框
+      versionModalVisible.value = false
+      // 刷新页面以显示回滚后的代码
+      window.location.reload()
+    } else {
+      message.error('版本回滚失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('版本回滚失败：', error)
+    message.error('版本回滚失败，请重试')
+  }
+}
+
+// 格式化日期时间
+const formatDateTime = (dateTime: string | undefined) => {
+  if (!dateTime) return '-'
+  const date = new Date(dateTime)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
 
 // 在新窗口打开预览
@@ -2923,6 +3134,45 @@ onUnmounted(() => {
   .edit-mode-active:hover {
     background-color: #73d13d !important;
     border-color: #73d13d !important;
+  }
+
+  /* 版本管理样式 */
+  .version-item {
+    padding: 8px 0;
+  }
+
+  .version-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .version-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .version-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .version-info p {
+    margin: 4px 0;
+    color: #666;
+    font-size: 14px;
+  }
+
+  .version-dot {
+    font-size: 12px;
+    font-weight: bold;
+    color: #1890ff;
+  }
+
+  .version-detail {
+    padding: 16px 0;
   }
 }
 </style>

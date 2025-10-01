@@ -34,6 +34,37 @@ declare namespace API {
     appName?: string
   }
 
+  type AppVersionQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    appId?: number
+    versionNum?: number
+    versionTag?: string
+    userId?: number
+  }
+
+  type AppVersionRollbackRequest = {
+    appId?: number
+    versionId?: number
+  }
+
+  type AppVersionVO = {
+    id?: number
+    appId?: number
+    versionNum?: number
+    versionTag?: string
+    codeContent?: string
+    deployKey?: string
+    deployUrl?: string
+    deployedTime?: string
+    userId?: number
+    remark?: string
+    createTime?: string
+    user?: UserVO
+  }
+
   type AppVO = {
     id?: number
     appName?: string
@@ -49,6 +80,12 @@ declare namespace API {
     user?: UserVO
   }
 
+  type BaseResponseAppVersionVO = {
+    code?: number
+    data?: AppVersionVO
+    message?: string
+  }
+
   type BaseResponseAppVO = {
     code?: number
     data?: AppVO
@@ -58,6 +95,12 @@ declare namespace API {
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
+    message?: string
+  }
+
+  type BaseResponseListAppVersionVO = {
+    code?: number
+    data?: AppVersionVO[]
     message?: string
   }
 
@@ -76,6 +119,12 @@ declare namespace API {
   type BaseResponseMapStringObject = {
     code?: number
     data?: Record<string, any>
+    message?: string
+  }
+
+  type BaseResponsePageAppVersionVO = {
+    code?: number
+    data?: PageAppVersionVO
     message?: string
   }
 
@@ -100,6 +149,12 @@ declare namespace API {
   type BaseResponseString = {
     code?: number
     data?: string
+    message?: string
+  }
+
+  type BaseResponseUserProfileVO = {
+    code?: number
+    data?: UserProfileVO
     message?: string
   }
 
@@ -136,10 +191,16 @@ declare namespace API {
   type chatToGenCodeParams = {
     appId: number
     message: string
+    runId?: string
   }
 
   type DeleteRequest = {
     id?: number
+  }
+
+  type DiagramTask = {
+    mermaidCode?: string
+    description?: string
   }
 
   type downloadAppCodeParams = {
@@ -148,6 +209,18 @@ declare namespace API {
 
   type downloadCodeFilesParams = {
     appId: number
+  }
+
+  type executeWorkflowParams = {
+    prompt: string
+  }
+
+  type executeWorkflowWithFluxParams = {
+    prompt: string
+  }
+
+  type executeWorkflowWithSseParams = {
+    prompt: string
   }
 
   type getAppVOByIdByAdminParams = {
@@ -167,8 +240,37 @@ declare namespace API {
     id: number
   }
 
+  type getUserProfileParams = {
+    userId: number
+  }
+
   type getUserVOByIdParams = {
     id: number
+  }
+
+  type getVersionVOParams = {
+    versionId: number
+  }
+
+  type IllustrationTask = {
+    query?: string
+  }
+
+  type ImageCollectionPlan = {
+    contentImageTasks?: ImageSearchTask[]
+    illustrationTasks?: IllustrationTask[]
+    diagramTasks?: DiagramTask[]
+    logoTasks?: LogoTask[]
+  }
+
+  type ImageResource = {
+    category?: 'CONTENT' | 'LOGO' | 'ILLUSTRATION' | 'ARCHITECTURE'
+    description?: string
+    url?: string
+  }
+
+  type ImageSearchTask = {
+    query?: string
   }
 
   type listAppChatHistoryParams = {
@@ -181,6 +283,10 @@ declare namespace API {
     appId: number
   }
 
+  type listVersionsByAppIdParams = {
+    appId: number
+  }
+
   type LoginUserVO = {
     id?: number
     userAccount?: string
@@ -190,6 +296,19 @@ declare namespace API {
     userRole?: string
     createTime?: string
     updateTime?: string
+  }
+
+  type LogoTask = {
+    description?: string
+  }
+
+  type PageAppVersionVO = {
+    records?: AppVersionVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+    optimizeCountQuery?: boolean
   }
 
   type PageAppVO = {
@@ -219,10 +338,20 @@ declare namespace API {
     optimizeCountQuery?: boolean
   }
 
+  type QualityResult = {
+    isValid?: boolean
+    errors?: string[]
+    suggestions?: string[]
+  }
+
   type ServerSentEventString = true
 
   type serveStaticResourceParams = {
     deployKey: string
+  }
+
+  type SseEmitter = {
+    timeout?: number
   }
 
   type UserAddRequest = {
@@ -233,9 +362,29 @@ declare namespace API {
     userRole?: string
   }
 
+  type UserAppsQueryRequest = {
+    userId?: number
+    pageNum?: number
+    pageSize?: number
+    sortBy?: string
+    sortOrder?: string
+    genType?: string
+  }
+
   type UserLoginRequest = {
     userAccount?: string
     userPassword?: string
+  }
+
+  type UserProfileUpdateRequest = {
+    userName?: string
+    userAvatar?: string
+    userProfile?: string
+  }
+
+  type UserProfileVO = {
+    user?: UserVO
+    statistics?: UserStatisticsVO
   }
 
   type UserQueryRequest = {
@@ -256,6 +405,13 @@ declare namespace API {
     checkPassword?: string
   }
 
+  type UserStatisticsVO = {
+    appCount?: number
+    generateCount?: number
+    joinDays?: number
+    lastActiveTime?: string
+  }
+
   type UserUpdateRequest = {
     id?: number
     userName?: string
@@ -272,5 +428,23 @@ declare namespace API {
     userProfile?: string
     userRole?: string
     createTime?: string
+  }
+
+  type WorkflowContext = {
+    currentStep?: string
+    originalPrompt?: string
+    imageListStr?: string
+    imageList?: ImageResource[]
+    imageCollectionPlan?: ImageCollectionPlan
+    contentImages?: ImageResource[]
+    illustrations?: ImageResource[]
+    diagrams?: ImageResource[]
+    logos?: ImageResource[]
+    enhancedPrompt?: string
+    generationType?: 'HTML' | 'MULTI_FILE' | 'VUE_PROJECT'
+    generatedCodeDir?: string
+    buildResultDir?: string
+    qualityResult?: QualityResult
+    errorMessage?: string
   }
 }

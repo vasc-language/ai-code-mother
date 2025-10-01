@@ -14,6 +14,21 @@ export async function addUser(body: API.UserAddRequest, options?: { [key: string
   })
 }
 
+/** 此处后端没有提供注释 POST /user/apps */
+export async function getUserApps(
+  body: API.UserAppsQueryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePageAppVO>('/user/apps', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 POST /user/delete */
 export async function deleteUser(body: API.DeleteRequest, options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/user/delete', {
@@ -95,6 +110,36 @@ export async function userLogin(body: API.UserLoginRequest, options?: { [key: st
 export async function userLogout(options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/user/logout', {
     method: 'POST',
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 GET /user/profile */
+export async function getUserProfile(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getUserProfileParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseUserProfileVO>('/user/profile', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 POST /user/profile/update */
+export async function updateUserProfile(
+  body: API.UserProfileUpdateRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean>('/user/profile/update', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
     ...(options || {}),
   })
 }

@@ -86,6 +86,18 @@ export async function chatToGenCode(
   })
 }
 
+/** 此处后端没有提供注释 POST /app/chat/stop */
+export async function stopChat(body: Record<string, any>, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/chat/stop', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 POST /app/delete */
 export async function deleteApp(body: API.DeleteRequest, options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/app/delete', {
