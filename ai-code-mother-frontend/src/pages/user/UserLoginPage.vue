@@ -122,11 +122,11 @@ const handleSubmit = async (values: any) => {
   width: 100%;
   height: 100%;
   background: linear-gradient(135deg,
-    #667eea 0%,
-    #764ba2 25%,
-    #f093fb 50%,
-    #f5576c 75%,
-    #4facfe 100%
+    #1890ff 0%,
+    #36cfc9 25%,
+    #40a9ff 50%,
+    #597ef7 75%,
+    #1890ff 100%
   );
   background-size: 400% 400%;
   animation: gradientShift 12s ease infinite;

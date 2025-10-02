@@ -238,11 +238,11 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   width: 100%;
   height: 100%;
   background: linear-gradient(135deg,
-    #f093fb 0%,
-    #f5576c 25%,
-    #4facfe 50%,
-    #00f2fe 75%,
-    #667eea 100%
+    #1890ff 0%,
+    #36cfc9 25%,
+    #40a9ff 50%,
+    #597ef7 75%,
+    #1890ff 100%
   );
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;

@@ -15,21 +15,42 @@
 
       <a-collapse :bordered="false" default-active-key="['1']">
         <a-collapse-panel key="1" header="如何注册账号?">
-          <p>点击页面右上角的"登录"按钮,然后选择"注册新账号",填写用户名和密码即可完成注册。</p>
-          <p>注册成功后会自动获得 50 初始积分。</p>
+          <p>点击页面右上角的"注册"按钮，使用邮箱注册账号：</p>
+          <ul>
+            <li>填写邮箱地址，点击"发送验证码"</li>
+            <li>输入收到的6位数字验证码（有效期5分钟）</li>
+            <li>设置密码（确认两次密码一致）</li>
+            <li>可选填写邀请码（如有）</li>
+          </ul>
+          <p>注册成功后会自动登录，可在个人主页查看账户信息。</p>
         </a-collapse-panel>
 
         <a-collapse-panel key="2" header="忘记密码怎么办?">
-          <p>目前暂不支持找回密码功能。建议记住密码或使用密码管理工具保存。</p>
-          <p>如需重置密码,请联系管理员。</p>
+          <p>目前系统支持邮箱验证码登录，无需记住密码：</p>
+          <ul>
+            <li>在登录页面选择"邮箱验证码登录"</li>
+            <li>输入注册邮箱并获取验证码</li>
+            <li>输入验证码即可登录</li>
+          </ul>
+          <p>如需重置密码功能，请联系管理员或等待后续版本更新。</p>
         </a-collapse-panel>
 
-        <a-collapse-panel key="3" header="可以修改用户名吗?">
-          <p>用户名一旦注册不可修改。请在注册时慎重选择用户名。</p>
+        <a-collapse-panel key="3" header="可以修改个人资料吗?">
+          <p>可以在个人主页编辑以下信息：</p>
+          <ul>
+            <li><strong>用户昵称：</strong>2-20个字符</li>
+            <li><strong>头像URL：</strong>支持网络图片链接</li>
+            <li><strong>个人简介：</strong>最多200字符</li>
+          </ul>
+          <p>注意：邮箱（账号）注册后不可修改。</p>
         </a-collapse-panel>
 
-        <a-collapse-panel key="4" header="如何删除账号?">
-          <p>如需删除账号,请联系管理员处理。删除后积分和历史记录将永久丢失。</p>
+        <a-collapse-panel key="4" header="账户角色有什么区别?">
+          <p>系统支持两种角色：</p>
+          <ul>
+            <li><strong>普通用户（user）：</strong>可使用所有代码生成功能</li>
+            <li><strong>管理员（admin）：</strong>拥有用户管理、应用管理等额外权限</li>
+          </ul>
         </a-collapse-panel>
       </a-collapse>
     </section>
@@ -41,31 +62,34 @@
       </h2>
 
       <a-collapse :bordered="false">
-        <a-collapse-panel key="1" header="如何获得积分?">
-          <p>主要有以下几种方式:</p>
+        <a-collapse-panel key="1" header="积分系统是什么?">
+          <p>AI Code Mother 使用积分系统来管理代码生成次数：</p>
           <ul>
-            <li>新用户注册:100 积分(一次性)</li>
-            <li>每日签到:10 积分</li>
-            <li>邀请好友:100 积分/人(不限次数)</li>
-            <li>参与活动:根据活动规则获得</li>
+            <li>不同类型的应用消耗不同积分</li>
+            <li>积分不足时无法生成代码</li>
+            <li>可通过多种方式获取积分</li>
+            <li>积分记录可在个人中心查看</li>
           </ul>
         </a-collapse-panel>
 
-        <a-collapse-panel key="2" header="积分会过期吗?">
-          <p>目前积分永久有效,不会过期。</p>
-        </a-collapse-panel>
-
-        <a-collapse-panel key="3" header="积分不够用怎么办?">
-          <p>可以通过以下方式快速获取积分:</p>
+        <a-collapse-panel key="2" header="生成代码消耗多少积分?">
+          <p>根据生成类型和复杂度消耗不同积分：</p>
           <ul>
-            <li>每天坚持签到获得积分</li>
-            <li>邀请好友注册(双方各得 100 积分)</li>
-            <li>参与平台活动</li>
+            <li><strong>简单HTML页面：</strong>消耗较少积分</li>
+            <li><strong>Vue3应用：</strong>消耗中等积分</li>
+            <li><strong>多文件项目：</strong>消耗较多积分</li>
           </ul>
+          <p>具体积分消耗在创建应用时会显示。</p>
         </a-collapse-panel>
 
-        <a-collapse-panel key="4" header="生成失败积分会退还吗?">
-          <p>是的。如果生成失败(如网络错误、服务器异常等),已扣除的积分会自动退还到账户。</p>
+        <a-collapse-panel key="3" header="生成失败积分会退还吗?">
+          <p>是的。如果生成失败（如AI服务异常、网络错误等），系统会自动退还已扣除的积分。</p>
+          <p>你可以在积分记录中查看退还详情。</p>
+        </a-collapse-panel>
+
+        <a-collapse-panel key="4" header="积分会过期吗?">
+          <p>目前积分永久有效，不会过期。</p>
+          <p>建议合理使用积分，优先生成真正需要的应用。</p>
         </a-collapse-panel>
       </a-collapse>
     </section>
@@ -77,49 +101,66 @@
       </h2>
 
       <a-collapse :bordered="false">
-        <a-collapse-panel key="1" header="生成失败怎么办?">
-          <p>生成失败可能的原因和解决方法:</p>
+        <a-collapse-panel key="1" header="支持哪些生成类型?">
+          <p>目前支持三种代码生成类型：</p>
           <ul>
-            <li><strong>积分不足:</strong> 检查积分余额是否充足</li>
-            <li><strong>需求不清晰:</strong> 尝试更详细地描述需求</li>
-            <li><strong>网络问题:</strong> 检查网络连接,刷新页面重试</li>
-            <li><strong>服务器繁忙:</strong> 稍后再试</li>
+            <li><strong>HTML页面：</strong>单个HTML文件，包含CSS和JavaScript</li>
+            <li><strong>Vue3应用：</strong>完整的Vue3项目，支持组件化开发</li>
+            <li><strong>多文件项目：</strong>包含多个文件的完整项目结构</li>
+          </ul>
+          <p>在创建应用时可以选择生成类型。</p>
+        </a-collapse-panel>
+
+        <a-collapse-panel key="2" header="使用什么AI模型生成?">
+          <p>系统集成了先进的AI模型：</p>
+          <ul>
+            <li><strong>主要模型：</strong>DeepSeek Reasoner（深度推理）</li>
+            <li><strong>辅助模型：</strong>Qwen Turbo（快速分类）</li>
+            <li>支持实时流式生成，可查看生成过程</li>
+            <li>最大支持32,768个token</li>
           </ul>
         </a-collapse-panel>
 
-        <a-collapse-panel key="2" header="生成的代码质量如何?">
-          <p>AI 生成的代码具有以下特点:</p>
+        <a-collapse-panel key="3" header="生成的代码质量如何?">
+          <p>AI生成的代码具有以下特点：</p>
           <ul>
             <li>遵循业界最佳实践和编码规范</li>
             <li>清晰的代码结构和命名</li>
             <li>完整的注释说明</li>
             <li>基本的错误处理</li>
           </ul>
-          <p>建议根据实际需求进行调整和优化。</p>
-        </a-collapse-panel>
-
-        <a-collapse-panel key="3" header="生成的代码可以商用吗?">
-          <p>可以。生成的代码归你所有,可以自由使用、修改和商用。</p>
-          <p>我们建议在实际使用前进行测试和优化。</p>
+          <p>建议根据实际需求进行调整和优化，代码仅供参考和学习。</p>
         </a-collapse-panel>
 
         <a-collapse-panel key="4" header="如何提高生成成功率?">
+          <p>编写清晰的需求描述很重要：</p>
           <ul>
-            <li>清晰详细地描述需求</li>
-            <li>说明页面结构和功能要点</li>
-            <li>指定技术栈和设计风格</li>
-            <li>避免过于复杂的需求</li>
+            <li>详细描述页面功能和布局</li>
+            <li>说明技术栈要求（如Vue3、TypeScript）</li>
+            <li>指定设计风格和UI组件库</li>
+            <li>拆分复杂需求为多个简单应用</li>
             <li>确保积分充足</li>
           </ul>
         </a-collapse-panel>
 
-        <a-collapse-panel key="5" header="生成时间为什么不一样?">
-          <p>生成时间受以下因素影响:</p>
+        <a-collapse-panel key="5" header="生成失败怎么办?">
+          <p>生成失败的常见原因和解决方法：</p>
           <ul>
-            <li>生成类型:HTML &lt; Vue &lt; 多文件</li>
-            <li>项目复杂度:功能越多越慢</li>
-            <li>服务器负载:高峰期可能较慢</li>
-            <li>网络状况:网络越好越快</li>
+            <li><strong>积分不足：</strong>检查积分余额</li>
+            <li><strong>需求不清晰：</strong>重新描述得更详细</li>
+            <li><strong>AI服务异常：</strong>稍后重试</li>
+            <li><strong>网络问题：</strong>检查网络连接</li>
+          </ul>
+          <p>失败后积分会自动退还，可以修改需求重新生成。</p>
+        </a-collapse-panel>
+
+        <a-collapse-panel key="6" header="支持实时查看生成过程吗?">
+          <p>是的！系统支持SSE（Server-Sent Events）流式传输：</p>
+          <ul>
+            <li>实时显示AI生成的代码</li>
+            <li>可以看到生成进度</li>
+            <li>支持中断生成过程</li>
+            <li>生成完成后自动保存</li>
           </ul>
         </a-collapse-panel>
       </a-collapse>
@@ -133,39 +174,64 @@
 
       <a-collapse :bordered="false">
         <a-collapse-panel key="1" header="生成的代码如何在本地运行?">
-          <p>根据项目类型:</p>
+          <p>根据项目类型有不同的运行方式：</p>
           <ul>
-            <li><strong>HTML 页面:</strong> 直接双击打开</li>
-            <li><strong>Vue 应用:</strong> npm install && npm run dev</li>
-            <li><strong>多文件项目:</strong> 查看 README.md 说明</li>
+            <li><strong>HTML页面：</strong>直接用浏览器打开HTML文件</li>
+            <li><strong>Vue3应用：</strong>
+              <ol>
+                <li>解压下载的项目文件</li>
+                <li>在项目目录执行 <code>npm install</code></li>
+                <li>执行 <code>npm run dev</code> 启动开发服务器</li>
+              </ol>
+            </li>
+            <li><strong>多文件项目：</strong>查看项目中的 README.md 文件说明</li>
           </ul>
         </a-collapse-panel>
 
-        <a-collapse-panel key="2" header="如何部署生成的应用?">
-          <p>部署方法:</p>
+        <a-collapse-panel key="2" header="生成的代码保存在哪里?">
+          <p>代码文件的存储位置：</p>
           <ul>
-            <li>静态页面:上传到服务器或使用 GitHub Pages</li>
-            <li>Vue 应用:打包后部署(npm run build)</li>
-            <li>使用云服务:Vercel、Netlify 等</li>
+            <li><strong>服务器端：</strong>保存在 <code>tmp/code_output/</code> 目录（带时间戳）</li>
+            <li><strong>云存储：</strong>可上传至腾讯云COS</li>
+            <li><strong>下载：</strong>可通过应用详情页下载到本地</li>
+          </ul>
+          <p>建议及时下载保存，避免服务器清理导致丢失。</p>
+        </a-collapse-panel>
+
+        <a-collapse-panel key="3" header="如何部署生成的应用?">
+          <p>常见的部署方式：</p>
+          <ul>
+            <li><strong>静态页面：</strong>上传到服务器或使用GitHub Pages</li>
+            <li><strong>Vue应用：</strong>
+              <ol>
+                <li>执行 <code>npm run build</code> 打包</li>
+                <li>将 <code>dist</code> 目录上传到服务器</li>
+              </ol>
+            </li>
+            <li><strong>云服务：</strong>使用Vercel、Netlify等平台一键部署</li>
           </ul>
         </a-collapse-panel>
 
-        <a-collapse-panel key="3" header="生成的代码报错怎么办?">
+        <a-collapse-panel key="4" header="生成的代码报错怎么办?">
+          <p>遇到错误时的排查步骤：</p>
           <ol>
-            <li>查看错误提示,了解问题所在</li>
-            <li>检查是否缺少依赖(npm install)</li>
-            <li>使用在线编辑器修改代码</li>
-            <li>参考文档或搜索解决方案</li>
+            <li>仔细阅读错误提示信息</li>
+            <li>检查是否已安装依赖（<code>npm install</code>）</li>
+            <li>确认Node.js版本符合要求</li>
+            <li>查看项目文档和README</li>
+            <li>可在线编辑修改代码</li>
           </ol>
         </a-collapse-panel>
 
-        <a-collapse-panel key="4" header="如何二次开发生成的项目?">
-          <ol>
-            <li>先运行项目,了解整体结构</li>
-            <li>阅读代码注释,理解实现逻辑</li>
-            <li>根据需求修改或添加功能</li>
-            <li>遵循项目的代码风格</li>
-          </ol>
+        <a-collapse-panel key="5" header="支持哪些技术栈?">
+          <p>当前支持的主要技术：</p>
+          <ul>
+            <li><strong>前端框架：</strong>Vue 3, HTML5</li>
+            <li><strong>构建工具：</strong>Vite</li>
+            <li><strong>语言：</strong>JavaScript, TypeScript</li>
+            <li><strong>UI库：</strong>可指定Ant Design Vue等</li>
+          </ul>
+          <p>后续会支持更多技术栈，敬请期待。</p>
         </a-collapse-panel>
       </a-collapse>
     </section>
@@ -177,35 +243,67 @@
       </h2>
 
       <a-collapse :bordered="false">
-        <a-collapse-panel key="1" header="平台是否免费?">
-          <p>平台完全免费使用。通过积分系统,用户可以免费生成应用。</p>
+        <a-collapse-panel key="1" header="平台完全免费吗?">
+          <p>AI Code Mother 是一个开源项目，代码完全开放：</p>
+          <ul>
+            <li>GitHub仓库：<a href="https://github.com/vasc-language/ai-code-mother" target="_blank">vasc-language/ai-code-mother</a></li>
+            <li>可以自行部署使用</li>
+            <li>使用积分系统管理资源</li>
+          </ul>
+          <p>注意：AI模型调用可能产生费用（如使用DeepSeek API）。</p>
         </a-collapse-panel>
 
         <a-collapse-panel key="2" header="数据安全吗?">
-          <p>我们重视用户数据安全:</p>
+          <p>我们重视用户数据安全：</p>
           <ul>
-            <li>密码经过加密存储</li>
-            <li>生成的代码只有你可以访问</li>
-            <li>定期备份数据</li>
+            <li><strong>密码加密：</strong>使用MD5+盐值加密存储</li>
+            <li><strong>会话管理：</strong>基于Redis的分布式会话，30天有效期</li>
+            <li><strong>数据隔离：</strong>每个用户的应用和代码独立存储</li>
+            <li><strong>软删除：</strong>支持逻辑删除，数据可恢复</li>
           </ul>
         </a-collapse-panel>
 
-        <a-collapse-panel key="3" header="如何联系客服?">
-          <p>如有问题,可以通过以下方式联系:</p>
+        <a-collapse-panel key="3" header="技术架构是什么?">
+          <p>项目采用前后端分离架构：</p>
           <ul>
-            <li>访问 GitHub 仓库提 Issue</li>
-            <li>发送邮件到 zrt3ljnygz@163.com</li>
-            <li>微信联系: Join2049</li>
+            <li><strong>后端：</strong>Spring Boot 3.5.4 + Java 21 + MyBatis-Flex</li>
+            <li><strong>前端：</strong>Vue 3 + TypeScript + Vite + Ant Design Vue</li>
+            <li><strong>数据库：</strong>MySQL 8.0</li>
+            <li><strong>缓存：</strong>Redis + Caffeine本地缓存</li>
+            <li><strong>AI集成：</strong>LangChain4j + DeepSeek + DashScope</li>
+            <li><strong>监控：</strong>Prometheus + Spring Boot Actuator</li>
           </ul>
         </a-collapse-panel>
 
-        <a-collapse-panel key="4" header="未来会有新功能吗?">
-          <p>我们会持续优化和更新平台,计划中的功能包括:</p>
+        <a-collapse-panel key="4" header="如何联系开发者?">
+          <p>欢迎通过以下方式联系：</p>
           <ul>
-            <li>一键部署到云端</li>
-            <li>更多生成类型</li>
+            <li><strong>GitHub Issues：</strong><a href="https://github.com/vasc-language/ai-code-mother/issues" target="_blank">提交问题反馈</a></li>
+            <li><strong>邮箱：</strong>zrt3ljnygz@163.com</li>
+            <li><strong>官网：</strong><a href="https://www.joinoai.cloud/" target="_blank">www.joinoai.cloud</a></li>
+          </ul>
+        </a-collapse-panel>
+
+        <a-collapse-panel key="5" header="如何参与项目开发?">
+          <p>欢迎贡献代码和建议：</p>
+          <ol>
+            <li>Fork GitHub仓库</li>
+            <li>阅读 CLAUDE.md 了解项目结构</li>
+            <li>提交Pull Request</li>
+            <li>加入社区讨论</li>
+          </ol>
+          <p>项目使用MIT协议，欢迎自由使用和改进。</p>
+        </a-collapse-panel>
+
+        <a-collapse-panel key="6" header="后续有什么规划?">
+          <p>项目持续更新中，规划功能包括：</p>
+          <ul>
+            <li>支持更多AI模型（Claude、GPT等）</li>
+            <li>一键部署到云平台</li>
+            <li>代码模板市场</li>
             <li>团队协作功能</li>
-            <li>代码模板库</li>
+            <li>代码质量分析</li>
+            <li>更多生成类型（Spring Boot、React等）</li>
           </ul>
         </a-collapse-panel>
       </a-collapse>
