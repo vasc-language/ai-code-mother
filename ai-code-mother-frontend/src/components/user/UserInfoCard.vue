@@ -184,17 +184,29 @@ const formatJoinTime = (time: string) => {
 
 <style scoped>
 .user-info-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  overflow: hidden;
+}
+
+.user-info-card :deep(.ant-card-body) {
+  padding: 48px;
 }
 
 .user-info-content {
   display: flex;
-  gap: 32px;
+  gap: 48px;
+  align-items: flex-start;
 }
 
 .avatar-section {
   flex-shrink: 0;
+}
+
+.avatar-section :deep(.ant-avatar) {
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .info-section {
@@ -205,70 +217,124 @@ const formatJoinTime = (time: string) => {
 .info-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #f0f0f0;
 }
 
 .name-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .user-name {
   margin: 0;
-  font-size: 28px;
-  font-weight: 600;
-  color: #262626;
+  font-size: 36px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+}
+
+.name-wrapper :deep(.ant-tag) {
+  font-size: 13px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.info-header :deep(.ant-btn-primary) {
+  height: 40px;
+  padding: 0 24px;
+  font-size: 15px;
+  border-radius: 8px;
+  font-weight: 500;
 }
 
 .info-details {
   color: #595959;
+  display: grid;
+  gap: 16px;
 }
 
 .info-details p {
-  margin: 8px 0;
-  line-height: 1.6;
+  margin: 0;
+  line-height: 1.8;
+  display: flex;
+  align-items: center;
 }
 
 .user-account,
 .user-id {
-  font-size: 14px;
-  color: #8c8c8c;
+  font-size: 15px;
+  color: #666666;
+  font-weight: 500;
+}
+
+.user-account::before,
+.user-id::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  background: #1890ff;
+  border-radius: 50%;
+  margin-right: 12px;
 }
 
 .user-profile {
-  margin: 16px 0 !important;
-  font-size: 15px;
-  color: #595959;
-  line-height: 1.8;
+  margin: 24px 0 !important;
+  padding: 20px;
+  font-size: 16px;
+  color: #4a4a4a;
+  line-height: 2;
+  background: rgba(24, 144, 255, 0.04);
+  border-left: 4px solid #1890ff;
+  border-radius: 8px;
 }
 
 .join-time {
-  font-size: 13px;
-  color: #8c8c8c;
+  font-size: 14px;
+  color: #999999;
+  font-style: italic;
 }
 
 /* 响应式布局 */
 @media (max-width: 768px) {
+  .user-info-card :deep(.ant-card-body) {
+    padding: 24px;
+  }
+
   .user-info-content {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    gap: 32px;
   }
 
   .avatar-section {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
   }
 
   .info-header {
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
   }
 
   .name-wrapper {
     flex-direction: column;
+    align-items: center;
+  }
+
+  .user-name {
+    font-size: 28px;
+  }
+
+  .info-details p {
+    justify-content: center;
   }
 }
 </style>
