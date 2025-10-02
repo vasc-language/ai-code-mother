@@ -90,3 +90,78 @@ create table app_version
     UNIQUE KEY uk_appId_versionNum (appId, versionNum)  -- 确保同一应用的版本号唯一
 ) comment '应用版本历史' collate = utf8mb4_unicode_ci;
 
+-- 用户积分表
+CREATE TABLE IF NOT EXISTS `user_points`
+(
+    `id`               bigint      NOT NULL AUTO_INCREMENT COMMENT '主键ID（雪花算法）',
+    `userId`           bigint      NOT NULL COMMENT '用户ID',
+    `totalPoints`      int         DEFAULT 0 COMMENT '累计获得积分',
+    `availablePoints`  int         DEFAULT 0 COMMENT '当前可用积分',
+    `frozenPoints`     int         DEFAULT 0 COMMENT '冻结积分（预留，暂不使用）',
+    `createTime`       datetime    DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updateTime`       datetime    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `isDelete`         tinyint     DEFAULT 0 COMMENT '逻辑删除（0-未删除，1-已删除）',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_userId` (`userId`),
+    INDEX `idx_availablePoints` (`availablePoints`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户积分表';
+
+-- 积分明细表
+CREATE TABLE IF NOT EXISTS `points_record`
+(
+    `id`          bigint       NOT NULL AUTO_INCREMENT COMMENT '主键ID（雪花算法）',
+    `userId`      bigint       NOT NULL COMMENT '用户ID',
+    `points`      int          NOT NULL COMMENT '积分变动数量（正数为增加，负数为扣减）',
+    `balance`     int          NOT NULL COMMENT '变动后余额',
+    `type`        varchar(20)  NOT NULL COMMENT '积分类型（SIGN_IN:签到, REGISTER:注册, INVITE:邀请, GENERATE:生成应用, EXPIRE:过期）',
+    `reason`      varchar(200) NULL COMMENT '变动原因描述',
+    `relatedId`   bigint       NULL COMMENT '关联ID（如应用ID、邀请记录ID）',
+    `expireTime`  datetime     NULL COMMENT '积分过期时间',
+    `createTime`  datetime     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `isDelete`    tinyint      DEFAULT 0 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_userId` (`userId`),
+    INDEX `idx_type` (`type`),
+    INDEX `idx_createTime` (`createTime`),
+    INDEX `idx_expireTime` (`expireTime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分明细表';
+
+-- 签到记录表
+CREATE TABLE IF NOT EXISTS `sign_in_record`
+(
+    `id`              bigint   NOT NULL AUTO_INCREMENT COMMENT '主键ID（雪花算法）',
+    `userId`          bigint   NOT NULL COMMENT '用户ID',
+    `signInDate`      date     NOT NULL COMMENT '签到日期',
+    `continuousDays`  int      DEFAULT 1 COMMENT '连续签到天数',
+    `pointsEarned`    int      NOT NULL COMMENT '本次签到获得积分',
+    `createTime`      datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `isDelete`        tinyint  DEFAULT 0 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_userId_date` (`userId`, `signInDate`),
+    INDEX `idx_userId` (`userId`),
+    INDEX `idx_signInDate` (`signInDate`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='签到记录表';
+
+-- 邀请关系表
+CREATE TABLE IF NOT EXISTS `invite_record`
+(
+    `id`             bigint       NOT NULL AUTO_INCREMENT COMMENT '主键ID（雪花算法）',
+    `inviterId`      bigint       NOT NULL COMMENT '邀请人ID',
+    `inviteeId`      bigint       NOT NULL COMMENT '被邀请人ID',
+    `inviteCode`     varchar(32)  NOT NULL COMMENT '邀请码',
+    `registerIp`     varchar(50)  NULL COMMENT '注册IP',
+    `deviceId`       varchar(100) NULL COMMENT '设备ID',
+    `status`         varchar(20)  DEFAULT 'PENDING' COMMENT '状态（PENDING:待确认, REGISTERED:已注册, REWARDED:已奖励）',
+    `inviterPoints`  int          DEFAULT 0 COMMENT '邀请人获得积分',
+    `inviteePoints`  int          DEFAULT 0 COMMENT '被邀请人获得积分',
+    `createTime`     datetime     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `registerTime`   datetime     NULL COMMENT '注册时间',
+    `rewardTime`     datetime     NULL COMMENT '奖励发放时间',
+    `isDelete`       tinyint      DEFAULT 0 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_inviteCode` (`inviteCode`),
+    INDEX `idx_inviterId` (`inviterId`),
+    INDEX `idx_inviteeId` (`inviteeId`),
+    INDEX `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='邀请关系表';
+

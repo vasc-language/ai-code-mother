@@ -22,9 +22,10 @@ public interface UserService extends IService<User> {
      * @param userAccount 用户账号
      * @param userPassword 密码
      * @param checkPassword 校验密码
+     * @param inviteCode 邀请码（可选）
      * @return
      */
-    long userRegister(String userAccount, String userPassword, String checkPassword);
+    long userRegister(String userAccount, String userPassword, String checkPassword, String inviteCode);
 
     /**
      * 获取脱敏的已登录用户信息

@@ -62,7 +62,7 @@ public class AiModelMonitorListener implements ChatModelListener {
         // 记录响应时间
         recordResponseTime(attributes, userId, appId, modelName);
         // 记录 Token 使用情况
-        recordTokenUsage(responseContext, userId, appId, modelName);
+        recordTokenUsage(responseContext, context, userId, appId, modelName);
     }
 
     @Override
@@ -95,12 +95,17 @@ public class AiModelMonitorListener implements ChatModelListener {
     /**
      * 记录Token使用情况
      */
-    private void recordTokenUsage(ChatModelResponseContext responseContext, String userId, String appId, String modelName) {
+    private void recordTokenUsage(ChatModelResponseContext responseContext, MonitorContext context,
+                                  String userId, String appId, String modelName) {
         TokenUsage tokenUsage = responseContext.chatResponse().metadata().tokenUsage();
         if (tokenUsage != null) {
             aiModelMetricsCollector.recordTokenUsage(userId, appId, modelName, "input", tokenUsage.inputTokenCount());
             aiModelMetricsCollector.recordTokenUsage(userId, appId, modelName, "output", tokenUsage.outputTokenCount());
             aiModelMetricsCollector.recordTokenUsage(userId, appId, modelName, "total", tokenUsage.totalTokenCount());
+            if (context != null) {
+                Integer total = tokenUsage.totalTokenCount();
+                context.setTotalTokens(total == null ? null : total.longValue());
+            }
         }
     }
 }

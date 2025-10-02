@@ -37,10 +37,11 @@ public class MultiFileStreamHandler {
     public Flux<String> handle(Flux<String> originFlux,
                                ChatHistoryService chatHistoryService,
                                long appId, User loginUser,
-                               java.util.function.BooleanSupplier cancelled) {
+                               java.util.function.BooleanSupplier cancelled,
+                               java.util.function.Consumer<String> finalResponseConsumer) {
         StringBuilder aiResponseBuilder = new StringBuilder();
         MultiFileContext context = new MultiFileContext();
-        
+
         return originFlux
                 .map(chunk -> {
                     // 收集AI响应内容
@@ -55,6 +56,7 @@ public class MultiFileStreamHandler {
                     }
                     // 流式响应完成后，添加AI消息到对话历史
                     String aiResponse = aiResponseBuilder.toString();
+                    finalResponseConsumer.accept(aiResponse);
                     chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
                 })
                 .doOnError(error -> {

@@ -21,6 +21,11 @@ public class MonitorContext implements Serializable {
 
     private String appId;
 
+    /**
+     * 最近一次生成的Token总消耗
+     */
+    private Long totalTokens;
+
     @Serial
     private static final long serialVersionUID = 1L;
 }

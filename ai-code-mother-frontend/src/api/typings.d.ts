@@ -104,6 +104,18 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseListInviteRecord = {
+    code?: number
+    data?: InviteRecord[]
+    message?: string
+  }
+
+  type BaseResponseListPointsRecord = {
+    code?: number
+    data?: PointsRecord[]
+    message?: string
+  }
+
   type BaseResponseLoginUserVO = {
     code?: number
     data?: LoginUserVO
@@ -116,7 +128,19 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseMapStringInteger = {
+    code?: number
+    data?: Record<string, any>
+    message?: string
+  }
+
   type BaseResponseMapStringObject = {
+    code?: number
+    data?: Record<string, any>
+    message?: string
+  }
+
+  type BaseResponseMapStringString = {
     code?: number
     data?: Record<string, any>
     message?: string
@@ -236,6 +260,11 @@ declare namespace API {
     filePath: string
   }
 
+  type getPointsRecordsParams = {
+    /** 积分类型（SIGN_IN/REGISTER/INVITE/GENERATE/FIRST_GENERATE） */
+    type?: string
+  }
+
   type getUserByIdParams = {
     id: number
   }
@@ -271,6 +300,27 @@ declare namespace API {
 
   type ImageSearchTask = {
     query?: string
+  }
+
+  type initializePointsForUserParams = {
+    userId: number
+    points?: number
+  }
+
+  type InviteRecord = {
+    id?: number
+    inviterId?: number
+    inviteeId?: number
+    inviteCode?: string
+    registerIp?: string
+    deviceId?: string
+    status?: string
+    inviterPoints?: number
+    inviteePoints?: number
+    createTime?: string
+    registerTime?: string
+    rewardTime?: string
+    isDelete?: number
   }
 
   type listAppChatHistoryParams = {
@@ -338,6 +388,19 @@ declare namespace API {
     optimizeCountQuery?: boolean
   }
 
+  type PointsRecord = {
+    id?: number
+    userId?: number
+    points?: number
+    balance?: number
+    type?: string
+    reason?: string
+    relatedId?: number
+    expireTime?: string
+    createTime?: string
+    isDelete?: number
+  }
+
   type QualityResult = {
     isValid?: boolean
     errors?: string[]
@@ -403,6 +466,7 @@ declare namespace API {
     userAccount?: string
     userPassword?: string
     checkPassword?: string
+    inviteCode?: string
   }
 
   type UserStatisticsVO = {

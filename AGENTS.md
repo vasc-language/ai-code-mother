@@ -1,45 +1,22 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Backend (Spring Boot, Maven): `src/main/java/com/spring/aicodemother` organized by layer: `controller`, `service/impl`, `mapper`, `model/{entity,dto,vo,enums}`, `exception`, `core`, `langgraph4j`, `ratelimit`, `monitor`, `utils`.
-- Static assets: `src/main/resources/static`.
-- Tests: JUnit under `src/test/java` mirroring backend packages.
-- Frontend (Vite + Vue 3): `ai-code-mother-frontend/src`.
-- SQL init: `sql/create_table.sql`; monitoring: `prometheus.yml`, `ai_model_grafana_config.json`.
+Backend services live in `src/main/java/com/spring/aicodemother`, split by layer (`controller`, `service`, `mapper`, `model`, `utils`) to keep responsibilities clean. Configuration, i18n, and static assets sit in `src/main/resources`, while SQL bootstraps live under `sql/`. The Vue 3 frontend is in `ai-code-mother-frontend/src`, and mirrors component/layout folders. Tests shadow production code inside `src/test/java` so every package has a matching test home.
 
 ## Build, Test, and Development Commands
-- `./mvnw clean verify` — build backend and run tests.
-- `./mvnw spring-boot:run` — run backend locally.
-- `./mvnw -DskipTests package && java -jar target/*.jar` — package and run JAR.
-- `cd ai-code-mother-frontend && npm ci` — install frontend deps.
-- `npm run dev` — start Vite dev server.
-- `npm run build` / `npm run preview` — build/preview frontend.
-- `npm run lint` / `npm run format` / `npm run type-check` — quality checks.
+Use `./mvnw clean verify` for a full backend build with unit tests, or `./mvnw spring-boot:run` to launch the API locally with hot reload. Package a runnable JAR via `./mvnw -DskipTests package && java -jar target/*.jar`. Frontend contributors run `cd ai-code-mother-frontend && npm ci` once, then `npm run dev` for the Vite server, `npm run build` for production bundles, and `npm run lint` / `npm run type-check` to catch regressions early.
 
 ## Coding Style & Naming Conventions
-- Java: 4-space indent; packages lowercase; classes PascalCase; methods/fields camelCase; constants UPPER_SNAKE_CASE.
-- Prefer constructor injection; keep controllers thin; put business logic in services.
-- Use DTO/VO for API boundaries; avoid leaking entities.
-- Vue/TS: 2-space indent; components PascalCase; files kebab-case (e.g., `app-chat-page.vue`).
-- Run ESLint/Prettier before PRs; keep types green.
+Java code follows 4-space indentation, lowercase packages, PascalCase classes, camelCase members, and UPPER_SNAKE_CASE constants. Prefer constructor injection and keep controllers orchestration-only—business logic belongs in services. DTO/VO types guard external contracts. Vue and TypeScript use 2-space indentation, PascalCase components, and kebab-case filenames such as `app-chat-page.vue`; align with ESLint + Prettier before opening a PR.
 
 ## Testing Guidelines
-- Frameworks: JUnit 5 + Spring Boot Test.
-- Name tests `*Test.java` under matching packages.
-- Mock external integrations; keep tests deterministic.
-- Run with `./mvnw test`; cover services/controllers at minimum.
+JUnit 5 with Spring Boot Test drives backend coverage; name files `*Test.java` and mirror package paths. Mock integrations that reach external services. Run `./mvnw test` before pushing, and add focused tests whenever behavior changes. Frontend checks rely on `npm run lint` and `npm run type-check`; add Vitest suites if you touch complex UI logic.
 
 ## Commit & Pull Request Guidelines
-- Commits: clear, imperative; Conventional Commits encouraged (`feat:`, `fix:`, `docs:`). English or Chinese is fine—be consistent.
-- PRs: include purpose, scope, linked issues, and screenshots for UI; document SQL/infra changes.
-- Ensure: backend builds pass, tests added/updated; frontend lint/format/type-check clean.
+Follow concise, imperative commit messages (Conventional Commits like `feat:` or `fix:` are encouraged). PRs should explain scope, link issues, and include UI screenshots when frontend changes apply. Never skip mentioning migrations, Prometheus dashboards, or rate-limit tuning if they change. Ensure CI-ready: backend build green, frontend linting clean, and new tests committed.
 
 ## Security & Configuration Tips
-- Initialize DB via `sql/create_table.sql`; configure connection via Spring properties/env.
-- Rate limiting uses Redisson—ensure Redis if enabling.
-- Monitoring is optional; use `prometheus.yml` and `ai_model_grafana_config.json` if needed.
+Seed databases with `sql/create_table.sql`, and keep secrets in environment variables or `application-*.yml`. Rate limiting uses Redisson—verify Redis connectivity in non-dev setups. Monitoring ties into `prometheus.yml` and `ai_model_grafana_config.json`; update dashboards whenever metrics names change.
 
 ## Agent-Specific Instructions
-- Scope: this file applies to the entire repository.
-- Keep changes minimal and focused; do not fix unrelated issues.
-- Follow existing structure/naming; update docs when behavior changes.
+Scope changes tightly to requested tasks, avoid drive-by refactors, and document all adjustments in `todo.md`. When producing files or code, prefer incremental updates, note follow-up questions, and leave review notes summarizing risks for the next contributor.

@@ -35,14 +35,18 @@ public class StreamHandlerExecutor {
     public Flux<String> doExecute(Flux<String> originFlux,
                                   ChatHistoryService chatHistoryService,
                                   long appId, User loginUser, CodeGenTypeEnum codeGenType,
-                                  java.util.function.BooleanSupplier cancelled) {
+                                  java.util.function.BooleanSupplier cancelled,
+                                  java.util.function.Consumer<String> finalResponseConsumer) {
+        java.util.function.Consumer<String> safeConsumer = finalResponseConsumer != null
+                ? finalResponseConsumer
+                : response -> { };
         return switch (codeGenType) {
             case VUE_PROJECT -> // 使用注入的组件实例
-                    jsonMessageStreamHandler.handle(originFlux, chatHistoryService, appId, loginUser, cancelled);
+                    jsonMessageStreamHandler.handle(originFlux, chatHistoryService, appId, loginUser, cancelled, safeConsumer);
             case HTML -> // HTML 使用简单文本处理器
-                    new SimpleTextStreamHandler().handle(originFlux, chatHistoryService, appId, loginUser, codeGenType, cancelled);
+                    new SimpleTextStreamHandler().handle(originFlux, chatHistoryService, appId, loginUser, codeGenType, cancelled, safeConsumer);
             case MULTI_FILE -> // MULTI_FILE 使用专用的多文件处理器
-                    new MultiFileStreamHandler().handle(originFlux, chatHistoryService, appId, loginUser, cancelled);
+                    new MultiFileStreamHandler().handle(originFlux, chatHistoryService, appId, loginUser, cancelled, safeConsumer);
         };
     }
 }

@@ -289,3 +289,209 @@
 
 - 支持“近似匹配/关键词映射”，并将模板映射抽取为可配置项（如 `application.yaml`）。
 - 引入模板校验（必要文件存在性、`package.json`/`vite.config.*` 基础合法性）并在日志中提示。
+
+---
+
+% 积分系统实现（用户签到、邀请与生成应用扣减积分）
+
+目标
+- 建立完整的用户积分体系，通过积分限制大模型API费用过度消耗（防刷），同时激发用户使用平台的积极性
+- 实现每日签到、邀请新用户注册获取积分
+- 生成应用时消耗积分，首次生成额外奖励
+
+核心设计
+- **积分兑换比例**：1积分 = 1000 Token
+- **平均消耗**：每次生成约6积分（6000 tokens）
+- **有效期**：积分有效期90天，到期自动清零
+- **防刷机制**：
+  - 单日Token上限：12万Token（120积分，约20次生成）
+  - 单日生成上限：30次
+  - 邀请防刷：同IP/设备7天内注册不计入奖励，单日最多3次邀请奖励
+
+数据库设计
+1. **user_points（用户积分表）**
+   - 记录用户累计积分、可用积分、冻结积分
+   - 唯一索引：userId
+   - 索引：availablePoints
+
+2. **points_record（积分明细表）**
+   - 记录所有积分变动（增加/扣减）
+   - 类型：SIGN_IN(签到)、REGISTER(注册)、INVITE(邀请)、GENERATE(生成)、EXPIRE(过期)、FIRST_GENERATE(首次生成)
+   - 索引：userId、type、createTime、expireTime
+
+3. **sign_in_record（签到记录表）**
+   - 记录每日签到信息
+   - 连续签到天数计算
+   - 唯一索引：userId + signInDate
+
+4. **invite_record（邀请关系表）**
+   - 邀请码、邀请人、被邀请人关系
+   - 状态：PENDING(待确认)、REGISTERED(已注册)、REWARDED(已奖励)
+   - 防刷字段：registerIp、deviceId
+
+后端实现
+
+### 阶段一：核心积分服务
+**文件**：`src/main/java/com/spring/aicodemother/service/UserPointsService.java`
+- `getOrCreateUserPoints(userId)`：获取或创建用户积分账户
+- `addPoints(userId, points, type, reason, relatedId)`：增加积分，带90天有效期
+- `deductPoints(userId, points, type, reason, relatedId)`：扣减积分，检查余额充足性
+- `getAvailablePoints(userId)`：查询可用积分
+- `checkPointsSufficient(userId, points)`：检查积分是否充足
+- **并发控制**：使用Redis分布式锁（10秒超时）防止超扣
+- **事务保证**：所有积分操作使用`@Transactional`保证一致性
+
+### 阶段二：积分过期定时任务
+**文件**：`src/main/java/com/spring/aicodemother/schedule/PointsExpireScheduler.java`
+- 每天凌晨1点执行（cron: `0 0 1 * * ?`）
+- 扫描`expireTime`小于当前时间的积分记录
+- 按用户分组统计过期积分，批量处理
+- 扣减过期积分并记录明细（type=EXPIRE）
+
+### 阶段三：签到功能
+**文件**：`src/main/java/com/spring/aicodemother/service/SignInRecordService.java`
+- `dailySignIn(userId)`：每日签到主流程
+  - 检查今日是否已签到（同日重复签到抛异常）
+  - 计算连续签到天数（昨天签到则+1，否则重置为1）
+  - 发放积分奖励：
+    - 基础：5积分
+    - 连续3天：额外3积分（总8积分）
+    - 连续7天：额外10积分（总15积分）
+    - 连续30天：额外50积分（总55积分）
+- `hasSignedInToday(userId)`：检查今日签到状态
+- `getContinuousDays(userId)`：获取连续签到天数
+- `getSignInStatus(userId)`：获取签到状态信息
+
+**API接口**：`src/main/java/com/spring/aicodemother/controller/SignInController.java`
+- `POST /api/signin/daily`：每日签到
+- `GET /api/signin/status`：获取签到状态
+
+### 阶段四：邀请功能
+**文件**：`src/main/java/com/spring/aicodemother/service/InviteRecordService.java`
+- `generateInviteCode(userId)`：生成唯一邀请码（INV + 8位随机字符）
+- `bindInvite(inviteCode, inviteeId, registerIp, deviceId)`：绑定邀请关系
+  - 防刷检测：同IP/设备7天内注册检查
+  - 单日邀请次数限制：最多3次
+  - 自己邀请自己检测
+- `rewardInviteRegister(inviteeId)`：发放注册奖励
+  - 邀请人：20积分
+  - 被邀请人：20积分
+- `rewardInviteFirstGenerate(inviteeId)`：发放首次生成奖励
+  - 邀请人：30积分
+  - 被邀请人：10积分
+  - 状态变更：REGISTERED → REWARDED
+- `checkInviteAbuse(registerIp, deviceId)`：防刷检测（7天窗口）
+
+**API接口**：`src/main/java/com/spring/aicodemother/controller/InviteController.java`
+- `GET /api/invite/code`：获取邀请码和邀请链接
+- `GET /api/invite/records`：获取邀请记录列表
+
+### 阶段五：生成应用积分扣减
+**文件**：`src/main/java/com/spring/aicodemother/service/impl/AppServiceImpl.java`
+- 修改`chatToGenCode`方法：
+  1. **生成前检查**：
+     - 检查用户积分是否充足（至少6积分）
+     - 预扣6积分（type=GENERATE）
+     - 积分不足抛出异常：`ErrorCode.OPERATION_ERROR`，提示用户签到或邀请好友
+
+  2. **生成完成后奖励**（在`doFinally`中）：
+     - 仅在成功完成时（`SignalType.ON_COMPLETE`且未取消）
+     - 调用`checkAndRewardFirstGenerate(userId, appId)`：
+       - 检查是否首次生成（查询points_record中是否有FIRST_GENERATE记录）
+       - 首次：发放30积分（type=FIRST_GENERATE）
+       - 触发邀请首次生成奖励（调用`inviteRecordService.rewardInviteFirstGenerate`）
+
+积分获取与消耗规则
+
+| 场景 | 积分变化 | 说明 |
+|------|---------|------|
+| 新用户注册 | +30 | 鼓励体验（可生成5次） |
+| 首次生成成功 | +30 | 完成新手任务 |
+| 每日签到 | +5 | 基础奖励（可生成1次） |
+| 连续签到3天 | +8 | 递增奖励 |
+| 连续签到7天 | +15 | 递增奖励 |
+| 连续签到30天 | +55 | 高额奖励 |
+| 邀请用户注册 | 邀请人+20，新用户+20 | 双方获益 |
+| 邀请用户首次生成 | 邀请人+30，新用户+10 | 完成邀请任务 |
+| 生成应用 | -6 | 实际扣减 |
+| 积分过期（90天） | 扣除过期积分 | 自动执行 |
+
+技术实现要点
+
+1. **并发安全**：
+   - 积分增加/扣减使用Redis分布式锁（key: `points:lock:{userId}`）
+   - 锁超时时间10秒
+   - 锁获取失败抛出`BusinessException`
+
+2. **事务一致性**：
+   - 所有积分操作标注`@Transactional(rollbackFor = Exception.class)`
+   - 积分变动与明细记录在同一事务中完成
+
+3. **防刷机制**：
+   - IP/设备检测：7天窗口内重复注册不计入邀请奖励
+   - 单日限制：邀请人最多获得3次邀请奖励/天
+   - 自邀检测：不能使用自己的邀请码
+
+4. **错误处理**：
+   - 积分不足：`ErrorCode.OPERATION_ERROR`
+   - 重复签到：`ErrorCode.OPERATION_ERROR`
+   - 邀请码无效：返回false，不抛异常
+   - 首次生成奖励失败：仅记录日志，不影响主流程
+
+枚举类型定义
+
+**PointsTypeEnum**（积分类型）：
+- SIGN_IN：签到
+- REGISTER：注册
+- FIRST_GENERATE：首次生成
+- INVITE：邀请
+- GENERATE：生成应用
+- EXPIRE：过期
+- ADMIN_ADJUST：管理员调整
+
+**InviteStatusEnum**（邀请状态）：
+- PENDING：待确认
+- REGISTERED：已注册
+- REWARDED：已奖励
+
+已完成功能清单
+1. ✅ 创建4张数据库表（user_points, points_record, sign_in_record, invite_record）
+2. ✅ 生成实体类、Mapper、Service接口和实现类
+3. ✅ 实现UserPointsService核心服务（增加、扣减、查询积分）
+4. ✅ 实现积分过期定时任务（每天凌晨1点执行）
+5. ✅ 实现SignInService签到服务（每日签到、连续签到奖励）
+6. ✅ 开发签到Controller和API接口
+7. ✅ 实现InviteService邀请服务（生成邀请码、绑定关系、防刷检测）
+8. ✅ 开发邀请Controller和API接口
+9. ✅ 修改AppServiceImpl生成应用时扣减积分
+   - 生成前检查并预扣6积分
+   - 生成成功后发放首次生成奖励30积分
+   - 触发邀请首次生成奖励（邀请人30积分，被邀请人10积分）
+
+待完成功能
+- Token消耗单日上限检测（12万Token/120积分）
+- 无效生成检测和惩罚机制
+- 限流规则集成
+- Prometheus监控指标
+- 前端页面开发（积分展示、签到、邀请、明细）
+- 单元测试和集成测试
+- 数据修复脚本（为现有用户初始化积分）
+
+影响面与兼容性
+- 所有生成应用的请求现在需要消耗积分
+- 新用户注册时需要调用`userPointsService.addPoints`发放30积分
+- 用户首次登录后需要调用`inviteRecordService.rewardInviteRegister`发放邀请注册奖励
+- 前端需要显示积分余额并在积分不足时给予提示
+
+验收要点
+- 新用户注册获得30积分
+- 每日签到获得5-55积分（根据连续天数）
+- 邀请用户注册，双方各得20积分
+- 邀请用户首次生成，邀请人30积分，被邀请人10积分
+- 生成应用扣减6积分
+- 积分不足时无法生成，提示用户签到或邀请
+- 积分90天后自动过期
+- 同IP/设备7天内注册不计入邀请奖励
+- 单日最多3次邀请奖励
+
+---

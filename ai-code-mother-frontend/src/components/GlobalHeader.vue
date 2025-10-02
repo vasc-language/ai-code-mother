@@ -41,6 +41,19 @@
                     个人主页
                   </a-menu-item>
                   <a-menu-divider />
+                  <a-menu-item @click="goToPointsDetail">
+                    <WalletOutlined />
+                    积分明细
+                  </a-menu-item>
+                  <a-menu-item @click="goToSignIn">
+                    <CalendarOutlined />
+                    每日签到
+                  </a-menu-item>
+                  <a-menu-item @click="goToInvite">
+                    <TeamOutlined />
+                    邀请好友
+                  </a-menu-item>
+                  <a-menu-divider />
                   <a-menu-item @click="doLogout">
                     <LogoutOutlined />
                     退出登录
@@ -64,7 +77,8 @@ import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-import { LogoutOutlined, HomeOutlined, UserOutlined, AppstoreOutlined, GithubOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, HomeOutlined, UserOutlined, AppstoreOutlined, GithubOutlined, WalletOutlined, CalendarOutlined, TeamOutlined } from '@ant-design/icons-vue'
+import PointsDisplay from './PointsDisplay.vue'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -157,6 +171,18 @@ const goToProfile = () => {
   router.push('/user/profile')
 }
 
+const goToPointsDetail = () => {
+  router.push('/points/detail')
+}
+
+const goToSignIn = () => {
+  router.push('/points/sign-in')
+}
+
+const goToInvite = () => {
+  router.push('/points/invite')
+}
+
 // 退出登录
 const doLogout = async () => {
   const res = await userLogout()
@@ -242,6 +268,9 @@ const doLogout = async () => {
 
 .header-right {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
 .user-login-status {

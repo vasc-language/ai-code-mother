@@ -19,6 +19,7 @@ import com.spring.aicodemother.model.enums.UserRoleEnum;
 import com.spring.aicodemother.model.vo.LoginUserVO;
 import com.spring.aicodemother.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -36,14 +37,21 @@ import static com.spring.aicodemother.constant.UserConstant.USER_LOGIN_STATE;
  *
  * @author <a href="https://github.com/vasc-language">Join2049</a>
  */
+@Slf4j
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     @Autowired
     private AppMapper appMapper;
 
+    @Autowired
+    private com.spring.aicodemother.service.UserPointsService userPointsService;
+
+    @Autowired
+    private com.spring.aicodemother.service.InviteRecordService inviteRecordService;
+
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword, String inviteCode) {
         // 1. 校验
         if (StrUtil.hasBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数错误");
@@ -80,7 +88,49 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (!result) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
         }
-        return user.getId();
+
+        // 5. 发放新用户注册奖励积分
+        Long userId = user.getId();
+        try {
+            userPointsService.addPoints(
+                    userId,
+                    com.spring.aicodemother.constants.PointsConstants.REGISTER_REWARD,
+                    com.spring.aicodemother.model.enums.PointsTypeEnum.REGISTER.getValue(),
+                    "新用户注册奖励",
+                    null
+            );
+            log.info("新用户 {} 注册成功，发放{}积分奖励", userId,
+                    com.spring.aicodemother.constants.PointsConstants.REGISTER_REWARD);
+        } catch (Exception e) {
+            log.error("发放新用户注册奖励失败: {}", e.getMessage(), e);
+            // 注册奖励失败不影响注册流程
+        }
+
+        // 6. 处理邀请码逻辑
+        if (StrUtil.isNotBlank(inviteCode)) {
+            try {
+                // 绑定邀请关系
+                boolean bound = inviteRecordService.bindInvite(inviteCode, userId, null, null);
+                if (bound) {
+                    log.info("用户 {} 通过邀请码 {} 注册，绑定邀请关系成功", userId, inviteCode);
+
+                    // 发放邀请注册奖励
+                    boolean inviteRewarded = inviteRecordService.rewardInviteRegister(userId);
+                    if (inviteRewarded) {
+                        log.info("用户 {} 邀请注册奖励发放成功", userId);
+                    } else {
+                        log.warn("用户 {} 邀请注册奖励发放失败", userId);
+                    }
+                } else {
+                    log.warn("用户 {} 绑定邀请关系失败，邀请码: {}", userId, inviteCode);
+                }
+            } catch (Exception e) {
+                log.error("处理邀请码失败: {}", e.getMessage(), e);
+                // 邀请码处理失败不影响注册流程
+            }
+        }
+
+        return userId;
     }
 
     @Override

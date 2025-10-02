@@ -5,13 +5,15 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 应用程序启动类
- * 
+ *
  * @author system
  */
 @EnableCaching
+@EnableScheduling
 @SpringBootApplication(exclude = RedisEmbeddingStoreAutoConfiguration.class)
 @MapperScan("com.spring.aicodemother.mapper") // 告诉Spring Boot自动扫描并注册指定包路径下的MyBatis Mapper接口
 public class AiCodeMotherApplication {

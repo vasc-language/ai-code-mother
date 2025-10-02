@@ -8,6 +8,9 @@ import AppManagePage from '@/pages/admin/AppManagePage.vue'
 import AppChatPage from '@/pages/app/AppChatPage.vue'
 import AppEditPage from '@/pages/app/AppEditPage.vue'
 import ChatManagePage from '@/pages/admin/ChatManagePage.vue'
+import SignInPage from '@/pages/points/SignInPage.vue'
+import InvitePage from '@/pages/points/InvitePage.vue'
+import PointsDetailPage from '@/pages/points/PointsDetailPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -56,6 +59,21 @@ const router = createRouter({
       path: '/app/edit/:id',
       name: '编辑应用',
       component: AppEditPage,
+    },
+    {
+      path: '/points/sign-in',
+      name: '每日签到',
+      component: SignInPage,
+    },
+    {
+      path: '/points/invite',
+      name: '邀请好友',
+      component: InvitePage,
+    },
+    {
+      path: '/points/detail',
+      name: '积分明细',
+      component: PointsDetailPage,
     },
   ],
 })

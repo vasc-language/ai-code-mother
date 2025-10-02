@@ -13,6 +13,7 @@
         <!-- 统计数据面板 -->
         <StatisticsPanel v-if="statistics" :statistics="statistics" />
 
+
         <!-- Tab标签页 -->
         <a-card class="apps-card" :bordered="false">
           <a-tabs v-model:activeKey="activeTab">
@@ -78,6 +79,7 @@ const getUserProfile = async () => {
     if (res.data.code === 0) {
       userInfo.value = res.data.data.user
       statistics.value = res.data.data.statistics
+      // 邀请板块已移除
     } else {
       message.error(res.data.message || '获取用户信息失败')
     }
@@ -99,6 +101,8 @@ const handleEditSuccess = () => {
 const refreshProfile = () => {
   getUserProfile()
 }
+
+// 获取邀请信息
 
 onMounted(async () => {
   await getCurrentUser()

@@ -83,18 +83,25 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { userRegister } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
 
 const router = useRouter()
+const route = useRoute()
 
 const formState = reactive<API.UserRegisterRequest>({
   userAccount: '',
   userPassword: '',
   checkPassword: '',
+  inviteCode: '',
 })
+
+const queryInviteCode = route.query.inviteCode
+if (typeof queryInviteCode === 'string') {
+  formState.inviteCode = queryInviteCode
+}
 
 /**
  * 验证确认密码
@@ -115,7 +122,11 @@ const validateCheckPassword = (rule: unknown, value: string, callback: (error?: 
  * @param values
  */
 const handleSubmit = async (values: API.UserRegisterRequest) => {
-  const res = await userRegister(values)
+  const payload: API.UserRegisterRequest = {
+    ...values,
+    inviteCode: formState.inviteCode || undefined,
+  }
+  const res = await userRegister(payload)
   // 注册成功，跳转到登录页面
   if (res.data.code === 0) {
     message.success('注册成功')

@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -86,6 +87,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private com.spring.aicodemother.service.AppVersionService appVersionService;
 
+    @Resource
+    private com.spring.aicodemother.service.UserPointsService userPointsService;
+
+    @Resource
+    private com.spring.aicodemother.service.InviteRecordService inviteRecordService;
+
+    @Resource
+    private com.spring.aicodemother.service.PointsRecordService pointsRecordService;
+
+    @Resource
+    private com.spring.aicodemother.service.GenerationValidationService generationValidationService;
+
+    @Resource
+    private org.redisson.api.RedissonClient redissonClient;
+
+    @Resource
+    private com.spring.aicodemother.monitor.PointsMetricsCollector pointsMetricsCollector;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // Backward compatibility: run without external cancellation
@@ -111,8 +130,62 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
+
+        // 4.0 防刷检测
+        // 检查用户今日是否被禁止生成
+        if (generationValidationService.isUserBannedToday(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "您今日已达到最大警告次数，暂时无法生成应用");
+        }
+
+        // 检查用户今日生成次数是否超限
+        if (generationValidationService.isGenerationCountExceeded(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                    String.format("您今日生成次数已达上限（%d次），请明天再试",
+                            com.spring.aicodemother.constants.PointsConstants.DAILY_GENERATION_LIMIT));
+        }
+
+        // 检查用户今日Token消耗是否超限
+        if (generationValidationService.isTokenLimitExceeded(loginUser.getId())) {
+            int usage = generationValidationService.getTodayTokenUsage(loginUser.getId());
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                    String.format("您今日Token消耗已达上限（%d/%d），请明天再试",
+                            usage, com.spring.aicodemother.constants.PointsConstants.DAILY_TOKEN_LIMIT));
+        }
+
+        // 检查24小时内是否重复生成相同需求
+        if (generationValidationService.isDuplicateGeneration(loginUser.getId(), message)) {
+            int warningCount = generationValidationService.recordWarningAndPunish(loginUser.getId(), "24小时内重复生成相同需求");
+            String msg = String.format("检测到重复生成，已记录警告（今日第%d次），并扣除%d积分",
+                    warningCount, com.spring.aicodemother.constants.PointsConstants.INVALID_GENERATION_PENALTY);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, msg);
+        }
+
+        // 增加今日生成次数
+        generationValidationService.incrementGenerationCount(loginUser.getId());
+
+        // 4.1 检查用户积分是否充足
+        if (!userPointsService.checkPointsSufficient(loginUser.getId(),
+                com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "积分不足，请先签到或邀请好友获取积分");
+        }
+
+        // 4.2 预扣积分
+        boolean pointsDeducted = userPointsService.deductPoints(
+                loginUser.getId(),
+                com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT,
+                com.spring.aicodemother.model.enums.PointsTypeEnum.GENERATE.getValue(),
+                "生成应用消耗积分",
+                appId
+        );
+        ThrowUtils.throwIf(!pointsDeducted, ErrorCode.SYSTEM_ERROR, "扣减积分失败");
+        log.info("用户 {} 生成应用 {} 预扣 {} 积分", loginUser.getId(), appId,
+                com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT);
+
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+
+        // 5.0 记录本次生成（用于后续重复检测）
+        generationValidationService.recordGeneration(loginUser.getId(), message);
 
         // 5.1 若为 Vue 工程模式，尝试命中预置模板并进行首次目录拷贝，同时为当前轮拼接模板说明
         String finalMessage = message;
@@ -142,11 +215,109 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(finalMessage, codeGenTypeEnum, appId, control);
         // 8. 收集AI响应内容并在完成后记录到对话历史（根据取消状态抑制副作用）
         java.util.function.BooleanSupplier cancelled = (control == null) ? (() -> false) : control::isCancelled;
+        AtomicReference<String> finalResponseRef = new AtomicReference<>("");
         return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum,
-                        cancelled)
+                        cancelled, finalResponseRef::set)
                 .doFinally(signalType -> {
-                    // 无论成功与否，最后流结束都清除
-                    MonitorContextHolder.clearContext();
+                    try {
+                        // 检查是否成功完成（onComplete信号）
+                        if (signalType == reactor.core.publisher.SignalType.ON_COMPLETE && !cancelled.getAsBoolean()) {
+                            String finalResponse = finalResponseRef.get();
+                            String normalizedContent = normalizeGenerationContent(finalResponse);
+                            boolean valid = generationValidationService.validateGenerationResult(normalizedContent);
+                            if (!valid) {
+                                log.warn("用户 {} 生成应用 {} 的结果未通过有效性校验", loginUser.getId(), appId);
+                                pointsMetricsCollector.recordInvalidGeneration(loginUser.getId().toString(), "empty");
+                                generationValidationService.recordWarningAndPunish(loginUser.getId(), "生成内容为空或过短");
+                                return;
+                            }
+
+                            long fallbackTokens = (long) com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT
+                                    * com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT;
+                            com.spring.aicodemother.monitor.MonitorContext monitorContext = com.spring.aicodemother.monitor.MonitorContextHolder.getContext();
+                            long actualTokens = (monitorContext != null && monitorContext.getTotalTokens() != null)
+                                    ? monitorContext.getTotalTokens()
+                                    : fallbackTokens;
+                            int tokenToRecord = (int) Math.min(Integer.MAX_VALUE, actualTokens);
+
+                            int preDeductPoints = com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT;
+                            int requiredPoints = (int) Math.ceil(actualTokens / (double) com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT);
+                            if (actualTokens > 0 && requiredPoints == 0) {
+                                requiredPoints = 1;
+                            }
+
+                            if (requiredPoints > preDeductPoints) {
+                                int additional = requiredPoints - preDeductPoints;
+                                try {
+                                    userPointsService.deductPoints(
+                                            loginUser.getId(),
+                                            additional,
+                                            com.spring.aicodemother.model.enums.PointsTypeEnum.GENERATE.getValue(),
+                                            "生成应用实际消耗补扣",
+                                            appId
+                                    );
+                                    log.info("用户 {} 生成应用 {} 实际消耗补扣 {} 积分", loginUser.getId(), appId, additional);
+                                } catch (Exception e) {
+                                    log.error("生成应用补扣积分失败，用户:{} 应用:{} 补扣:{} 错误:{}", loginUser.getId(), appId, additional, e.getMessage());
+                                }
+                            } else if (requiredPoints < preDeductPoints) {
+                                int refund = preDeductPoints - requiredPoints;
+                                try {
+                                    userPointsService.addPoints(
+                                            loginUser.getId(),
+                                            refund,
+                                            com.spring.aicodemother.model.enums.PointsTypeEnum.REFUND.getValue(),
+                                            "生成应用实际消耗返还",
+                                            appId
+                                    );
+                                    log.info("用户 {} 生成应用 {} 实际消耗返还 {} 积分", loginUser.getId(), appId, refund);
+                                } catch (Exception e) {
+                                    log.error("生成应用返还积分失败，用户:{} 应用:{} 返还:{} 错误:{}", loginUser.getId(), appId, refund, e.getMessage());
+                                }
+                            }
+
+                            // 8.1 记录Token消耗（使用模型返回的实际Token数）
+                            generationValidationService.recordTokenUsage(loginUser.getId(), tokenToRecord);
+
+                            // 8.2 检查是否是用户首次生成，发放首次生成奖励
+                            checkAndRewardFirstGenerate(loginUser.getId(), appId);
+                        } else {
+                            // 生成失败或取消，返还预扣的积分
+                            try {
+                                userPointsService.addPoints(
+                                        loginUser.getId(),
+                                        com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT,
+                                        "REFUND",
+                                        "生成失败/取消，返还积分",
+                                        appId
+                                );
+                                log.info("用户 {} 生成失败/取消，已成功返还 {} 积分，应用ID: {}",
+                                        loginUser.getId(),
+                                        com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT,
+                                        appId);
+                            } catch (Exception refundError) {
+                                // 返还失败，记录详细错误信息，便于后续人工补偿
+                                log.error("【积分返还失败】用户ID: {}, 应用ID: {}, 应返还积分: {}, 错误信息: {}, 堆栈: ",
+                                        loginUser.getId(),
+                                        appId,
+                                        com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT,
+                                        refundError.getMessage(),
+                                        refundError);
+
+                                // 记录到监控指标，便于告警
+                                try {
+                                    pointsMetricsCollector.recordRefundFailure(loginUser.getId().toString(), appId.toString());
+                                } catch (Exception metricsError) {
+                                    log.error("记录返还失败指标时出错: {}", metricsError.getMessage());
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("处理首次生成奖励时出错: {}", e.getMessage(), e);
+                    } finally {
+                        // 无论成功与否，最后流结束都清除监控上下文
+                        MonitorContextHolder.clearContext();
+                    }
                 });
     }
 
@@ -200,6 +371,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private boolean isAscii(String s) {
         for (int i = 0; i < s.length(); i++) if (s.charAt(i) > 127) return false;
         return true;
+    }
+
+    /**
+     * 去除流式输出中的标记，返回用于有效性校验的内容
+     */
+    private String normalizeGenerationContent(String content) {
+        if (content == null) {
+            return "";
+        }
+        String withoutMarkers = content.replaceAll("\\[(CODE_BLOCK_START|CODE_BLOCK_END|CODE_STREAM|MULTI_FILE_[^\\]]+)\\]", "");
+        return withoutMarkers.trim();
     }
 
     /**
@@ -551,5 +733,84 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             appVO.setUser(userVO);
             return appVO;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 检查并发放首次生成奖励（使用Redis缓存防止并发重复）
+     *
+     * @param userId 用户ID
+     * @param appId 应用ID
+     */
+    private void checkAndRewardFirstGenerate(Long userId, Long appId) {
+        String cacheKey = "user:first_gen:" + userId;
+        org.redisson.api.RBucket<String> bucket = redissonClient.getBucket(cacheKey);
+
+        try {
+            // 先检查缓存，避免频繁查询数据库
+            if (bucket.isExists()) {
+                return; // 已发放过奖励
+            }
+
+            // 检查是否是用户的首次生成（通过查询points_record表中是否有FIRST_GENERATE类型的记录）
+            com.mybatisflex.core.query.QueryWrapper queryWrapper = com.mybatisflex.core.query.QueryWrapper.create()
+                    .eq("userId", userId)
+                    .eq("type", com.spring.aicodemother.model.enums.PointsTypeEnum.FIRST_GENERATE.getValue());
+
+            long count = pointsRecordService.count(queryWrapper);
+
+            if (count == 0) {
+                // 使用分布式锁防止并发重复发放
+                org.redisson.api.RLock lock = redissonClient.getLock("lock:first_gen_reward:" + userId);
+                try {
+                    // 尝试获取锁，最多等待3秒，锁自动释放时间10秒
+                    if (lock.tryLock(3, 10, java.util.concurrent.TimeUnit.SECONDS)) {
+                        try {
+                            // 双重检查，防止重复发放
+                            long recheck = pointsRecordService.count(queryWrapper);
+                            if (recheck > 0) {
+                                // 设置缓存，24小时过期
+                                bucket.set("1", 24, java.util.concurrent.TimeUnit.HOURS);
+                                return;
+                            }
+
+                            // 是首次生成，发放奖励
+                            boolean rewarded = userPointsService.addPoints(
+                                    userId,
+                                    com.spring.aicodemother.constants.PointsConstants.FIRST_GENERATE_REWARD,
+                                    com.spring.aicodemother.model.enums.PointsTypeEnum.FIRST_GENERATE.getValue(),
+                                    "首次生成应用奖励",
+                                    appId
+                            );
+
+                            if (rewarded) {
+                                log.info("用户 {} 首次生成应用，发放{}积分奖励", userId,
+                                    com.spring.aicodemother.constants.PointsConstants.FIRST_GENERATE_REWARD);
+
+                                // 设置缓存，24小时过期
+                                bucket.set("1", 24, java.util.concurrent.TimeUnit.HOURS);
+
+                                // 触发邀请首次生成奖励
+                                boolean inviteRewarded = inviteRecordService.rewardInviteFirstGenerate(userId);
+                                if (inviteRewarded) {
+                                    log.info("用户 {} 触发邀请首次生成奖励", userId);
+                                }
+                            }
+                        } finally {
+                            lock.unlock();
+                        }
+                    } else {
+                        log.warn("用户 {} 首次生成奖励获取锁超时", userId);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.error("用户 {} 首次生成奖励获取锁被中断: {}", userId, e.getMessage());
+                }
+            } else {
+                // 设置缓存，24小时过期
+                bucket.set("1", 24, java.util.concurrent.TimeUnit.HOURS);
+            }
+        } catch (Exception e) {
+            log.error("发放首次生成奖励失败: {}", e.getMessage(), e);
+        }
     }
 }
