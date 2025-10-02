@@ -18,7 +18,14 @@ public enum ErrorCode {
     FORBIDDEN_ERROR(40300, "禁止访问"),
     TOO_MANY_REQUEST(42900, "请求过于频繁"),
     SYSTEM_ERROR(50000, "系统内部异常"),
-    OPERATION_ERROR(50001, "操作失败");
+    OPERATION_ERROR(50001, "操作失败"),
+
+    // 邮箱相关错误码
+    EMAIL_SEND_ERROR(50100, "邮件发送失败"),
+    EMAIL_CODE_INVALID(40001, "验证码无效或已过期"),
+    EMAIL_EXISTS(40002, "邮箱已存在"),
+    EMAIL_SEND_FREQUENT(42901, "发送过于频繁,请稍后再试"),
+    EMAIL_FORMAT_ERROR(40003, "邮箱格式不正确");
 
     /**
      * 状态码

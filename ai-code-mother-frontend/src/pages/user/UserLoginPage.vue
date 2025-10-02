@@ -22,12 +22,15 @@
         <div class="login-form">
           <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
             <a-form-item
-              name="userAccount"
-              :rules="[{ required: true, message: '请输入您的账号' }]"
+              name="userEmail"
+              :rules="[
+                { required: true, message: '请输入您的邮箱' },
+                { type: 'email', message: '请输入正确的邮箱格式' }
+              ]"
             >
               <a-input
-                v-model:value="formState.userAccount"
-                placeholder="请输入账号"
+                v-model:value="formState.userEmail"
+                placeholder="邮箱"
                 size="large"
               />
             </a-form-item>
@@ -41,7 +44,7 @@
             >
               <a-input-password
                 v-model:value="formState.userPassword"
-                placeholder="请输入密码"
+                placeholder="密码"
                 size="large"
               />
             </a-form-item>
@@ -73,7 +76,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 
 const formState = reactive<API.UserLoginRequest>({
-  userAccount: '',
+  userEmail: '',
   userPassword: '',
 })
 
@@ -314,27 +317,46 @@ const handleSubmit = async (values: any) => {
 }
 
 :deep(.ant-input-affix-wrapper) {
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
+  border-radius: 12px !important;
+  border: 2px solid #e5e7eb !important;
   transition: all 0.3s ease;
-  padding: 0 16px;
-  height: 52px;
+  padding: 0 16px !important;
+  height: 52px !important;
   display: flex;
   align-items: center;
+  font-size: 16px;
 }
 
 :deep(.ant-input-affix-wrapper .ant-input) {
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  height: auto;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  height: auto !important;
   background: transparent;
+  font-size: 16px !important;
+}
+
+:deep(.ant-input-affix-wrapper .ant-input:focus),
+:deep(.ant-input-affix-wrapper .ant-input-focused) {
+  border: none !important;
+  box-shadow: none !important;
 }
 
 :deep(.ant-input-affix-wrapper:focus),
 :deep(.ant-input-affix-wrapper-focused) {
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* 覆盖错误状态样式 */
+:deep(.ant-form-item-has-error .ant-input-affix-wrapper) {
+  border-color: #e5e7eb !important;
+}
+
+:deep(.ant-form-item-has-error .ant-input-affix-wrapper:focus),
+:deep(.ant-form-item-has-error .ant-input-affix-wrapper-focused) {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
 }
 
 

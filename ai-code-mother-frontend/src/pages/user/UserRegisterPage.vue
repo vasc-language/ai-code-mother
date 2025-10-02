@@ -23,14 +23,39 @@
         <div class="register-form">
           <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
             <a-form-item
-              name="userAccount"
-              :rules="[{ required: true, message: '请输入您的账号' }]"
+              name="userEmail"
+              :rules="[
+                { required: true, message: '请输入您的邮箱' },
+                { type: 'email', message: '请输入正确的邮箱格式' }
+              ]"
             >
               <a-input
-                v-model:value="formState.userAccount"
-                placeholder="请输入账号"
+                v-model:value="formState.userEmail"
+                placeholder="邮箱"
                 size="large"
               />
+            </a-form-item>
+
+            <a-form-item
+              name="emailCode"
+              :rules="[{ required: true, message: '请输入验证码' }]"
+            >
+              <div style="display: flex; gap: 12px;">
+                <a-input
+                  v-model:value="formState.emailCode"
+                  placeholder="验证码"
+                  size="large"
+                  style="flex: 1;"
+                />
+                <a-button
+                  size="large"
+                  :disabled="sendCodeDisabled"
+                  @click="sendEmailCode"
+                  style="width: 120px; display: flex; align-items: center; justify-content: center;"
+                >
+                  {{ sendCodeText }}
+                </a-button>
+              </div>
             </a-form-item>
 
             <a-form-item
@@ -42,7 +67,7 @@
             >
               <a-input-password
                 v-model:value="formState.userPassword"
-                placeholder="请输入密码"
+                placeholder="密码"
                 size="large"
               />
             </a-form-item>
@@ -57,7 +82,7 @@
             >
               <a-input-password
                 v-model:value="formState.checkPassword"
-                placeholder="请再次输入密码"
+                placeholder="确认密码"
                 size="large"
               />
             </a-form-item>
@@ -86,13 +111,15 @@
 import { useRoute, useRouter } from 'vue-router'
 import { userRegister } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
-import { reactive } from 'vue'
+import { reactive, ref, computed } from 'vue'
+import request from '@/request'
 
 const router = useRouter()
 const route = useRoute()
 
 const formState = reactive<API.UserRegisterRequest>({
-  userAccount: '',
+  userEmail: '',
+  emailCode: '',
   userPassword: '',
   checkPassword: '',
   inviteCode: '',
@@ -101,6 +128,58 @@ const formState = reactive<API.UserRegisterRequest>({
 const queryInviteCode = route.query.inviteCode
 if (typeof queryInviteCode === 'string') {
   formState.inviteCode = queryInviteCode
+}
+
+// 验证码发送相关状态
+const sendCodeDisabled = ref(false)
+const countdown = ref(0)
+
+const sendCodeText = computed(() => {
+  return countdown.value > 0 ? `${countdown.value}秒后重发` : '发送验证码'
+})
+
+/**
+ * 发送邮箱验证码
+ */
+const sendEmailCode = async () => {
+  // 校验邮箱
+  if (!formState.userEmail) {
+    message.error('请先输入邮箱')
+    return
+  }
+
+  const emailRegex = /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+  if (!emailRegex.test(formState.userEmail)) {
+    message.error('请输入正确的邮箱格式')
+    return
+  }
+
+  try {
+    sendCodeDisabled.value = true
+    const res = await request.post('/user/email/send', {
+      email: formState.userEmail,
+      type: 'REGISTER'
+    })
+
+    if (res.data.code === 0) {
+      message.success('验证码已发送，请查收邮件')
+      // 开始倒计时60秒
+      countdown.value = 60
+      const timer = setInterval(() => {
+        countdown.value--
+        if (countdown.value <= 0) {
+          clearInterval(timer)
+          sendCodeDisabled.value = false
+        }
+      }, 1000)
+    } else {
+      message.error('发送失败：' + res.data.message)
+      sendCodeDisabled.value = false
+    }
+  } catch (error: any) {
+    message.error('发送失败：' + (error.message || '网络错误'))
+    sendCodeDisabled.value = false
+  }
 }
 
 /**
@@ -378,27 +457,46 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 }
 
 :deep(.ant-input-affix-wrapper) {
-  border-radius: 14px;
-  border: 2px solid #e5e7eb;
+  border-radius: 14px !important;
+  border: 2px solid #e5e7eb !important;
   transition: all 0.3s ease;
-  padding: 0 18px;
-  height: 52px;
+  padding: 0 18px !important;
+  height: 52px !important;
   display: flex;
   align-items: center;
+  font-size: 16px;
 }
 
 :deep(.ant-input-affix-wrapper .ant-input) {
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  height: auto;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  height: auto !important;
   background: transparent;
+  font-size: 16px !important;
+}
+
+:deep(.ant-input-affix-wrapper .ant-input:focus),
+:deep(.ant-input-affix-wrapper .ant-input-focused) {
+  border: none !important;
+  box-shadow: none !important;
 }
 
 :deep(.ant-input-affix-wrapper:focus),
 :deep(.ant-input-affix-wrapper-focused) {
-  border-color: #f093fb;
-  box-shadow: 0 0 0 4px rgba(240, 147, 251, 0.15);
+  border-color: #f093fb !important;
+  box-shadow: 0 0 0 4px rgba(240, 147, 251, 0.15) !important;
+}
+
+/* 覆盖错误状态样式 */
+:deep(.ant-form-item-has-error .ant-input-affix-wrapper) {
+  border-color: #e5e7eb !important;
+}
+
+:deep(.ant-form-item-has-error .ant-input-affix-wrapper:focus),
+:deep(.ant-form-item-has-error .ant-input-affix-wrapper-focused) {
+  border-color: #f093fb !important;
+  box-shadow: 0 0 0 4px rgba(240, 147, 251, 0.15) !important;
 }
 
 

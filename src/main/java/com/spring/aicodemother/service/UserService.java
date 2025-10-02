@@ -19,13 +19,16 @@ import java.util.List;
  */
 public interface UserService extends IService<User> {
     /**
-     * @param userAccount 用户账号
+     * 用户注册
+     *
+     * @param userEmail 用户邮箱
+     * @param emailCode 邮箱验证码
      * @param userPassword 密码
      * @param checkPassword 校验密码
-     * @param inviteCode 邀请码（可选）
-     * @return
+     * @param inviteCode 邀请码(可选)
+     * @return 新用户ID
      */
-    long userRegister(String userAccount, String userPassword, String checkPassword, String inviteCode);
+    long userRegister(String userEmail, String emailCode, String userPassword, String checkPassword, String inviteCode);
 
     /**
      * 获取脱敏的已登录用户信息
@@ -37,12 +40,12 @@ public interface UserService extends IService<User> {
     /**
      * 用户登录
      *
-     * @param userAccount  用户账户
+     * @param userEmail 用户邮箱
      * @param userPassword 用户密码
-     * @param request
+     * @param request HttpServletRequest
      * @return 脱敏后的用户信息
      */
-    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
+    LoginUserVO userLogin(String userEmail, String userPassword, HttpServletRequest request);
 
     /**
      * 获取当前登录用户

@@ -41,32 +41,57 @@ public class UserController {
     @Autowired
     private AppService appService;
 
+    @Autowired
+    private com.spring.aicodemother.service.EmailService emailService;
+
+    /**
+     * 发送邮箱验证码
+     */
+    @PostMapping("/email/send")
+    public BaseResponse<Boolean> sendEmailCode(@RequestBody SendEmailCodeRequest sendEmailCodeRequest) {
+        ThrowUtils.throwIf(sendEmailCodeRequest == null, ErrorCode.PARAMS_ERROR);
+        String email = sendEmailCodeRequest.getEmail();
+        String type = sendEmailCodeRequest.getType();
+
+        // 校验邮箱格式
+        if (!cn.hutool.core.util.ReUtil.isMatch("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", email)) {
+            throw new BusinessException(ErrorCode.EMAIL_FORMAT_ERROR);
+        }
+
+        // 校验类型
+        if (!"REGISTER".equals(type) && !"RESET_PASSWORD".equals(type)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码类型错误");
+        }
+
+        boolean result = emailService.sendVerificationCode(email, type);
+        return ResultUtils.success(result);
+    }
+
     /**
      * 用户注册
-     *
      */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
-        String userAccount = userRegisterRequest.getUserAccount();
+        String userEmail = userRegisterRequest.getUserEmail();
+        String emailCode = userRegisterRequest.getEmailCode();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
         String inviteCode = userRegisterRequest.getInviteCode();
 
-        long result = userService.userRegister(userAccount, userPassword, checkPassword, inviteCode);
+        long result = userService.userRegister(userEmail, emailCode, userPassword, checkPassword, inviteCode);
         return ResultUtils.success(result);
     }
 
     /**
      * 用户登录
-     *
      */
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
-        String userAccount = userLoginRequest.getUserAccount();
+        String userEmail = userLoginRequest.getUserEmail();
         String userPassword = userLoginRequest.getUserPassword();
-        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
+        LoginUserVO loginUserVO = userService.userLogin(userEmail, userPassword, request);
         return ResultUtils.success(loginUserVO);
     }
 

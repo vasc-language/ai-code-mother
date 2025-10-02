@@ -18,6 +18,7 @@ import com.spring.aicodemother.mapper.UserMapper;
 import com.spring.aicodemother.model.enums.UserRoleEnum;
 import com.spring.aicodemother.model.vo.LoginUserVO;
 import com.spring.aicodemother.service.UserService;
+import com.spring.aicodemother.service.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,15 +51,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private com.spring.aicodemother.service.InviteRecordService inviteRecordService;
 
+    @Autowired
+    private EmailService emailService;
+
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword, String inviteCode) {
+    public long userRegister(String userEmail, String emailCode, String userPassword, String checkPassword, String inviteCode) {
         // 1. 校验
-        if (StrUtil.hasBlank(userAccount, userPassword, checkPassword)) {
+        if (StrUtil.hasBlank(userEmail, emailCode, userPassword, checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数错误");
         }
-        if (userAccount.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+
+        // 2. 校验邮箱格式
+        if (!cn.hutool.core.util.ReUtil.isMatch("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", userEmail)) {
+            throw new BusinessException(ErrorCode.EMAIL_FORMAT_ERROR);
         }
+
+        // 3. 校验密码长度
         if (userPassword.length() < 8 || checkPassword.length() < 8) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度不能少于8位");
         }
@@ -66,22 +74,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
         }
 
-        // 2. 数据库是否已存在该数据
-        QueryWrapper queryWrapper = new QueryWrapper();
-        queryWrapper.eq("userAccount", userAccount);
-        long count = this.mapper.selectCountByQuery(queryWrapper);
-        if (count > 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户已存在");
+        // 4. 验证邮箱验证码
+        boolean codeValid = emailService.verifyCode(userEmail, emailCode, "REGISTER");
+        if (!codeValid) {
+            throw new BusinessException(ErrorCode.EMAIL_CODE_INVALID);
         }
 
-        // 3. 加密
+        // 5. 数据库是否已存在该邮箱
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.eq("userEmail", userEmail);
+        long count = this.mapper.selectCountByQuery(queryWrapper);
+        if (count > 0) {
+            throw new BusinessException(ErrorCode.EMAIL_EXISTS);
+        }
+
+        // 6. 加密
         String encryptPassword = getEncryptPassword(userPassword);
 
-        // 4. 插入数据库
+        // 7. 插入数据库
         User user = new User();
-        user.setUserAccount(userAccount);
+        user.setUserAccount(userEmail);
+        user.setUserEmail(userEmail);
+        user.setEmailVerified(1); // 已验证邮箱
         user.setUserPassword(encryptPassword);
-        user.setUserName("wu");
+        user.setUserName(userEmail.substring(0, userEmail.indexOf('@'))); // 默认用户名为邮箱前缀
         user.setUserRole(UserRoleEnum.USER.getValue());
         // 保存用户到数据库
         boolean result = save(user);
@@ -144,31 +160,39 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public LoginUserVO userLogin(String userEmail, String userPassword, HttpServletRequest request) {
         // 1. 校验
-        if (StrUtil.hasBlank(userAccount, userPassword)) {
+        if (StrUtil.hasBlank(userEmail, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-        if (userAccount.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号错误");
+
+        // 2. 校验邮箱格式
+        if (!cn.hutool.core.util.ReUtil.isMatch("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", userEmail)) {
+            throw new BusinessException(ErrorCode.EMAIL_FORMAT_ERROR);
         }
+
         if (userPassword.length() < 8) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
         }
-        // 2. 加密
+
+        // 3. 加密
         String encryptPassword = getEncryptPassword(userPassword);
-        // 查询用户是否存在
+
+        // 4. 查询用户是否存在
         QueryWrapper queryWrapper = new QueryWrapper();
-        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq("userEmail", userEmail);
         queryWrapper.eq("userPassword", encryptPassword);
         User user = this.mapper.selectOneByQuery(queryWrapper);
-        // 用户不存在
+
+        // 5. 用户不存在
         if (user == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
-        // 3. 记录用户的登录态
+
+        // 6. 记录用户的登录态
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
-        // 4. 获得脱敏后的用户信息
+
+        // 7. 获得脱敏后的用户信息
         return this.getLoginUserVO(user);
     }
 

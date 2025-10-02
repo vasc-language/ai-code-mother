@@ -12,9 +12,14 @@ import java.io.Serializable;
 public class UserRegisterRequest implements Serializable {
     private static final long serialVersionUID = 3191241716373120793L;
     /**
-     * 账号
+     * 邮箱
      */
-    private String userAccount;
+    private String userEmail;
+
+    /**
+     * 邮箱验证码
+     */
+    private String emailCode;
 
     /**
      * 密码
@@ -27,7 +32,7 @@ public class UserRegisterRequest implements Serializable {
     private String checkPassword;
 
     /**
-     * 邀请码（可选）
+     * 邀请码(可选)
      */
     private String inviteCode;
 }

@@ -281,6 +281,10 @@ declare namespace API {
     versionId: number
   }
 
+  type grantPointsForAdminsParams = {
+    points?: number
+  }
+
   type IllustrationTask = {
     query?: string
   }
@@ -407,6 +411,11 @@ declare namespace API {
     suggestions?: string[]
   }
 
+  type SendEmailCodeRequest = {
+    email?: string
+    type?: string
+  }
+
   type ServerSentEventString = true
 
   type serveStaticResourceParams = {
@@ -435,7 +444,7 @@ declare namespace API {
   }
 
   type UserLoginRequest = {
-    userAccount?: string
+    userEmail?: string
     userPassword?: string
   }
 
@@ -463,7 +472,8 @@ declare namespace API {
   }
 
   type UserRegisterRequest = {
-    userAccount?: string
+    userEmail?: string
+    emailCode?: string
     userPassword?: string
     checkPassword?: string
     inviteCode?: string

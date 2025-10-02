@@ -12,9 +12,9 @@ import java.io.Serializable;
 public class UserLoginRequest implements Serializable {
     private static final long serialVersionUID = 3191241716373120793L;
     /**
-     * 账号
+     * 邮箱
      */
-    private String userAccount;
+    private String userEmail;
 
     /**
      * 密码

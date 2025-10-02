@@ -29,7 +29,7 @@
           </div>
 
           <div class="info-details">
-            <p class="user-account">账号：{{ user.userAccount }}</p>
+            <p class="user-account">邮箱：{{ user.userEmail }}</p>
             <p class="user-id">ID：{{ user.id }}</p>
             <p class="user-profile">
               {{ user.userProfile || '这个人很懒，还没有填写个人简介' }}

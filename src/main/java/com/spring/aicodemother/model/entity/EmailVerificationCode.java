@@ -4,19 +4,18 @@ import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
-import java.io.Serializable;
-import java.time.LocalDateTime;
-
-import java.io.Serial;
-
 import com.mybatisflex.core.keygen.KeyGenerators;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
 /**
- * 用户 实体类。
+ * 邮箱验证码 实体类
  *
  * @author <a href="https://github.com/vasc-language">Join2049</a>
  */
@@ -24,71 +23,47 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("user")
-public class User implements Serializable {
+@Table("email_verification_code")
+public class EmailVerificationCode implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * id 根据雪花算法生成随机ID，不容易被破解
+     * 主键ID
      */
     @Id(keyType = KeyType.Generator, value = KeyGenerators.snowFlakeId)
     private Long id;
 
     /**
-     * 账号
+     * 邮箱地址
      */
-    @Column("userAccount")
-    private String userAccount;
+    @Column("email")
+    private String email;
 
     /**
-     * 用户邮箱
+     * 验证码
      */
-    @Column("userEmail")
-    private String userEmail;
+    @Column("code")
+    private String code;
 
     /**
-     * 邮箱是否验证
+     * 验证码类型:REGISTER-注册, RESET_PASSWORD-重置密码, LOGIN-登录
      */
-    @Column("emailVerified")
-    private Integer emailVerified;
+    @Column("type")
+    private String type;
 
     /**
-     * 密码
+     * 过期时间
      */
-    @Column("userPassword")
-    private String userPassword;
+    @Column("expireTime")
+    private LocalDateTime expireTime;
 
     /**
-     * 用户昵称
+     * 是否已使用:0-未使用, 1-已使用
      */
-    @Column("userName")
-    private String userName;
-
-    /**
-     * 用户头像
-     */
-    @Column("userAvatar")
-    private String userAvatar;
-
-    /**
-     * 用户简介
-     */
-    @Column("userProfile")
-    private String userProfile;
-
-    /**
-     * 用户角色：user/admin
-     */
-    @Column("userRole")
-    private String userRole;
-
-    /**
-     * 编辑时间
-     */
-    @Column("editTime")
-    private LocalDateTime editTime;
+    @Column("verified")
+    private Integer verified;
 
     /**
      * 创建时间
@@ -103,9 +78,8 @@ public class User implements Serializable {
     private LocalDateTime updateTime;
 
     /**
-     * 是否删除
+     * 逻辑删除:0-未删除,1-已删除
      */
     @Column(value = "isDelete", isLogicDelete = true)
     private Integer isDelete;
-
 }
