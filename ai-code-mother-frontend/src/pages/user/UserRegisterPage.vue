@@ -50,8 +50,9 @@
                 <a-button
                   size="large"
                   :disabled="sendCodeDisabled"
+                  :loading="isSendingCode"
                   @click="sendEmailCode"
-                  style="width: 120px; display: flex; align-items: center; justify-content: center;"
+                  class="send-code-btn"
                 >
                   {{ sendCodeText }}
                 </a-button>
@@ -132,6 +133,7 @@ if (typeof queryInviteCode === 'string') {
 
 // 验证码发送相关状态
 const sendCodeDisabled = ref(false)
+const isSendingCode = ref(false)
 const countdown = ref(0)
 
 const sendCodeText = computed(() => {
@@ -156,6 +158,7 @@ const sendEmailCode = async () => {
 
   try {
     sendCodeDisabled.value = true
+    isSendingCode.value = true
     const res = await request.post('/user/email/send', {
       email: formState.userEmail,
       type: 'REGISTER'
@@ -179,6 +182,8 @@ const sendEmailCode = async () => {
   } catch (error: any) {
     message.error('发送失败：' + (error.message || '网络错误'))
     sendCodeDisabled.value = false
+  } finally {
+    isSendingCode.value = false
   }
 }
 
@@ -497,6 +502,44 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 :deep(.ant-form-item-has-error .ant-input-affix-wrapper-focused) {
   border-color: #f093fb !important;
   box-shadow: 0 0 0 4px rgba(240, 147, 251, 0.15) !important;
+}
+
+.send-code-btn {
+  width: 120px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: linear-gradient(135deg, rgba(240, 147, 251, 0.15) 0%, rgba(79, 172, 254, 0.15) 100%);
+  color: rgba(76, 81, 191, 0.7);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.08);
+  backdrop-filter: blur(6px);
+}
+
+.send-code-btn:hover,
+.send-code-btn:focus {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, rgba(240, 147, 251, 0.2) 0%, rgba(79, 172, 254, 0.2) 100%);
+  color: rgba(59, 66, 165, 0.85);
+  box-shadow: 0 16px 32px rgba(99, 102, 241, 0.14);
+}
+
+.send-code-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.12);
+}
+
+.send-code-btn[disabled] {
+  border-color: rgba(148, 163, 184, 0.4);
+  background: rgba(241, 245, 255, 0.9);
+  color: rgba(148, 163, 184, 0.9);
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 

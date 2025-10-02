@@ -194,6 +194,53 @@ const formatJoinTime = (time: string) => {
   padding: 48px;
 }
 
+.user-info-card :deep(.ant-form-item) {
+  margin-bottom: 20px;
+}
+
+.user-info-card :deep(.ant-input) {
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  padding: 0 16px;
+  height: 48px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: none !important;
+}
+
+.user-info-card :deep(.ant-input:hover),
+.user-info-card :deep(.ant-input:focus),
+.user-info-card :deep(.ant-input-focused) {
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12) !important;
+}
+
+.user-info-card :deep(.ant-input-affix-wrapper) {
+  border-radius: 12px !important;
+  border: 2px solid #e5e7eb !important;
+  padding: 0 16px !important;
+  height: 48px !important;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+
+.user-info-card :deep(.ant-input-affix-wrapper:hover),
+.user-info-card :deep(.ant-input-affix-wrapper:focus),
+.user-info-card :deep(.ant-input-affix-wrapper-focused) {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12) !important;
+}
+
+.user-info-card :deep(.ant-input-affix-wrapper .ant-input) {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  height: auto !important;
+  background: transparent !important;
+}
+
 .user-info-content {
   display: flex;
   gap: 48px;

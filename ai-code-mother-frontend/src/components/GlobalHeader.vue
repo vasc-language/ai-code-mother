@@ -214,6 +214,9 @@ const doLogout = async () => {
   margin: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
   padding: 0 var(--spacing-xl);
   transition: var(--transition-normal);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .header:hover {
