@@ -1,0 +1,126 @@
+/* 文档页面通用样式 - 优化版本 */
+.doc-page {
+  color: #333;
+  line-height: 1.8;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.doc-title {
+  font-size: 42px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 20px;
+  letter-spacing: -1px;
+}
+
+.doc-intro {
+  font-size: 17px;
+  color: #666;
+  margin-bottom: 32px;
+  line-height: 2;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+  border-left: 4px solid #ec4899;
+  border-radius: 8px;
+}
+
+.doc-section {
+  margin: 48px 0;
+}
+
+.section-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #f0f0f0;
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  border-radius: 2px;
+}
+
+.title-icon {
+  color: #ec4899;
+  font-size: 32px;
+  padding: 8px;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%);
+  border-radius: 12px;
+}
+
+.section-content {
+  font-size: 16px;
+  color: #555;
+  margin-bottom: 20px;
+  line-height: 1.9;
+}
+
+.content-list {
+  font-size: 16px;
+  color: #555;
+  padding-left: 24px;
+  margin: 20px 0;
+}
+
+.content-list li {
+  margin: 12px 0;
+  padding: 8px 12px;
+  background: #fafafa;
+  border-radius: 6px;
+  border-left: 3px solid #ec4899;
+  transition: all 0.2s ease;
+}
+
+.content-list li:hover {
+  background: #fef2f2;
+  transform: translateX(4px);
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .doc-title {
+    font-size: 32px;
+  }
+
+  .section-title {
+    font-size: 22px;
+  }
+
+  .title-icon {
+    font-size: 28px;
+  }
+
+  .section-content {
+    font-size: 15px;
+  }
+
+  .content-list {
+    font-size: 15px;
+  }
+}

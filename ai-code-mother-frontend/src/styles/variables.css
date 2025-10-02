@@ -1,12 +1,12 @@
 /* 全局设计令牌 - Design Tokens */
 :root {
-  /* 主要配色方案 */
-  --primary-color: #6366f1;
-  --primary-light: #8b93ff;
-  --primary-dark: #4f46e5;
-  --secondary-color: #ec4899;
-  --secondary-light: #f472b6;
-  
+  /* 主要配色方案 - 粉色渐变主题 */
+  --primary-color: #ec4899;
+  --primary-light: #f472b6;
+  --primary-dark: #db2777;
+  --secondary-color: #f97316;
+  --secondary-light: #fb923c;
+
   /* 中性色系 */
   --white: #ffffff;
   --gray-50: #f9fafb;
@@ -19,17 +19,17 @@
   --gray-700: #374151;
   --gray-800: #1f2937;
   --gray-900: #111827;
-  
-  /* 渐变背景 */
-  --bg-gradient: linear-gradient(135deg, 
-    rgba(99, 102, 241, 0.05) 0%, 
-    rgba(236, 72, 153, 0.05) 50%, 
-    rgba(168, 85, 247, 0.05) 100%);
-  --card-gradient: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.9) 0%, 
+
+  /* 渐变背景 - 粉橙渐变 */
+  --bg-gradient: linear-gradient(135deg,
+    rgba(236, 72, 153, 0.05) 0%,
+    rgba(249, 115, 22, 0.05) 50%,
+    rgba(251, 146, 60, 0.05) 100%);
+  --card-gradient: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.9) 0%,
     rgba(255, 255, 255, 0.8) 100%);
-  --glass-gradient: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.7) 0%, 
+  --glass-gradient: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.7) 0%,
     rgba(255, 255, 255, 0.5) 100%);
   
   /* 字体系统 */

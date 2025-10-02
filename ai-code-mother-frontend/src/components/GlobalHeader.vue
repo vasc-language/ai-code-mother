@@ -6,15 +6,15 @@
         <RouterLink to="/">
           <div class="logo-section">
             <img class="logo" src="@/assets/logo.png" alt="Logo" />
-            <h1 class="site-title">零代码应用生成</h1>
+            <h1 class="site-title">AI Code Mother</h1>
           </div>
         </RouterLink>
       </div>
       <!-- 中间：导航菜单 -->
       <div class="header-center">
-        <div class="custom-menu">
-          <div 
-            v-for="item in menuItems" 
+        <div class="custom-menu">aw
+          <div
+            v-for="item in menuItems"
             :key="item.key"
             class="menu-item"
             :class="{ 'menu-item-selected': selectedKeys.includes(item.key) }"
@@ -77,7 +77,7 @@ import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-import { LogoutOutlined, HomeOutlined, UserOutlined, AppstoreOutlined, GithubOutlined, WalletOutlined, CalendarOutlined, TeamOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, HomeOutlined, UserOutlined, AppstoreOutlined, GithubOutlined, WalletOutlined, CalendarOutlined, TeamOutlined, BulbOutlined, BookOutlined } from '@ant-design/icons-vue'
 import PointsDisplay from './PointsDisplay.vue'
 
 const loginUserStore = useLoginUserStore()
@@ -96,6 +96,18 @@ const originItems = [
     icon: () => h(HomeOutlined),
     label: '主页',
     title: '主页',
+  },
+  {
+    key: '/features',
+    icon: () => h(BulbOutlined),
+    label: '功能介绍',
+    title: '功能介绍',
+  },
+  {
+    key: '/docs',
+    icon: () => h(BookOutlined),
+    label: '文档',
+    title: '文档',
   },
   {
     key: '/admin/userManage',
@@ -148,7 +160,7 @@ const handleMenuClick: MenuProps['onClick'] = (e) => {
 const handleMenuItemClick = (item: any) => {
   const key = item.key as string
   selectedKeys.value = [key]
-  
+
   if (key === 'others') {
     // 项目仓库是外部链接
     window.open('https://github.com/vasc-language/ai-code-mother', '_blank')
@@ -279,12 +291,12 @@ const doLogout = async () => {
   gap: var(--spacing-md);
 }
 
-/* 自定义菜单样式 */
+/* 自定义菜单样式 - 优化版本 */
 .custom-menu {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   flex-wrap: nowrap;
 }
 
@@ -292,34 +304,72 @@ const doLogout = async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 var(--spacing-md);
-  height: 40px;
-  border-radius: var(--radius-md);
+  padding: 0 18px;
+  height: 44px;
+  border-radius: 22px;
   font-weight: var(--font-weight-medium);
-  transition: var(--transition-fast);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.menu-item:hover::before {
+  opacity: 1;
 }
 
 .menu-item:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: transparent;
   color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.15);
 }
 
 .menu-item-selected {
-  background: rgba(99, 102, 241, 0.15);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(249, 115, 22, 0.2) 100%);
   color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.2);
+  font-weight: 600;
+}
+
+.menu-item-selected::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 3px;
+  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  border-radius: 2px;
 }
 
 .menu-icon {
-  font-size: 16px;
+  font-size: 18px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .menu-label {
-  font-size: 14px;
+  font-size: 15px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* 用户下拉菜单样式 */
@@ -354,20 +404,23 @@ const doLogout = async () => {
   box-shadow: var(--shadow-md);
 }
 
-/* 登录按钮样式 */
+/* 登录按钮样式 - 优化版本 */
 :deep(.ant-btn-primary) {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
   border: none;
-  border-radius: var(--radius-lg);
-  font-weight: var(--font-weight-medium);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition-fast);
+  border-radius: 22px;
+  height: 44px;
+  padding: 0 28px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 :deep(.ant-btn-primary:hover) {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, #db2777 0%, #ea580c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
 }
 
 /* 响应式设计 */
@@ -377,20 +430,20 @@ const doLogout = async () => {
     padding: 0 var(--spacing-lg);
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   }
-  
+
   .header-content {
     height: 56px;
   }
-  
+
   .site-title {
     font-size: var(--font-size-base);
   }
-  
+
   .logo {
     height: 32px;
     width: 32px;
   }
-  
+
   .header-center {
     margin: 0 var(--spacing-xs);
     flex: 1;
@@ -398,23 +451,23 @@ const doLogout = async () => {
     justify-content: center;
     overflow: visible;
   }
-  
+
   .custom-menu {
     gap: var(--spacing-xs);
     flex-wrap: nowrap;
     overflow: visible;
   }
-  
+
   .menu-item {
     height: 32px;
     padding: 0 8px;
     font-size: var(--font-size-sm);
   }
-  
+
   .menu-icon {
     font-size: 14px;
   }
-  
+
   .menu-label {
     font-size: 12px;
   }
