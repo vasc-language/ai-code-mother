@@ -68,7 +68,7 @@
 
         <a-step title="开始生成">
           <template #description>
-            <p>点击"开始生成"按钮,等待 10-15 秒</p>
+            <p>点击"开始生成"按钮,等待 2-3 分钟</p>
           </template>
         </a-step>
 

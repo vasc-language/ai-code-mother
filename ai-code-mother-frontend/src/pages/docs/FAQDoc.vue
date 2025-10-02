@@ -16,7 +16,7 @@
       <a-collapse :bordered="false" default-active-key="['1']">
         <a-collapse-panel key="1" header="如何注册账号?">
           <p>点击页面右上角的"登录"按钮,然后选择"注册新账号",填写用户名和密码即可完成注册。</p>
-          <p>注册成功后会自动获得 100 初始积分。</p>
+          <p>注册成功后会自动获得 50 初始积分。</p>
         </a-collapse-panel>
 
         <a-collapse-panel key="2" header="忘记密码怎么办?">

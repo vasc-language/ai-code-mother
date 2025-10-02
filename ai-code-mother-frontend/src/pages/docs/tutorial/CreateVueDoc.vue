@@ -97,7 +97,7 @@
 
         <a-step title="生成项目">
           <template #description>
-            <p>等待 20-30 秒生成完整项目</p>
+            <p>等待 15-20 分钟生成完整项目</p>
           </template>
         </a-step>
 
