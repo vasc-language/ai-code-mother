@@ -84,7 +84,7 @@ const handleViewWork = () => {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: var(--button-gradient-primary);
   opacity: 0;
   transition: var(--transition-normal);
 }
@@ -99,27 +99,24 @@ const handleViewWork = () => {
 }
 
 .app-card--featured {
-  background: linear-gradient(135deg, 
-    rgba(99, 102, 241, 0.05) 0%, 
-    rgba(236, 72, 153, 0.05) 50%, 
+  background: linear-gradient(135deg,
+    rgba(0, 56, 255, 0.05) 0%,
+    rgba(0, 209, 255, 0.05) 50%,
     rgba(255, 255, 255, 0.9) 100%);
-  border: 2px solid rgba(99, 102, 241, 0.2);
+  border: 2px solid rgba(0, 56, 255, 0.2);
 }
 
 .app-card--featured::before {
   opacity: 1;
-  background: linear-gradient(90deg, 
-    var(--primary-color) 0%, 
-    var(--secondary-color) 50%, 
-    var(--success-color) 100%);
+  background: var(--button-gradient-primary);
 }
 
 .app-preview {
   height: 200px;
   background: var(--gray-100);
-  background-image: 
-    linear-gradient(45deg, transparent 40%, rgba(99, 102, 241, 0.05) 50%, transparent 60%),
-    radial-gradient(circle at center, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
+  background-image:
+    linear-gradient(45deg, transparent 40%, rgba(0, 56, 255, 0.05) 50%, transparent 60%),
+    radial-gradient(circle at center, rgba(0, 209, 255, 0.05) 0%, transparent 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,7 +139,7 @@ const handleViewWork = () => {
   font-size: var(--font-size-4xl);
   color: var(--gray-300);
   font-weight: var(--font-weight-light);
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: var(--button-gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -154,9 +151,9 @@ const handleViewWork = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, 
-    rgba(0, 0, 0, 0.6) 0%, 
-    rgba(99, 102, 241, 0.4) 100%);
+  background: linear-gradient(135deg,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 56, 255, 0.4) 100%);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -215,27 +212,27 @@ const handleViewWork = () => {
 
 /* Ant Design 组件样式覆盖 */
 :deep(.ant-btn) {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-full);
   font-weight: var(--font-weight-medium);
-  transition: var(--transition-fast);
+  transition: var(--transition-normal);
   backdrop-filter: blur(10px);
 }
 
 :deep(.ant-btn-primary) {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background: var(--button-gradient-primary);
   border: none;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 
 :deep(.ant-btn-primary:hover) {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  background: var(--button-gradient-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 :deep(.ant-btn-default) {
   background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(0, 56, 255, 0.2);
   color: var(--gray-600);
   box-shadow: var(--shadow-sm);
 }
@@ -244,7 +241,7 @@ const handleViewWork = () => {
   background: rgba(255, 255, 255, 1);
   border-color: var(--primary-color);
   color: var(--primary-color);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
 
@@ -280,9 +277,9 @@ const handleViewWork = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(99, 102, 241, 0.1), 
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(0, 56, 255, 0.1),
     transparent);
   background-size: 200px 100%;
   animation: cardShimmer 2s infinite;

@@ -1,43 +1,64 @@
 /* 全局设计令牌 - Design Tokens */
+/* 基于 CodeConductor.ai 的高贵、专业设计风格 */
 :root {
-  /* 主要配色方案 - 粉色渐变主题 */
-  --primary-color: #ec4899;
-  --primary-light: #f472b6;
-  --primary-dark: #db2777;
-  --secondary-color: #f97316;
-  --secondary-light: #fb923c;
+  /* 主要配色方案 - 蓝色渐变主题 (高贵、科技感) */
+  --primary-color: #0038ff;           /* 鲜艳蓝 - 主色调 */
+  --primary-light: #00d1ff;           /* 青蓝色 - 渐变用 */
+  --primary-dark: #0056a7;            /* 深蓝 - 高贵深邃 */
+  --secondary-color: #cc3086;         /* 粉紫色 - 点缀色 */
+  --secondary-light: #ebf0ff;         /* 浅蓝背景 */
 
   /* 中性色系 */
   --white: #ffffff;
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
+  --black: #000000;
+  --gray-50: #f9f9f9;
+  --gray-100: #f4f4f4;
   --gray-200: #e5e7eb;
   --gray-300: #d1d5db;
   --gray-400: #9ca3af;
-  --gray-500: #6b7280;
+  --gray-500: #666666;                /* 正文颜色 */
   --gray-600: #4b5563;
   --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
+  --gray-800: #333333;
+  --gray-900: #000000;
 
-  /* 渐变背景 - 粉橙渐变 */
+  /* 渐变背景 - 科技感蓝色渐变 */
   --bg-gradient: linear-gradient(135deg,
-    rgba(236, 72, 153, 0.05) 0%,
-    rgba(249, 115, 22, 0.05) 50%,
-    rgba(251, 146, 60, 0.05) 100%);
+    rgba(235, 240, 255, 0.3) 0%,
+    rgba(202, 220, 253, 0.3) 50%,
+    rgba(255, 255, 255, 0.3) 100%);
+
+  /* 卡片渐变 - 玻璃态效果 */
   --card-gradient: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.8) 100%);
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.9) 100%);
+
+  /* 玻璃态渐变 */
   --glass-gradient: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.7) 0%,
-    rgba(255, 255, 255, 0.5) 100%);
-  
-  /* 字体系统 */
-  --font-family-primary: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 
-    'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Cascadia Code', 
-    'SF Mono', 'Consolas', monospace;
-  
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%);
+
+  /* 主按钮渐变 - 蓝色到青色 */
+  --button-gradient-primary: linear-gradient(109deg,
+    rgb(0, 56, 255) 9.43%,
+    rgb(0, 209, 255) 96.31%);
+
+  /* 次要按钮渐变 */
+  --button-gradient-secondary: linear-gradient(163deg,
+    rgb(0, 71, 255) 0%,
+    rgb(0, 209, 255) 100%);
+
+  /* Hero 背景渐变 */
+  --hero-gradient: linear-gradient(167deg,
+    rgb(238, 244, 255) 0%,
+    rgb(202, 220, 253) 66%);
+
+  /* 字体系统 - Manrope (高贵现代) + Open Sans (可读性) */
+  --font-family-primary: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Roboto', sans-serif;
+  --font-family-secondary: 'Open Sans', Arial, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+
   /* 字重层级 */
   --font-weight-light: 300;
   --font-weight-regular: 400;
@@ -45,23 +66,23 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --font-weight-extrabold: 800;
-  
-  /* 字号层级 */
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --font-size-3xl: 1.875rem;
-  --font-size-4xl: 2.25rem;
-  --font-size-5xl: 3rem;
-  
+
+  /* 字号层级 - 基于 CodeConductor 的大标题风格 */
+  --font-size-xs: 0.75rem;       /* 12px */
+  --font-size-sm: 0.875rem;      /* 14px - 正文 */
+  --font-size-base: 1rem;        /* 16px */
+  --font-size-lg: 1.125rem;      /* 18px */
+  --font-size-xl: 1.25rem;       /* 20px */
+  --font-size-2xl: 1.625rem;     /* 26px - H2 */
+  --font-size-3xl: 2.125rem;     /* 34px - H3 */
+  --font-size-4xl: 3rem;         /* 48px */
+  --font-size-5xl: 5rem;         /* 80px - 大标题 H1 */
+
   /* 行高 */
-  --line-height-tight: 1.25;
+  --line-height-tight: 1.2;
   --line-height-normal: 1.5;
-  --line-height-relaxed: 1.75;
-  
+  --line-height-relaxed: 1.7;
+
   /* 间距系统 */
   --spacing-xs: 0.25rem;   /* 4px */
   --spacing-sm: 0.5rem;    /* 8px */
@@ -71,35 +92,32 @@
   --spacing-2xl: 3rem;     /* 48px */
   --spacing-3xl: 4rem;     /* 64px */
   --spacing-4xl: 6rem;     /* 96px */
-  
-  /* 圆角系统 */
+
+  /* 圆角系统 - 更圆润的现代风格 */
   --radius-sm: 0.375rem;   /* 6px */
   --radius-md: 0.5rem;     /* 8px */
-  --radius-lg: 0.75rem;    /* 12px */
-  --radius-xl: 1rem;       /* 16px */
-  --radius-2xl: 1.5rem;    /* 24px */
-  --radius-full: 50%;
-  
-  /* 阴影系统 */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
-               0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
-               0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
-               0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --radius-lg: 1rem;       /* 16px */
+  --radius-xl: 1.5rem;     /* 24px */
+  --radius-2xl: 2rem;      /* 32px */
+  --radius-full: 100px;    /* 完全圆角按钮 */
+
+  /* 阴影系统 - 更柔和的阴影 */
+  --shadow-sm: 0 2px 5px 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 125px 0 rgb(219, 235, 255);
+  --shadow-lg: 0 32px 68px 0 rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 4px 125px 0 rgb(199, 211, 236);
+  --shadow-2xl: 0 -1px 10px 0 rgba(172, 171, 171, 0.3);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-  
+
   /* 玻璃态效果 */
-  --glass-backdrop: blur(12px);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.18);
-  
+  --glass-backdrop: blur(20px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.3);
+
   /* 动画效果 */
-  --transition-fast: all 0.15s ease;
-  --transition-normal: all 0.3s ease;
-  --transition-slow: all 0.5s ease;
-  
+  --transition-fast: all 0.2s ease;
+  --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
   /* Z-index层级 */
   --z-dropdown: 1000;
   --z-sticky: 1020;
@@ -109,26 +127,36 @@
   --z-popover: 1060;
   --z-tooltip: 1070;
   --z-toast: 1080;
-  
+
   /* 状态颜色 */
   --success-color: #10b981;
   --warning-color: #f59e0b;
   --error-color: #ef4444;
-  --info-color: #3b82f6;
-  
+  --info-color: #1863dc;            /* 蓝色信息色 */
+
   /* 成功色变体 */
   --success-light: #d1fae5;
   --success-dark: #047857;
-  
+
   /* 警告色变体 */
   --warning-light: #fef3c7;
   --warning-dark: #d97706;
-  
+
   /* 错误色变体 */
   --error-light: #fecaca;
   --error-dark: #dc2626;
-  
+
   /* 信息色变体 */
   --info-light: #dbeafe;
-  --info-dark: #2563eb;
+  --info-dark: #1e40af;
+}
+
+/* 深色模式支持 (可选) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-gradient: linear-gradient(135deg,
+      rgba(0, 0, 0, 0.9) 0%,
+      rgba(0, 56, 255, 0.1) 50%,
+      rgba(0, 0, 0, 0.9) 100%);
+  }
 }

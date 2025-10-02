@@ -253,9 +253,9 @@ const doLogout = async () => {
 
 .site-title {
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: var(--button-gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -317,7 +317,7 @@ const doLogout = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(0, 56, 255, 0.1) 0%, rgba(0, 209, 255, 0.1) 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -330,13 +330,13 @@ const doLogout = async () => {
   background: transparent;
   color: var(--primary-color);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 56, 255, 0.15);
 }
 
 .menu-item-selected {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(249, 115, 22, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(0, 56, 255, 0.15) 0%, rgba(0, 209, 255, 0.15) 100%);
   color: var(--primary-color);
-  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 56, 255, 0.2);
   font-weight: 600;
 }
 
@@ -348,7 +348,7 @@ const doLogout = async () => {
   transform: translateX(-50%);
   width: 60%;
   height: 3px;
-  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  background: var(--button-gradient-primary);
   border-radius: 2px;
 }
 
@@ -398,23 +398,23 @@ const doLogout = async () => {
   box-shadow: var(--shadow-md);
 }
 
-/* 登录按钮样式 - 优化版本 */
+/* 登录按钮样式 - 蓝色渐变 */
 :deep(.ant-btn-primary) {
-  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  background: var(--button-gradient-primary);
   border: none;
-  border-radius: 22px;
+  border-radius: var(--radius-full);
   height: 44px;
   padding: 0 28px;
   font-size: 15px;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-md);
+  transition: var(--transition-normal);
 }
 
 :deep(.ant-btn-primary:hover) {
-  background: linear-gradient(135deg, #db2777 0%, #ea580c 100%);
+  background: var(--button-gradient-secondary);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 /* 响应式设计 */

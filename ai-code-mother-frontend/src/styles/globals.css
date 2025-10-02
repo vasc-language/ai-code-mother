@@ -1,5 +1,5 @@
-/* 导入Google Fonts - Inter和Poppins */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap');
+/* 导入Google Fonts - Manrope (高贵现代), Open Sans (可读性), JetBrains Mono (代码) */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Open+Sans:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 
 /* 导入设计令牌 */

@@ -1,35 +1,35 @@
 /* Ant Design 组件全局样式覆盖 */
 
-/* 按钮样式优化 */
+/* 按钮样式优化 - CodeConductor 风格 */
 .ant-btn {
-  border-radius: var(--radius-lg) !important;
+  border-radius: var(--radius-full) !important;
   font-weight: var(--font-weight-medium) !important;
   font-family: var(--font-family-primary) !important;
-  transition: var(--transition-fast) !important;
-  box-shadow: var(--shadow-sm) !important;
+  transition: var(--transition-normal) !important;
+  box-shadow: none !important;
   border: 1px solid transparent !important;
   height: auto !important;
-  padding: var(--spacing-sm) var(--spacing-lg) !important;
+  padding: var(--spacing-sm) var(--spacing-xl) !important;
   line-height: var(--line-height-normal) !important;
 }
 
 .ant-btn:focus,
 .ant-btn:active {
-  outline: 2px solid var(--primary-color) !important;
-  outline-offset: 2px !important;
+  outline: none !important;
 }
 
-/* 主要按钮 */
+/* 主要按钮 - 蓝色渐变 */
 .ant-btn-primary {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+  background: var(--button-gradient-primary) !important;
   border: none !important;
   color: var(--white) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
 .ant-btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%) !important;
-  transform: translateY(-1px) !important;
-  box-shadow: var(--shadow-md) !important;
+  background: var(--button-gradient-secondary) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 
 .ant-btn-primary:active {
@@ -44,7 +44,7 @@
   box-shadow: none !important;
 }
 
-/* 默认按钮 */
+/* 默认按钮 - 白色边框 */
 .ant-btn-default {
   background: var(--white) !important;
   border: 1px solid var(--gray-300) !important;
@@ -55,13 +55,12 @@
   background: var(--gray-50) !important;
   border-color: var(--primary-color) !important;
   color: var(--primary-color) !important;
-  transform: translateY(-1px) !important;
-  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .ant-btn-default:active {
   transform: translateY(0) !important;
-  box-shadow: var(--shadow-sm) !important;
 }
 
 /* 危险按钮 */
@@ -117,18 +116,18 @@
   font-weight: var(--font-weight-semibold) !important;
 }
 
-/* 输入框样式优化 */
+/* 输入框样式优化 - 更圆润的设计 */
 .ant-input,
 .ant-input-password,
 .ant-input-number,
 .ant-select-selector,
 .ant-textarea {
-  border-radius: var(--radius-lg) !important;
-  border: 1px solid var(--gray-300) !important;
+  border-radius: var(--radius-xl) !important;
+  border: 1px solid var(--gray-200) !important;
   font-family: var(--font-family-primary) !important;
   font-size: var(--font-size-base) !important;
-  padding: var(--spacing-sm) var(--spacing-md) !important;
-  transition: var(--transition-fast) !important;
+  padding: var(--spacing-md) var(--spacing-lg) !important;
+  transition: var(--transition-normal) !important;
   box-shadow: var(--shadow-sm) !important;
   background: var(--white) !important;
 }
@@ -138,8 +137,8 @@
 .ant-input-number:hover,
 .ant-select-selector:hover,
 .ant-textarea:hover {
-  border-color: var(--primary-color) !important;
-  box-shadow: var(--shadow-md) !important;
+  border-color: var(--primary-light) !important;
+  box-shadow: 0 4px 20px rgba(0, 56, 255, 0.1) !important;
 }
 
 .ant-input:focus,
@@ -148,7 +147,7 @@
 .ant-select-focused .ant-select-selector,
 .ant-textarea:focus {
   border-color: var(--primary-color) !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(0, 56, 255, 0.15) !important;
   outline: none !important;
 }
 

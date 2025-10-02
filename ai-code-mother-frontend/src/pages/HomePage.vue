@@ -384,7 +384,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 科技感网格背景 */
+/* 科技感网格背景 - 蓝色主题 */
 #homePage::before {
   content: '';
   position: absolute;
@@ -393,10 +393,10 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   background-image:
-    linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(0, 56, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 56, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(0, 209, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 209, 255, 0.02) 1px, transparent 1px);
   background-size:
     100px 100px,
     100px 100px,
@@ -406,7 +406,7 @@ onMounted(() => {
   animation: gridFloat 20s ease-in-out infinite;
 }
 
-/* 动态光效 */
+/* 动态光效 - 蓝色渐变 */
 #homePage::after {
   content: '';
   position: absolute;
@@ -417,12 +417,12 @@ onMounted(() => {
   background:
     radial-gradient(
       600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(59, 130, 246, 0.08) 0%,
-      rgba(139, 92, 246, 0.06) 40%,
+      rgba(0, 56, 255, 0.08) 0%,
+      rgba(0, 209, 255, 0.06) 40%,
       transparent 80%
     ),
-    linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.04) 50%, transparent 70%),
-    linear-gradient(-45deg, transparent 30%, rgba(139, 92, 246, 0.04) 50%, transparent 70%);
+    linear-gradient(45deg, transparent 30%, rgba(0, 56, 255, 0.04) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(0, 209, 255, 0.04) 50%, transparent 70%);
   pointer-events: none;
   animation: lightPulse 8s ease-in-out infinite alternate;
 }
@@ -476,9 +476,9 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(ellipse 800px 400px at center, rgba(59, 130, 246, 0.12) 0%, transparent 70%),
-    linear-gradient(45deg, transparent 30%, rgba(139, 92, 246, 0.05) 50%, transparent 70%),
-    linear-gradient(-45deg, transparent 30%, rgba(16, 185, 129, 0.04) 50%, transparent 70%);
+    radial-gradient(ellipse 800px 400px at center, rgba(0, 56, 255, 0.12) 0%, transparent 70%),
+    linear-gradient(45deg, transparent 30%, rgba(0, 209, 255, 0.05) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(204, 48, 134, 0.04) 50%, transparent 70%);
   animation: heroGlow 10s ease-in-out infinite alternate;
 }
 
@@ -507,7 +507,7 @@ onMounted(() => {
   font-weight: var(--font-weight-bold);
   margin: 0 0 var(--spacing-lg);
   line-height: var(--line-height-tight);
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, var(--success-color) 100%);
+  background: var(--button-gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -515,6 +515,7 @@ onMounted(() => {
   position: relative;
   z-index: 2;
   animation: titleShimmer 3s ease-in-out infinite;
+  background-size: 200% 200%;
 }
 
 @keyframes titleShimmer {
@@ -582,8 +583,8 @@ onMounted(() => {
 .input-actions .ant-btn {
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-xl);
-  background: var(--primary-color);
+  border-radius: var(--radius-full);
+  background: var(--button-gradient-primary);
   border: none;
   color: var(--white);
   display: flex;
@@ -591,14 +592,14 @@ onMounted(() => {
   justify-content: center;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: var(--shadow-md);
   transition: var(--transition-fast);
 }
 
 .input-actions .ant-btn:hover {
-  background: var(--primary-dark);
+  background: var(--button-gradient-secondary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .input-actions .ant-btn:active {
@@ -720,18 +721,19 @@ onMounted(() => {
 }
 
 :deep(.ant-btn-primary) {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background: var(--button-gradient-primary);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-full);
   font-weight: var(--font-weight-medium);
   box-shadow: var(--shadow-sm);
   transition: var(--transition-fast);
+  padding: var(--spacing-sm) var(--spacing-xl);
 }
 
 :deep(.ant-btn-primary:hover) {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  background: var(--button-gradient-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 :deep(.ant-pagination) {
