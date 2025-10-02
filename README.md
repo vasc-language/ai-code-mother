@@ -15,6 +15,7 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 - **📊 监控系统**: 集成Prometheus指标监控和Grafana可视化
 - **☁️ 云端集成**: 腾讯云COS存储支持，支持生成文件的云端存储
 - **🔧 智能工具**: 网页截图、项目下载、代码预览等实用功能
+- **📧 邮箱认证**: 支持邮箱注册登录，邮件验证码验证，提升账户安全性
 
 ## 🛠️ 技术架构
 
@@ -44,7 +45,8 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 
 ### 数据库设计
 
-- **用户系统**: 完整的用户注册、登录、会话管理
+- **用户系统**: 完整的用户注册、登录、会话管理，支持邮箱验证码注册登录
+- **邮箱验证**: 邮件验证码生成、存储和验证机制
 - **应用管理**: 支持多种生成类型的应用CRUD操作
 - **聊天历史**: AI对话历史记录和管理
 - **分布式ID**: 雪花算法ID生成策略
@@ -264,13 +266,21 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
-# AI模型配置
+# 配置AI模型API密钥
 ai:
   deepseek:
     api-key: ${DEEPSEEK_API_KEY:your-api-key}
     base-url: https://api.deepseek.com
   dashscope:
     api-key: ${DASHSCOPE_API_KEY:your-api-key}
+
+# 配置邮件服务 (用于发送验证码)
+spring:
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:your-email@example.com}
+    password: ${MAIL_PASSWORD:your-password}
 
 # 腾讯云COS配置
 cos:
@@ -311,10 +321,11 @@ VITE_APP_TITLE=AI代码生成器
 - `GET /api/app/generate/sse/{id}` - 流式代码生成 (SSE)
 
 #### 用户管理
-- `POST /api/user/register` - 用户注册
-- `POST /api/user/login` - 用户登录
+- `POST /api/user/register` - 用户邮箱注册
+- `POST /api/user/login` - 用户邮箱登录
 - `POST /api/user/logout` - 用户登出
 - `GET /api/user/current` - 获取当前用户信息
+- `POST /api/user/email/send` - 发送邮箱验证码
 
 #### 系统监控
 - `GET /api/health/` - 健康检查
