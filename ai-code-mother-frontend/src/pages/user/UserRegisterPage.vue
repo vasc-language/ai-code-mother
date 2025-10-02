@@ -242,21 +242,7 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg,
-    #1890ff 0%,
-    #36cfc9 25%,
-    #40a9ff 50%,
-    #597ef7 75%,
-    #1890ff 100%
-  );
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  background: transparent;
 }
 
 /* 浮动装饰元素 */

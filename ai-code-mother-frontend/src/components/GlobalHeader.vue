@@ -100,8 +100,8 @@ const originItems = [
   {
     key: '/docs',
     icon: () => h(BookOutlined),
-    label: '文档',
-    title: '文档',
+    label: '使用文档',
+    title: '使用文档',
   },
   {
     key: '/admin/userManage',
