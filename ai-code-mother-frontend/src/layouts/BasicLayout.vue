@@ -4,7 +4,12 @@
     <GlobalHeader />
     <!-- 主要内容区域 -->
     <a-layout-content class="main-content">
-      <router-view />
+      <router-view v-slot="{ Component, route }">
+        <keep-alive include="AppChatPage">
+          <component v-if="route.meta?.keepAlive" :is="Component" />
+        </keep-alive>
+        <component v-if="!route.meta?.keepAlive" :is="Component" />
+      </router-view>
     </a-layout-content>
     <!-- 底部版权信息 -->
     <GlobalFooter />

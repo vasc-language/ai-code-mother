@@ -122,6 +122,7 @@ const router = createRouter({
       path: '/app/chat/:id',
       name: '应用对话',
       component: AppChatPage,
+      meta: { keepAlive: true },
     },
     {
       path: '/app/edit/:id',

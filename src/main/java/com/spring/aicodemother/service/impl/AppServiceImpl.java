@@ -243,13 +243,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                                     ? monitorContext.getTotalTokens()
                                     : fallbackTokens;
                             int tokenToRecord = (int) Math.min(Integer.MAX_VALUE, actualTokens);
-                            int requiredPoints = (int) Math.ceil(actualTokens / (double) com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT);
-                            if (actualTokens > 0 && requiredPoints == 0) {
-                                requiredPoints = 1;
+                            int actualRequiredPoints = (int) Math.ceil(actualTokens / (double) com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT);
+                            if (actualTokens > 0 && actualRequiredPoints == 0) {
+                                actualRequiredPoints = 1;
                             }
 
-                            if (requiredPoints > preDeductPoints) {
-                                int additional = requiredPoints - preDeductPoints;
+                            if (actualRequiredPoints > preDeductPoints) {
+                                int additional = actualRequiredPoints - preDeductPoints;
                                 try {
                                     userPointsService.deductPoints(
                                             loginUser.getId(),
@@ -262,8 +262,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                                 } catch (Exception e) {
                                     log.error("生成应用补扣积分失败，用户:{} 应用:{} 补扣:{} 错误:{}", loginUser.getId(), appId, additional, e.getMessage());
                                 }
-                            } else if (requiredPoints < preDeductPoints) {
-                                int refund = preDeductPoints - requiredPoints;
+                            } else if (actualRequiredPoints < preDeductPoints) {
+                                int refund = preDeductPoints - actualRequiredPoints;
                                 try {
                                     userPointsService.addPoints(
                                             loginUser.getId(),

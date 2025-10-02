@@ -498,10 +498,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, onUnmounted, computed } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted, onActivated, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
+import { useAppGenerationStore } from '@/stores/appGeneration'
 import {
   getAppVoById,
   deployApp as deployAppApi,
@@ -537,9 +538,14 @@ import {
   LinkOutlined,
 } from '@ant-design/icons-vue'
 
+defineOptions({
+  name: 'AppChatPage',
+})
+
 const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+const appGenerationStore = useAppGenerationStore()
 
 // 应用信息
 const appInfo = ref<API.AppVO>()
@@ -578,13 +584,12 @@ const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
-// Streaming control state
-let eventSource: EventSource | null = null
+// Streaming control state - 使用全局 store 管理 EventSource，避免页面切换时中断
 const currentRunId = ref<string | null>(null)
 const stoppedByUser = ref(false)
 const lastUserMessage = ref('')
 const currentAiMessageIndex = ref<number | null>(null)
-// 最近一次手动停止的时间戳，用于判断是否为“停止后重连”
+// 最近一次手动停止的时间戳，用于判断是否为"停止后重连"
 const lastStoppedAt = ref<number>(0)
 
 // SSE micro-batching buffers and timer (to reduce per-chunk overhead)
@@ -783,6 +788,61 @@ const globalKeyHandler = (e: KeyboardEvent) => {
 onMounted(() => {
   window.addEventListener('keydown', globalKeyHandler)
 })
+
+onActivated(() => {
+  nextTick(() => {
+    scrollToBottom()
+  })
+})
+
+// 同步UI状态到全局store
+const syncUIStateToStore = () => {
+  if (!appGenerationStore.isGenerating) return
+
+  appGenerationStore.updateUIState({
+    messages: messages.value,
+    currentAiMessageIndex: currentAiMessageIndex.value,
+    lastUserMessage: lastUserMessage.value,
+    completedFiles: completedFiles.value,
+    currentGeneratingFile: currentGeneratingFile.value,
+    simpleCodeFile: simpleCodeFile.value,
+    multiFiles: multiFiles.value,
+    currentMultiFile: currentMultiFile.value,
+    multiFileContents: multiFileContents.value,
+    generationFinished: generationFinished.value,
+  })
+}
+
+// 从全局store恢复UI状态
+const restoreUIStateFromStore = () => {
+  if (!appGenerationStore.isGeneratingForApp(appId.value)) return
+
+  // 恢复UI状态
+  messages.value = [...appGenerationStore.messages]
+  currentAiMessageIndex.value = appGenerationStore.currentAiMessageIndex
+  lastUserMessage.value = appGenerationStore.lastUserMessage
+  completedFiles.value = [...appGenerationStore.completedFiles]
+  currentGeneratingFile.value = appGenerationStore.currentGeneratingFile
+    ? { ...appGenerationStore.currentGeneratingFile }
+    : null
+  simpleCodeFile.value = appGenerationStore.simpleCodeFile
+    ? { ...appGenerationStore.simpleCodeFile }
+    : null
+  multiFiles.value = [...appGenerationStore.multiFiles]
+  currentMultiFile.value = appGenerationStore.currentMultiFile
+  multiFileContents.value = { ...appGenerationStore.multiFileContents }
+  generationFinished.value = appGenerationStore.generationFinished
+
+  // 恢复生成状态
+  isGenerating.value = true
+  currentRunId.value = appGenerationStore.currentRunId
+
+  console.log('已从全局store恢复UI状态', {
+    messagesCount: messages.value.length,
+    completedFilesCount: completedFiles.value.length,
+    multiFilesCount: multiFiles.value.length,
+  })
+}
 
 // 加载对话历史
 const loadChatHistory = async (isLoadMore = false) => {
@@ -1012,18 +1072,21 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 创建 EventSource 连接
     // 先关闭旧连接
-    const hadOld = !!eventSource
-    eventSource?.close()
-    // 当为“停止后重连”或存在旧连接时，做一次轻微去抖，规避网络拥塞
+    const hadOld = !!appGenerationStore.eventSource
+    appGenerationStore.eventSource?.close()
+    // 当为"停止后重连"或存在旧连接时,做一次轻微去抖,规避网络拥塞
     if (hadOld || sseMetrics.afterStop) {
       await new Promise((r) => setTimeout(r, 80))
     }
-    eventSource = new EventSource(url, {
+    const newEventSource = new EventSource(url, {
       withCredentials: true,
     })
 
+    // 将新连接保存到全局 store
+    appGenerationStore.startGeneration(appId.value || '', myRunId || '', newEventSource)
+
     // 连接打开时间
-    eventSource.onopen = function () {
+    newEventSource.onopen = function () {
       sseMetrics.t1 = performance.now()
     }
 
@@ -1066,7 +1129,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理接收到的消息（改为收集 + 定时批量刷新）
-    eventSource.onmessage = function (event) {
+    newEventSource.onmessage = function (event) {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted) return
       try {
@@ -1091,7 +1154,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理done事件
-    eventSource.addEventListener('done', function () {
+    newEventSource.addEventListener('done', function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted || !isGenerating.value) return
 
@@ -1101,8 +1164,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       isGenerating.value = false
       // 标记本轮生成已完成，切换到预览模式
       generationFinished.value = true
-      eventSource?.close()
-      eventSource = null
+      appGenerationStore.finishGeneration()
       stoppedByUser.value = false
       currentRunId.value = null
       clearSseTimerAndBuffers()
@@ -1137,15 +1199,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     })
 
     // 处理interrupted事件（手动停止）
-    eventSource.addEventListener('interrupted', function () {
+    newEventSource.addEventListener('interrupted', function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted) return
       // 先刷新剩余内容
       flushToUi()
       streamCompleted = true
       isGenerating.value = false
-      eventSource?.close()
-      eventSource = null
+      appGenerationStore.stopGeneration()
       // 保持 stoppedByUser = true，以便显示继续按钮语义
       currentRunId.value = null
       clearSseTimerAndBuffers()
@@ -1173,7 +1234,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     })
 
     // 处理business-error事件（后端限流等错误）
-    eventSource.addEventListener('business-error', function (event: MessageEvent) {
+    newEventSource.addEventListener('business-error', function (event: MessageEvent) {
       if (streamCompleted) return
 
       try {
@@ -1188,7 +1249,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
         streamCompleted = true
         isGenerating.value = false
-        eventSource?.close()
+        appGenerationStore.stopGeneration()
       } catch (parseError) {
         console.error('解析错误事件失败:', parseError, '原始数据:', event.data)
         handleError(new Error('服务器返回错误'), aiMessageIndex)
@@ -1197,17 +1258,16 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
 
     // 处理错误
-    eventSource.onerror = function () {
+    newEventSource.onerror = function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
-      if (eventSource?.readyState === EventSource.CONNECTING) {
+      if (appGenerationStore.eventSource?.readyState === EventSource.CONNECTING) {
         // 先刷新剩余内容
         flushToUi()
         streamCompleted = true
         isGenerating.value = false
-        eventSource?.close()
-        eventSource = null
+        appGenerationStore.stopGeneration()
         stoppedByUser.value = false
         currentRunId.value = null
         clearSseTimerAndBuffers()
@@ -1281,8 +1341,7 @@ const onToggleStream = async () => {
     }
     try {
       const rid = currentRunId.value
-      eventSource?.close()
-      eventSource = null
+      appGenerationStore.stopGeneration()
       if (rid) {
         await request('/app/chat/stop', {
           method: 'POST',
@@ -1324,8 +1383,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   messages.value[aiMessageIndex].loading = false
   message.error('生成失败，请重试')
   isGenerating.value = false
-  eventSource?.close()
-  eventSource = null
+  appGenerationStore.stopGeneration()
   currentRunId.value = null
   stoppedByUser.value = false
 }
@@ -1893,6 +1951,9 @@ const parseStreamingContent = (chunk: string, fullContent: string) => {
         parseStepInfo(chunk)
       }
     }
+
+    // 同步UI状态到全局store，以便页面切换后恢复
+    syncUIStateToStore()
   } catch (error) {
     console.error('解析流式内容失败:', error)
   }
@@ -2505,9 +2566,34 @@ const getCurrentMultiFileLanguage = () => {
 onMounted(() => {
   fetchAppInfo()
 
+  // 检查是否有正在进行的生成任务
+  if (appGenerationStore.isGeneratingForApp(appId.value)) {
+    // 恢复完整的UI状态
+    restoreUIStateFromStore()
+    message.info('检测到正在进行的生成任务，已自动恢复连接和生成状态')
+
+    // 注意：EventSource 连接已经在全局 store 中，不需要重新创建
+    // 消息的更新会通过已存在的 EventSource 回调继续进行
+  }
+
   // 监听 iframe 消息
   window.addEventListener('message', (event) => {
     visualEditor.handleIframeMessage(event)
+  })
+
+  // 监听浏览器关闭/刷新事件，只有在这种情况下才真正停止生成
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (appGenerationStore.isGenerating) {
+      // 在浏览器关闭前提示用户
+      e.preventDefault()
+      e.returnValue = '正在生成中，确定要离开吗？'
+    }
+  }
+  window.addEventListener('beforeunload', handleBeforeUnload)
+
+  // 在组件卸载时移除事件监听
+  onUnmounted(() => {
+    window.removeEventListener('beforeunload', handleBeforeUnload)
   })
 })
 
@@ -2524,25 +2610,11 @@ onUnmounted(() => {
     clearInterval(multiFileStreamTimer.value)
     multiFileStreamTimer.value = null
   }
-  // 主动关闭 SSE 连接并通知后端取消，确保释放资源
-  const rid = currentRunId.value
-  if (eventSource) {
-    try {
-      eventSource.close()
-      eventSource = null
-    } catch (e) {}
-  }
-  if (rid) {
-    // 异步 fire-and-forget，不阻塞卸载
-    try {
-      fetch((request.defaults.baseURL || '') + '/app/chat/stop', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runId: rid }),
-      })
-    } catch (e) {}
-  }
+
+  // 重要修改：不再在组件卸载时关闭 EventSource 和停止生成
+  // 这样即使用户离开页面,应用生成也会在后台继续进行
+  // EventSource 连接保存在全局 store 中,由 store 管理生命周期
+  // 只有在用户主动点击停止按钮时才会真正停止生成
 })
 </script>
 
