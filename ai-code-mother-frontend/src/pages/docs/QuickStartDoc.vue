@@ -22,7 +22,7 @@
       </ul>
       <a-alert
         message="新用户福利"
-        description="注册成功后,你将自动获得 100 积分,足够生成多个应用!"
+        description="注册成功后,你将自动获得 50 积分,足够生成多个应用!"
         type="success"
         show-icon
         class="tip-alert"
@@ -45,7 +45,7 @@
 
         <p class="example-divider"><strong>示例 2 - Vue 应用:</strong></p>
         <blockquote class="example-quote">
-          "创建一个待办事项管理应用,需要添加任务、标记完成、删除任务的功能,使用 Vue 3 和 Ant Design"
+          "创建一个待办事项管理应用,需要添加任务、标记完成、删除任务的功能,使用 Vue 3"
         </blockquote>
 
         <p class="example-divider"><strong>示例 3 - 多文件项目:</strong></p>
@@ -90,8 +90,8 @@
             <a-card-meta title="HTML 页面">
               <template #description>
                 <p>单文件输出,开箱即用</p>
-                <a-tag color="green">10 积分</a-tag>
-                <p class="type-time">约 10 秒生成</p>
+                <a-tag color="green">6 积分</a-tag>
+                <p class="type-time">约 2 分钟生成</p>
               </template>
             </a-card-meta>
           </a-card>
@@ -108,8 +108,8 @@
             <a-card-meta title="Vue 应用">
               <template #description>
                 <p>完整 Vue 3 项目结构</p>
-                <a-tag color="blue">30 积分</a-tag>
-                <p class="type-time">约 20 秒生成</p>
+                <a-tag color="blue">15 积分</a-tag>
+                <p class="type-time">约 15 分钟生成</p>
               </template>
             </a-card-meta>
           </a-card>
@@ -125,8 +125,8 @@
             <a-card-meta title="多文件项目">
               <template #description>
                 <p>自定义技术栈和结构</p>
-                <a-tag color="purple">50 积分</a-tag>
-                <p class="type-time">约 30 秒生成</p>
+                <a-tag color="purple">9 积分</a-tag>
+                <p class="type-time">约 4 分钟生成</p>
               </template>
             </a-card-meta>
           </a-card>
@@ -176,7 +176,7 @@
           <template #title>
             <CloudUploadOutlined /> 一键部署
           </template>
-          将应用部署到云端,获得可访问的链接 <a-tag color="orange">即将上线</a-tag>
+          将应用部署到云端,获得可访问的链接
         </a-card>
       </a-space>
     </section>
@@ -200,9 +200,8 @@
 
         <a-collapse-panel key="2" header="如何获得更多积分?">
           <ul>
-            <li>每日签到:每天签到获得 10 积分</li>
-            <li>邀请好友:每邀请一位好友注册,双方各得 100 积分</li>
-            <li>完成任务:参与平台活动获得奖励积分</li>
+            <li>每日签到:每天签到获得 5 积分</li>
+            <li>邀请好友:每邀请一位好友注册,双方各得 20 积分</li>
           </ul>
         </a-collapse-panel>
 

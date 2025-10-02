@@ -163,23 +163,26 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 增加今日生成次数
         generationValidationService.incrementGenerationCount(loginUser.getId());
 
-        // 4.1 检查用户积分是否充足
-        if (!userPointsService.checkPointsSufficient(loginUser.getId(),
-                com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT)) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "积分不足，请先签到或邀请好友获取积分");
+        // 4.1 根据生成类型计算所需积分
+        int requiredPoints = com.spring.aicodemother.constants.PointsConstants.getPointsByGenType(codeGenTypeEnum.getValue());
+
+        // 4.2 检查用户积分是否充足
+        if (!userPointsService.checkPointsSufficient(loginUser.getId(), requiredPoints)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                String.format("积分不足，当前生成类型需要 %d 积分，请先签到或邀请好友获取积分", requiredPoints));
         }
 
-        // 4.2 预扣积分
+        // 4.3 预扣积分
         boolean pointsDeducted = userPointsService.deductPoints(
                 loginUser.getId(),
-                com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT,
+                requiredPoints,
                 com.spring.aicodemother.model.enums.PointsTypeEnum.GENERATE.getValue(),
-                "生成应用消耗积分",
+                String.format("生成应用消耗积分（%s）", codeGenTypeEnum.getText()),
                 appId
         );
         ThrowUtils.throwIf(!pointsDeducted, ErrorCode.SYSTEM_ERROR, "扣减积分失败");
-        log.info("用户 {} 生成应用 {} 预扣 {} 积分", loginUser.getId(), appId,
-                com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT);
+        log.info("用户 {} 生成应用 {} ({}) 预扣 {} 积分", loginUser.getId(), appId,
+            codeGenTypeEnum.getText(), requiredPoints);
 
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
@@ -216,6 +219,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 8. 收集AI响应内容并在完成后记录到对话历史（根据取消状态抑制副作用）
         java.util.function.BooleanSupplier cancelled = (control == null) ? (() -> false) : control::isCancelled;
         AtomicReference<String> finalResponseRef = new AtomicReference<>("");
+        final int preDeductPoints = requiredPoints; // 保存预扣积分值供后续使用
         return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum,
                         cancelled, finalResponseRef::set)
                 .doFinally(signalType -> {
@@ -232,15 +236,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                                 return;
                             }
 
-                            long fallbackTokens = (long) com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT
+                            long fallbackTokens = (long) preDeductPoints
                                     * com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT;
                             com.spring.aicodemother.monitor.MonitorContext monitorContext = com.spring.aicodemother.monitor.MonitorContextHolder.getContext();
                             long actualTokens = (monitorContext != null && monitorContext.getTotalTokens() != null)
                                     ? monitorContext.getTotalTokens()
                                     : fallbackTokens;
                             int tokenToRecord = (int) Math.min(Integer.MAX_VALUE, actualTokens);
-
-                            int preDeductPoints = com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT;
                             int requiredPoints = (int) Math.ceil(actualTokens / (double) com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT);
                             if (actualTokens > 0 && requiredPoints == 0) {
                                 requiredPoints = 1;
@@ -286,21 +288,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                             try {
                                 userPointsService.addPoints(
                                         loginUser.getId(),
-                                        com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT,
+                                        preDeductPoints,
                                         "REFUND",
                                         "生成失败/取消，返还积分",
                                         appId
                                 );
                                 log.info("用户 {} 生成失败/取消，已成功返还 {} 积分，应用ID: {}",
                                         loginUser.getId(),
-                                        com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT,
+                                        preDeductPoints,
                                         appId);
                             } catch (Exception refundError) {
                                 // 返还失败，记录详细错误信息，便于后续人工补偿
                                 log.error("【积分返还失败】用户ID: {}, 应用ID: {}, 应返还积分: {}, 错误信息: {}, 堆栈: ",
                                         loginUser.getId(),
                                         appId,
-                                        com.spring.aicodemother.constants.PointsConstants.GENERATE_PRE_DEDUCT,
+                                        preDeductPoints,
                                         refundError.getMessage(),
                                         refundError);
 

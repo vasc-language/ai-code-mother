@@ -1,16 +1,56 @@
 <template>
   <a-layout-footer class="footer">
     <div class="footer-content">
-      <p class="copyright">
-        <a
-          href="https://github.com/vasc-language/ai-code-mother"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="author-link"
-        >
-          项目地址 by vasc-language
-        </a>
-      </p>
+      <div class="footer-main">
+        <div class="footer-brand">
+          <h3 class="brand-title">AI Code Mother</h3>
+          <p class="brand-desc">让 AI 为你生成专业代码</p>
+        </div>
+
+        <div class="footer-links">
+          <div class="link-group">
+            <h4 class="group-title">快速链接</h4>
+            <a href="/" class="footer-link">首页</a>
+            <a href="/docs" class="footer-link">文档</a>
+          </div>
+
+          <div class="link-group">
+            <h4 class="group-title">开发者</h4>
+            <a
+              href="https://github.com/vasc-language/ai-code-mother"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="footer-link"
+            >
+              GitHub 仓库
+            </a>
+            <a href="/docs/api" class="footer-link">API 文档</a>
+          </div>
+
+          <div class="link-group">
+            <h4 class="group-title">联系我们</h4>
+            <a href="mailto:zrt3ljnygz@163.com" class="footer-link">发送邮件</a>
+            <span class="footer-link-text">微信: Join2049</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="copyright">
+          © 2025 AI Code Mother. All rights reserved.
+        </div>
+        <div class="author">
+          Made with ❤️ by
+          <a
+            href="https://github.com/vasc-language"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="author-link"
+          >
+            vasc-language
+          </a>
+        </div>
+      </div>
     </div>
   </a-layout-footer>
 </template>
@@ -21,104 +61,185 @@
 
 <style scoped>
 .footer {
-  background: var(--glass-gradient);
-  backdrop-filter: var(--glass-backdrop);
-  border: var(--glass-border);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  box-shadow: var(--shadow-lg);
-  text-align: center;
-  padding: var(--spacing-xl) var(--spacing-lg);
-  margin: var(--spacing-xl) var(--spacing-lg) 0 var(--spacing-lg);
+  background: linear-gradient(180deg, rgba(249, 250, 251, 0.8) 0%, rgba(255, 255, 255, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(236, 72, 153, 0.1);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.04);
+  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+  margin-top: var(--spacing-xl);
   position: relative;
-  transition: var(--transition-normal);
+  overflow: hidden;
 }
 
 .footer::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  border-radius: var(--radius-full);
-  opacity: 0.7;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ec4899 0%, #f97316 50%, #ec4899 100%);
+  background-size: 200% 100%;
+  animation: gradientMove 3s ease infinite;
 }
 
-.footer:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-xl);
+@keyframes gradientMove {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 .footer-content {
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.footer-main {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--spacing-xl);
+  padding-bottom: var(--spacing-xl);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: var(--spacing-lg);
+}
+
+.footer-brand {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-desc {
+  margin: 0;
+  color: var(--gray-600);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.footer-links {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-lg);
 }
 
-.copyright {
-  margin: 0;
+.link-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.group-title {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.footer-link {
   color: var(--gray-600);
-  font-size: var(--font-size-sm);
-  font-family: var(--font-family-primary);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-relaxed);
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  width: fit-content;
+  position: relative;
+  padding: 2px 0;
+}
+
+.footer-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ec4899 0%, #f97316 100%);
+  transition: width 0.3s ease;
+}
+
+.footer-link:hover {
+  color: var(--primary-color);
+}
+
+.footer-link:hover::after {
+  width: 100%;
+}
+
+.footer-link-text {
+  color: var(--gray-600);
+  font-size: 14px;
+  cursor: default;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.copyright {
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+.author {
+  color: var(--gray-500);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .author-link {
   color: var(--primary-color);
   text-decoration: none;
-  font-weight: var(--font-weight-semibold);
-  transition: var(--transition-fast);
+  font-weight: 600;
+  transition: all 0.2s ease;
   position: relative;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-md);
-}
-
-.author-link::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  opacity: 0;
-  border-radius: var(--radius-md);
-  transition: var(--transition-fast);
-  z-index: -1;
 }
 
 .author-link:hover {
-  color: var(--white);
-  text-decoration: none;
+  color: var(--primary-dark);
   transform: translateY(-1px);
 }
 
-.author-link:hover::before {
-  opacity: 1;
+/* 响应式设计 */
+@media (max-width: 992px) {
+  .footer-main {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .footer-links {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-/* 移除多余的装饰内容 */
-
-/* 响应式设计 */
 @media (max-width: 768px) {
   .footer {
-    margin: var(--spacing-lg) var(--spacing-sm) 0 var(--spacing-sm);
     padding: var(--spacing-lg) var(--spacing-md);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
-  
-  .copyright {
-    font-size: var(--font-size-xs);
+
+  .footer-links {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
   }
-  
-  .author-link {
-    padding: var(--spacing-xs) var(--spacing-sm);
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--spacing-xs);
   }
 }
 

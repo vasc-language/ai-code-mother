@@ -46,7 +46,7 @@
       <a-steps direction="vertical" :current="5">
         <a-step title="登录系统">
           <template #description>
-            <p>登录账号,确保有足够积分(至少 10 积分)</p>
+            <p>登录账号,确保有足够积分(至少 6 积分)</p>
           </template>
         </a-step>
 

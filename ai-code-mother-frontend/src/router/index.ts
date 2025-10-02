@@ -11,7 +11,6 @@ import ChatManagePage from '@/pages/admin/ChatManagePage.vue'
 import SignInPage from '@/pages/points/SignInPage.vue'
 import InvitePage from '@/pages/points/InvitePage.vue'
 import PointsDetailPage from '@/pages/points/PointsDetailPage.vue'
-import FeaturesPage from '@/pages/FeaturesPage.vue'
 import DocsLayout from '@/layouts/DocsLayout.vue'
 import QuickStartDoc from '@/pages/docs/QuickStartDoc.vue'
 import AIGenerationDoc from '@/pages/docs/features/AIGenerationDoc.vue'
@@ -23,11 +22,6 @@ const router = createRouter({
       path: '/',
       name: '主页',
       component: HomePage,
-    },
-    {
-      path: '/features',
-      name: '功能介绍',
-      component: FeaturesPage,
     },
     {
       path: '/docs',

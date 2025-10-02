@@ -75,7 +75,7 @@
       <a-steps direction="vertical" :current="5">
         <a-step title="准备积分">
           <template #description>
-            <p>确保账户有至少 30 积分</p>
+            <p>确保账户有至少 15 积分</p>
           </template>
         </a-step>
 

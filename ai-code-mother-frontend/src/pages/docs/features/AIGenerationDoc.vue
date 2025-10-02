@@ -187,7 +187,7 @@
             <h4>生成结果:</h4>
             <a-tag color="green">成功</a-tag>
             <a-tag color="blue">耗时 12 秒</a-tag>
-            <a-tag color="purple">消耗 10 积分</a-tag>
+            <a-tag color="purple">消耗 6 积分</a-tag>
           </div>
         </a-tab-pane>
 
@@ -214,7 +214,7 @@
             <h4>生成结果:</h4>
             <a-tag color="green">成功</a-tag>
             <a-tag color="blue">耗时 24 秒</a-tag>
-            <a-tag color="purple">消耗 30 积分</a-tag>
+            <a-tag color="purple">消耗 15 积分</a-tag>
           </div>
         </a-tab-pane>
       </a-tabs>
@@ -237,9 +237,9 @@ import {
 } from '@ant-design/icons-vue'
 
 const timeData = [
-  { type: 'HTML 页面', time: '10-15 秒', points: '10 积分' },
-  { type: 'Vue 应用', time: '20-30 秒', points: '30 积分' },
-  { type: '多文件项目', time: '30-45 秒', points: '50 积分' },
+  { type: 'HTML 页面', time: '2-4 分钟', points: '6 积分' },
+  { type: 'Vue 应用', time: '3-5 分钟', points: '15 积分' },
+  { type: '多文件项目', time: '15-20 分钟', points: '9 积分' },
 ]
 
 const timeColumns = [

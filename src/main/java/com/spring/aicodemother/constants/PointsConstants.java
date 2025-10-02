@@ -13,9 +13,26 @@ public class PointsConstants {
     public static final int TOKENS_PER_POINT = 1000;
 
     /**
-     * 生成应用预扣积分
+     * 生成应用预扣积分（已废弃，请使用具体类型的常量）
+     * @deprecated 使用 HTML_GENERATE_POINTS、MULTI_FILE_GENERATE_POINTS、VUE_GENERATE_POINTS
      */
+    @Deprecated
     public static final int GENERATE_PRE_DEDUCT = 6;
+
+    /**
+     * HTML 文件生成消耗积分
+     */
+    public static final int HTML_GENERATE_POINTS = 6;
+
+    /**
+     * 多文件项目生成消耗积分
+     */
+    public static final int MULTI_FILE_GENERATE_POINTS = 9;
+
+    /**
+     * Vue 项目生成消耗积分
+     */
+    public static final int VUE_GENERATE_POINTS = 15;
 
     /**
      * 首次生成奖励积分
@@ -121,6 +138,28 @@ public class PointsConstants {
      * IP级别限流 - 时间窗口（秒）
      */
     public static final int IP_RATE_LIMIT_WINDOW_SECONDS = 60;
+
+    /**
+     * 根据生成类型获取所需积分
+     *
+     * @param genType 生成类型（html, multi_file, vue_project）
+     * @return 所需积分数
+     */
+    public static int getPointsByGenType(String genType) {
+        if (genType == null) {
+            return HTML_GENERATE_POINTS; // 默认返回 HTML 的积分
+        }
+        switch (genType.toLowerCase()) {
+            case "html":
+                return HTML_GENERATE_POINTS;
+            case "multi_file":
+                return MULTI_FILE_GENERATE_POINTS;
+            case "vue_project":
+                return VUE_GENERATE_POINTS;
+            default:
+                return HTML_GENERATE_POINTS;
+        }
+    }
 
     private PointsConstants() {
         // 私有构造函数，防止实例化

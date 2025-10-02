@@ -12,7 +12,7 @@
       </div>
       <!-- 中间：导航菜单 -->
       <div class="header-center">
-        <div class="custom-menu">aw
+        <div class="custom-menu">
           <div
             v-for="item in menuItems"
             :key="item.key"
@@ -77,7 +77,7 @@ import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-import { LogoutOutlined, HomeOutlined, UserOutlined, AppstoreOutlined, GithubOutlined, WalletOutlined, CalendarOutlined, TeamOutlined, BulbOutlined, BookOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, HomeOutlined, UserOutlined, AppstoreOutlined, GithubOutlined, WalletOutlined, CalendarOutlined, TeamOutlined, BookOutlined } from '@ant-design/icons-vue'
 import PointsDisplay from './PointsDisplay.vue'
 
 const loginUserStore = useLoginUserStore()
@@ -96,12 +96,6 @@ const originItems = [
     icon: () => h(HomeOutlined),
     label: '主页',
     title: '主页',
-  },
-  {
-    key: '/features',
-    icon: () => h(BulbOutlined),
-    label: '功能介绍',
-    title: '功能介绍',
   },
   {
     key: '/docs',
