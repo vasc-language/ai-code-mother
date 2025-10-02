@@ -1,34 +1,48 @@
 <template>
   <div id="appManagePage">
     <!-- 搜索表单 -->
-    <a-form layout="inline" :model="searchParams" @finish="doSearch">
-      <a-form-item label="应用名称">
-        <a-input v-model:value="searchParams.appName" placeholder="输入应用名称" />
-      </a-form-item>
-      <a-form-item label="创建者">
-        <a-input v-model:value="searchParams.userId" placeholder="输入用户ID" />
-      </a-form-item>
-      <a-form-item label="生成类型">
-        <a-select
-          v-model:value="searchParams.codeGenType"
-          placeholder="选择生成类型"
-          style="width: 150px"
-          class="gen-type-select"
-        >
-          <a-select-option value="">全部</a-select-option>
-          <a-select-option
-            v-for="option in CODE_GEN_TYPE_OPTIONS"
-            :key="option.value"
-            :value="option.value"
+    <div class="search-container">
+      <a-form layout="inline" :model="searchParams" @finish="doSearch" class="search-form">
+        <a-form-item label="应用名称" class="search-item">
+          <a-input
+            v-model:value="searchParams.appName"
+            placeholder="输入应用名称"
+            class="search-input"
+            allow-clear
+          />
+        </a-form-item>
+        <a-form-item label="创建者" class="search-item">
+          <a-input
+            v-model:value="searchParams.userId"
+            placeholder="输入用户ID"
+            class="search-input"
+            allow-clear
+          />
+        </a-form-item>
+        <a-form-item label="生成类型" class="search-item">
+          <a-select
+            v-model:value="searchParams.codeGenType"
+            placeholder="选择生成类型"
+            class="search-select"
+            allow-clear
           >
-            {{ option.label }}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit">搜索</a-button>
-      </a-form-item>
-    </a-form>
+            <a-select-option value="">全部</a-select-option>
+            <a-select-option
+              v-for="option in CODE_GEN_TYPE_OPTIONS"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item class="search-button-item">
+          <a-button type="primary" html-type="submit" class="search-button" size="large">
+            🔍 搜索
+          </a-button>
+        </a-form-item>
+      </a-form>
+    </div>
     <a-divider />
 
     <!-- 表格 -->
@@ -265,72 +279,411 @@ const deleteApp = async (id: number | undefined) => {
 
 <style scoped>
 #appManagePage {
-  padding: 24px;
-  background: white;
-  margin-top: 16px;
+  padding: var(--spacing-xl);
+  background: transparent;
+  margin-top: 0;
 }
 
+/* 搜索容器 - 现代化设计 */
+.search-container {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(0, 56, 255, 0.1);
+  border-radius: 24px;
+  padding: 32px 40px;
+  box-shadow: 0 8px 32px rgba(0, 56, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: var(--spacing-xl);
+  transition: all 0.3s ease;
+}
+
+.search-container:hover {
+  box-shadow: 0 12px 40px rgba(0, 56, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 56, 255, 0.15);
+}
+
+/* 搜索表单布局 */
+.search-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* 搜索项 */
+.search-item {
+  margin-bottom: 0 !important;
+  flex: 0 0 auto;
+}
+
+.search-button-item {
+  margin-bottom: 0 !important;
+  flex: 0 0 auto;
+}
+
+/* 表单标签样式 - 更大更清晰 */
+:deep(.ant-form-item-label) {
+  padding-bottom: 8px !important;
+}
+
+:deep(.ant-form-item-label > label) {
+  font-weight: 600 !important;
+  color: var(--gray-800) !important;
+  font-size: 15px !important;
+  letter-spacing: 0.3px;
+}
+
+/* 搜索输入框 - 大气设计 */
+.search-input {
+  width: 220px !important;
+  height: 46px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(0, 56, 255, 0.15) !important;
+  border-radius: 16px !important;
+  font-size: 15px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.search-input:hover {
+  border-color: rgba(0, 56, 255, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(0, 56, 255, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+.search-input:focus,
+.search-input:focus-within {
+  background: var(--white) !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 6px 24px rgba(0, 56, 255, 0.15) !important;
+  transform: translateY(-2px);
+}
+
+/* 输入框图标 */
+.search-icon {
+  font-size: 18px;
+  margin-right: 4px;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.search-input:hover .search-icon,
+.search-input:focus .search-icon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* 输入框内部样式 */
+:deep(.search-input .ant-input) {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: var(--gray-800) !important;
+}
+
+:deep(.search-input .ant-input::placeholder) {
+  color: var(--gray-400) !important;
+  font-weight: 400 !important;
+}
+
+/* 清除按钮优化 */
+:deep(.search-input .ant-input-clear-icon) {
+  font-size: 14px;
+  color: var(--gray-400);
+  transition: all 0.2s ease;
+}
+
+:deep(.search-input .ant-input-clear-icon:hover) {
+  color: var(--error-color);
+  transform: scale(1.2);
+}
+
+/* 下拉选择框 - 大气设计 */
+.search-select {
+  width: 220px !important;
+}
+
+:deep(.search-select .ant-select-selector) {
+  height: 46px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(0, 56, 255, 0.15) !important;
+  border-radius: 16px !important;
+  padding: 0 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+:deep(.search-select .ant-select-selector:hover) {
+  border-color: rgba(0, 56, 255, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(0, 56, 255, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+:deep(.search-select.ant-select-focused .ant-select-selector) {
+  background: var(--white) !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 6px 24px rgba(0, 56, 255, 0.15) !important;
+  transform: translateY(-2px);
+}
+
+:deep(.search-select .ant-select-selection-placeholder) {
+  color: var(--gray-400) !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+  line-height: 46px !important;
+}
+
+:deep(.search-select .ant-select-selection-item) {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: var(--gray-800) !important;
+  line-height: 46px !important;
+}
+
+:deep(.search-select .ant-select-arrow) {
+  color: var(--gray-500);
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+:deep(.search-select:hover .ant-select-arrow),
+:deep(.search-select.ant-select-focused .ant-select-arrow) {
+  color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+/* 搜索按钮 - 现代化渐变设计 */
+.search-button {
+  height: 46px !important;
+  padding: 0 32px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 16px !important;
+  border: none !important;
+  background: linear-gradient(135deg, #0038ff 0%, #00d1ff 100%) !important;
+  box-shadow: 0 4px 16px rgba(0, 56, 255, 0.25) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  letter-spacing: 0.5px;
+}
+
+.search-button:hover {
+  background: linear-gradient(135deg, #0030e0 0%, #00b8e6 100%) !important;
+  box-shadow: 0 6px 24px rgba(0, 56, 255, 0.35) !important;
+  transform: translateY(-2px) scale(1.02);
+}
+
+.search-button:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 56, 255, 0.2) !important;
+}
+
+/* 分割线优化 */
+:deep(.ant-divider) {
+  margin: 0 0 var(--spacing-xl) 0;
+  border-color: transparent;
+}
+
+/* 表格容器 - 玻璃态效果 */
+:deep(.ant-table-wrapper) {
+  background: var(--glass-gradient);
+  backdrop-filter: var(--glass-backdrop);
+  border: var(--glass-border);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+/* 表格样式优化 */
+:deep(.ant-table) {
+  background: transparent !important;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+/* 表头样式 */
+:deep(.ant-table-thead > tr > th) {
+  background: linear-gradient(135deg, rgba(0, 56, 255, 0.08) 0%, rgba(0, 209, 255, 0.08) 100%) !important;
+  color: var(--gray-800) !important;
+  font-weight: var(--font-weight-bold) !important;
+  font-size: var(--font-size-base) !important;
+  border-bottom: 2px solid rgba(0, 56, 255, 0.1) !important;
+  padding: var(--spacing-lg) var(--spacing-md) !important;
+  text-align: center;
+}
+
+/* 表格行样式 */
+:deep(.ant-table-tbody > tr) {
+  background: rgba(255, 255, 255, 0.6) !important;
+  transition: var(--transition-fast) !important;
+}
+
+:deep(.ant-table-tbody > tr:hover) {
+  background: rgba(0, 56, 255, 0.05) !important;
+  box-shadow: 0 2px 8px rgba(0, 56, 255, 0.1) !important;
+}
+
+:deep(.ant-table-tbody > tr > td) {
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(0, 56, 255, 0.05) !important;
+  padding: var(--spacing-lg) var(--spacing-md) !important;
+  color: var(--gray-700) !important;
+  text-align: center;
+}
+
+/* 无封面样式 */
 .no-cover {
   width: 80px;
   height: 60px;
-  background: #f5f5f5;
+  background: linear-gradient(135deg, rgba(0, 56, 255, 0.05) 0%, rgba(0, 209, 255, 0.05) 100%);
+  border: 1px solid rgba(0, 56, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  font-size: 12px;
-  border-radius: 4px;
+  color: var(--gray-400);
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-medium);
 }
 
+/* 提示词文本 */
 .prompt-text {
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--gray-600);
 }
 
+/* 灰色文字 */
 .text-gray {
-  color: #999;
+  color: var(--gray-400);
+  font-style: italic;
 }
 
+/* Tag 标签优化 */
+:deep(.ant-tag) {
+  border-radius: var(--radius-full) !important;
+  padding: var(--spacing-xs) var(--spacing-md) !important;
+  font-weight: var(--font-weight-medium) !important;
+  border: none !important;
+}
+
+:deep(.ant-tag-gold) {
+  background: linear-gradient(135deg, #faad14 0%, #d48806 100%) !important;
+  color: var(--white) !important;
+  box-shadow: 0 2px 8px rgba(250, 173, 20, 0.3) !important;
+}
+
+/* 精选按钮优化 */
 .featured-btn {
-  background: #faad14;
-  border-color: #faad14;
-  color: white;
+  background: linear-gradient(135deg, #faad14 0%, #d48806 100%) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .featured-btn:hover {
-  background: #d48806;
-  border-color: #d48806;
+  background: linear-gradient(135deg, #d48806 0%, #faad14 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
-:deep(.ant-table-tbody > tr > td) {
-  vertical-align: middle;
+/* 小按钮样式优化 */
+:deep(.ant-btn-sm) {
+  border-radius: var(--radius-full) !important;
+  padding: 2px var(--spacing-md) !important;
+  font-weight: var(--font-weight-medium) !important;
 }
 
-/* 修复生成类型选择框的文字对齐 */
-.gen-type-select :deep(.ant-select-selector) {
-  display: flex !important;
-  align-items: center !important;
-  height: 32px !important;
-  line-height: 32px !important;
+/* 编辑按钮 */
+:deep(.ant-btn-primary.ant-btn-sm) {
+  background: var(--button-gradient-primary) !important;
+  border: none !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
-.gen-type-select :deep(.ant-select-selection-placeholder) {
-  display: flex !important;
-  align-items: center !important;
-  height: 100% !important;
-  line-height: normal !important;
-  color: var(--gray-400) !important;
-  font-family: var(--font-family-primary) !important;
+:deep(.ant-btn-primary.ant-btn-sm:hover) {
+  background: var(--button-gradient-secondary) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
-.gen-type-select :deep(.ant-select-selection-item) {
-  display: flex !important;
-  align-items: center !important;
-  height: 100% !important;
-  line-height: normal !important;
-  font-family: var(--font-family-primary) !important;
+/* 默认按钮 */
+:deep(.ant-btn-default.ant-btn-sm) {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 56, 255, 0.2) !important;
+  color: var(--gray-700) !important;
+}
+
+:deep(.ant-btn-default.ant-btn-sm:hover) {
+  background: rgba(0, 56, 255, 0.05) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 删除按钮优化 */
+:deep(.ant-btn-dangerous.ant-btn-sm) {
+  background: linear-gradient(135deg, var(--error-color) 0%, var(--error-dark) 100%) !important;
+  border: none !important;
+  color: var(--white) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+:deep(.ant-btn-dangerous.ant-btn-sm:hover) {
+  background: linear-gradient(135deg, var(--error-dark) 0%, var(--error-color) 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* 图片优化 */
+:deep(.ant-image) {
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm) !important;
+  transition: var(--transition-fast) !important;
+}
+
+:deep(.ant-image:hover) {
+  box-shadow: var(--shadow-md) !important;
+  transform: scale(1.05) !important;
+}
+
+/* 气泡确认框优化 */
+:deep(.ant-popconfirm) {
+  z-index: 1060;
+}
+
+/* 分页组件优化 */
+:deep(.ant-pagination) {
+  margin-top: var(--spacing-xl) !important;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+:deep(.ant-pagination-item) {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(0, 56, 255, 0.2) !important;
+  border-radius: var(--radius-lg) !important;
+  transition: var(--transition-fast) !important;
+}
+
+:deep(.ant-pagination-item:hover) {
+  background: rgba(0, 56, 255, 0.1) !important;
+  border-color: var(--primary-color) !important;
+  transform: translateY(-1px) !important;
+}
+
+:deep(.ant-pagination-item-active) {
+  background: var(--button-gradient-primary) !important;
+  border-color: transparent !important;
+  color: var(--white) !important;
+  font-weight: var(--font-weight-semibold) !important;
 }
 
 /* 修复分页组件的文字对齐 */
@@ -350,9 +703,15 @@ const deleteApp = async (id: number | undefined) => {
   justify-content: center !important;
   height: 32px !important;
   padding: 0 8px !important;
-  border-radius: var(--radius-md) !important;
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(0, 56, 255, 0.2) !important;
+  border-radius: var(--radius-lg) !important;
+  transition: var(--transition-fast) !important;
+}
+
+:deep(.ant-pagination-options-size-changer .ant-select-selector:hover) {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 2px 8px rgba(0, 56, 255, 0.1) !important;
 }
 
 :deep(.ant-pagination-options-size-changer .ant-select-selection-item) {
@@ -367,7 +726,24 @@ const deleteApp = async (id: number | undefined) => {
   font-size: var(--font-size-sm) !important;
   font-weight: var(--font-weight-medium) !important;
   color: var(--gray-700) !important;
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* 分页总数文字 */
+:deep(.ant-pagination-total-text) {
+  font-family: var(--font-family-primary) !important;
+  font-weight: var(--font-weight-medium) !important;
+  color: var(--gray-600) !important;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  #appManagePage {
+    padding: var(--spacing-lg);
+  }
+
+  :deep(.ant-form),
+  :deep(.ant-table-wrapper) {
+    padding: var(--spacing-lg);
+  }
 }
 </style>
