@@ -2868,7 +2868,7 @@ watch(
       top: 0;
       bottom: 0;
       width: 4px;
-      background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(109deg, rgb(0, 56, 255) 9.43%, rgb(0, 209, 255) 96.31%);
       opacity: 0.3;
       transition: opacity 0.3s ease;
     }
@@ -2919,12 +2919,12 @@ watch(
         justify-content: center;
         min-width: 28px;
         height: 28px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(109deg, rgb(0, 56, 255) 9.43%, rgb(0, 209, 255) 96.31%);
         color: white;
         border-radius: 50%;
         font-weight: 700;
         font-size: 13px;
-        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 3px 8px rgba(0, 56, 255, 0.3);
       }
 
       .step-title {
@@ -2946,13 +2946,13 @@ watch(
         transition: all 0.2s ease;
 
         &:hover {
-          border-color: #667eea;
-          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+          border-color: rgb(0, 56, 255);
+          box-shadow: 0 2px 8px rgba(0, 56, 255, 0.15);
         }
 
         .tool-selection {
           margin-bottom: 6px;
-          color: #667eea;
+          color: rgb(0, 56, 255);
           font-weight: 500;
           font-size: 13px;
         }

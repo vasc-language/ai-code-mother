@@ -220,32 +220,33 @@ const renderedMarkdown = computed(() => {
 .markdown-content :deep(p:has(strong)) {
   padding: 12px 16px;
   background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
-  border-left: 4px solid #667eea;
+  border-left: 4px solid transparent;
+  border-image: linear-gradient(109deg, rgb(0, 56, 255) 9.43%, rgb(0, 209, 255) 96.31%) 1;
   border-radius: 8px;
   margin: 14px 0;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 56, 255, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .markdown-content :deep(p:has(strong)):hover {
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 56, 255, 0.15);
   transform: translateX(3px);
   background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
 }
 
-/* 工具调用标签样式 - 强调显示 */
+/* 工具调用标签样式 - 使用 AI Code Mother 同款渐变 */
 .markdown-content :deep(p > strong:first-child) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(109deg, rgb(0, 56, 255) 9.43%, rgb(0, 209, 255) 96.31%);
   color: white;
   padding: 5px 12px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
   margin-right: 10px;
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 3px 10px rgba(0, 56, 255, 0.35);
   letter-spacing: 0.3px;
 }
 
