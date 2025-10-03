@@ -186,7 +186,7 @@
 
             <h4>生成结果:</h4>
             <a-tag color="green">成功</a-tag>
-            <a-tag color="blue">耗时 12 秒</a-tag>
+            <a-tag color="blue">耗时 2 分钟</a-tag>
             <a-tag color="purple">消耗 6 积分</a-tag>
           </div>
         </a-tab-pane>
@@ -213,7 +213,7 @@
 
             <h4>生成结果:</h4>
             <a-tag color="green">成功</a-tag>
-            <a-tag color="blue">耗时 24 秒</a-tag>
+            <a-tag color="blue">耗时 15 分钟</a-tag>
             <a-tag color="purple">消耗 15 积分</a-tag>
           </div>
         </a-tab-pane>

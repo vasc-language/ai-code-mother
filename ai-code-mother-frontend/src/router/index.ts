@@ -49,7 +49,7 @@ const router = createRouter({
         },
         {
           path: 'features/online-editor',
-          name: '在线编辑器',
+          name: '在线编辑',
           component: () => import('@/pages/docs/features/OnlineEditorDoc.vue'),
         },
         {

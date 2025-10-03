@@ -51,7 +51,7 @@
               积分系统
             </a-menu-item>
             <a-menu-item key="/docs/features/online-editor" @click="navigateTo('/docs/features/online-editor')">
-              在线编辑器
+              在线编辑
             </a-menu-item>
             <a-menu-item key="/docs/features/version-control" @click="navigateTo('/docs/features/version-control')">
               版本管理
@@ -175,7 +175,7 @@ const currentDocTitle = computed(() => {
     '/docs/quick-start': '快速开始',
     '/docs/features/ai-generation': 'AI 智能生成',
     '/docs/features/points-system': '积分系统',
-    '/docs/features/online-editor': '在线编辑器',
+    '/docs/features/online-editor': '在线编辑',
     '/docs/features/version-control': '版本管理',
     '/docs/tutorial/create-html': '生成 HTML 页面',
     '/docs/tutorial/create-vue': '生成 Vue 应用',
