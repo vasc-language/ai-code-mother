@@ -337,46 +337,12 @@ const renderedMarkdown = computed(() => {
   padding: 8px 12px;
   border-radius: 8px;
   letter-spacing: 0.3px;
-}
-
-.markdown-content :deep(.diff-container .diff-title .title-icon) {
-  font-size: 16px;
+  background: linear-gradient(109deg, rgb(0, 56, 255) 9.43%, rgb(0, 209, 255) 96.31%);
+  color: white;
 }
 
 .markdown-content :deep(.diff-container .diff-title .title-text) {
   flex: 1;
-}
-
-/* 替换前标题 - 红色系 */
-.markdown-content :deep(.diff-container .before-title) {
-  background: linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%);
-  color: #cf1322;
-  border-left: 4px solid #ff4d4f;
-}
-
-/* 替换后标题 - 绿色系 */
-.markdown-content :deep(.diff-container .after-title) {
-  background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
-  color: #389e0d;
-  border-left: 4px solid #52c41a;
-}
-
-/* 分隔线 */
-.markdown-content :deep(.diff-container .diff-divider) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 0;
-  background: linear-gradient(to right, transparent, #e8eaed 20%, #e8eaed 80%, transparent);
-  position: relative;
-}
-
-.markdown-content :deep(.diff-container .diff-divider .divider-icon) {
-  font-size: 20px;
-  background: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* 代码区域 */

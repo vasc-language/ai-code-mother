@@ -1881,17 +1881,12 @@ const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): 
       </div>
       <div class="diff-section">
         <div class="diff-title before-title">
-          <span class="title-icon">📝</span>
           <span class="title-text">替换前</span>
         </div>
         <div class="diff-code before-code">${beforeRows.join('')}</div>
       </div>
-      <div class="diff-divider">
-        <span class="divider-icon">⬇️</span>
-      </div>
       <div class="diff-section">
         <div class="diff-title after-title">
-          <span class="title-icon">✨</span>
           <span class="title-text">替换后</span>
         </div>
         <div class="diff-code after-code">${afterRows.join('')}</div>
