@@ -67,10 +67,13 @@
               </div>
               <div class="message-content">
                 <!-- 根据项目类型显示内容 -->
-                <MarkdownRenderer v-if="message.content" :content="message.content" />
-                <div v-if="message.loading" class="loading-indicator">
+                <div v-if="message.loading && !message.content" class="loading-indicator">
                   <a-spin size="small" />
                   <span>AI 正在思考...</span>
+                </div>
+                <MarkdownRenderer v-else-if="message.content" :content="message.content" />
+                <div v-else class="empty-message">
+                  等待AI响应...
                 </div>
               </div>
             </div>
@@ -498,7 +501,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, onUnmounted, onActivated, computed } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted, onActivated, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
@@ -1114,8 +1117,22 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
           textForLeft = fullContent
         }
 
-        messages.value[aiMessageIndex].content = textForLeft || 'AI 正在生成，右侧代码实时输出中…'
-        messages.value[aiMessageIndex].loading = false
+        // 添加调试日志
+        console.log('[SSE Debug] 原始内容长度:', fullContent.length)
+        console.log('[SSE Debug] 过滤后内容长度:', textForLeft.length)
+        console.log('[SSE Debug] 代码生成类型:', codeGenType)
+        console.log('[SSE Debug] AI消息索引:', aiMessageIndex)
+        if (textForLeft.length < 50) {
+          console.log('[SSE Debug] 过滤后内容预览:', textForLeft)
+        }
+
+        // 确保至少有一些内容显示
+        const displayContent = textForLeft || fullContent.substring(0, 200) || 'AI 正在生成，右侧代码实时输出中…'
+        messages.value[aiMessageIndex].content = displayContent
+        // 只有在有实际内容时才关闭loading状态
+        if (displayContent && displayContent !== 'AI 正在生成，右侧代码实时输出中…') {
+          messages.value[aiMessageIndex].loading = false
+        }
 
         // 解析流式内容并更新右侧代码区（传入本次批次与完整内容）
         parseStreamingContent(batch, fullContent)
@@ -1160,6 +1177,16 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
       // 先刷新剩余内容
       flushToUi()
+
+      // 确保loading状态被关闭
+      if (messages.value[aiMessageIndex]) {
+        messages.value[aiMessageIndex].loading = false
+        // 如果最终还是没有内容，设置一个默认消息
+        if (!messages.value[aiMessageIndex].content) {
+          messages.value[aiMessageIndex].content = '✅ 代码生成完成，请查看右侧代码区'
+        }
+      }
+
       streamCompleted = true
       isGenerating.value = false
       // 标记本轮生成已完成，切换到预览模式
@@ -1823,43 +1850,51 @@ const diffLines = (oldStr: string, newStr: string): DiffOp[] => {
   return ops
 }
 
-// —— 生成左右对比 HTML ——
+// —— 生成上下对比 HTML（替换前在上，替换后在下）——
 const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): string => {
   const ops = diffLines(oldCnt, newCnt)
-  let leftRows: string[] = []
-  let rightRows: string[] = []
-  let lno = 1, rno = 1
+  let beforeRows: string[] = []
+  let afterRows: string[] = []
+  let beforeLineNo = 1
+  let afterLineNo = 1
+
   for (const op of ops) {
     if (op.type === 'equal') {
       const val = escapeHtml(op.value)
-      leftRows.push(`<div class="line unchanged"><span class="gutter">${lno++}</span><span class="content">${val}</span></div>`) 
-      rightRows.push(`<div class="line unchanged"><span class="gutter">${rno++}</span><span class="content">${val}</span></div>`) 
+      beforeRows.push(`<div class="line unchanged"><span class="gutter">${beforeLineNo++}</span><span class="content">${val}</span></div>`)
+      afterRows.push(`<div class="line unchanged"><span class="gutter">${afterLineNo++}</span><span class="content">${val}</span></div>`)
     } else if (op.type === 'remove') {
       const val = escapeHtml(op.value)
-      leftRows.push(`<div class="line removed"><span class="gutter">${lno++}</span><span class="content">${val}</span></div>`) 
-      rightRows.push(`<div class="line empty"><span class="gutter"></span><span class="content"></span></div>`) 
+      beforeRows.push(`<div class="line removed"><span class="gutter">${beforeLineNo++}</span><span class="content">${val}</span></div>`)
     } else if (op.type === 'add') {
       const val = escapeHtml(op.value)
-      leftRows.push(`<div class="line empty"><span class="gutter"></span><span class="content"></span></div>`) 
-      rightRows.push(`<div class="line added"><span class="gutter">${rno++}</span><span class="content">${val}</span></div>`) 
+      afterRows.push(`<div class="line added"><span class="gutter">${afterLineNo++}</span><span class="content">${val}</span></div>`)
     }
   }
+
   const safePath = escapeHtml(filePath || '未知文件')
   return (
-    `<div class="diff-container">
+    `<div class="diff-container vertical">
       <div class="diff-header">
         <span class="tool">修改文件</span>
         <span class="file-path">${safePath}</span>
       </div>
-      <div class="diff-columns">
-        <div class="diff-col">
-          <div class="diff-title">替换前</div>
-          <div class="diff-code">${leftRows.join('')}</div>
+      <div class="diff-section">
+        <div class="diff-title before-title">
+          <span class="title-icon">📝</span>
+          <span class="title-text">替换前</span>
         </div>
-        <div class="diff-col">
-          <div class="diff-title">替换后</div>
-          <div class="diff-code">${rightRows.join('')}</div>
+        <div class="diff-code before-code">${beforeRows.join('')}</div>
+      </div>
+      <div class="diff-divider">
+        <span class="divider-icon">⬇️</span>
+      </div>
+      <div class="diff-section">
+        <div class="diff-title after-title">
+          <span class="title-icon">✨</span>
+          <span class="title-text">替换后</span>
         </div>
+        <div class="diff-code after-code">${afterRows.join('')}</div>
       </div>
     </div>`
   )
@@ -2616,6 +2651,56 @@ onUnmounted(() => {
   // EventSource 连接保存在全局 store 中,由 store 管理生命周期
   // 只有在用户主动点击停止按钮时才会真正停止生成
 })
+
+// 监听路由参数变化，实现多应用切换
+watch(
+  () => route.params.id,
+  async (newId, oldId) => {
+    // 只有当ID真正变化时才重新初始化
+    if (newId && newId !== oldId) {
+      console.log(`[AppChatPage] 路由参数变化: ${oldId} -> ${newId}`)
+
+      // 提示用户正在切换应用
+      const loadingMsg = message.loading('正在加载新应用...', 0)
+
+      try {
+        // 如果当前有正在生成的任务，但不是这个新应用的任务，则清理旧状态
+        if (appGenerationStore.isGenerating && appGenerationStore.generatingAppId !== newId) {
+          console.log(`[AppChatPage] 检测到正在为其他应用生成，停止旧任务并清理状态`)
+          // 停止旧的生成任务
+          appGenerationStore.stopGeneration()
+        }
+
+        // 清理当前组件的UI状态，准备显示新应用
+        console.log(`[AppChatPage] 清理UI状态，准备加载新应用`)
+        messages.value = []
+        completedFiles.value = []
+        currentGeneratingFile.value = null
+        simpleCodeFile.value = null
+        multiFiles.value = []
+        currentMultiFile.value = null
+        multiFileContents.value = {}
+        generationFinished.value = false
+        isGenerating.value = false
+        previewReady.value = false
+
+        // 重新获取应用信息
+        await fetchAppInfo()
+
+        // 加载历史消息
+        await loadChatHistory()
+
+        loadingMsg()
+        message.success('应用加载完成')
+      } catch (error) {
+        loadingMsg()
+        console.error('[AppChatPage] 加载应用失败:', error)
+        message.error('加载应用失败，请重试')
+      }
+    }
+  },
+  { immediate: false }
+)
 </script>
 
 <style scoped>
@@ -2732,6 +2817,12 @@ onUnmounted(() => {
   color: #666;
 }
 
+.empty-message {
+  color: #999;
+  font-style: italic;
+  font-size: 14px;
+}
+
 /* 加载更多按钮 */
 .load-more-container {
   text-align: center;
@@ -2739,40 +2830,77 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
-/* 工具步骤区域样式 */
+/* 工具步骤区域样式 - 优化版本 */
 .steps-section {
-  margin-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px solid #f0f2f5;
 }
 
 .steps-header {
-  padding: 12px 0;
+  padding: 12px 0 16px;
 
   h4 {
     margin: 0;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: #1a1a1a;
+    letter-spacing: 0.3px;
   }
 }
 
 .steps-container {
   .step-item {
-    margin-bottom: 12px;
-    padding: 12px;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+    border: 1px solid #e8eaed;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    /* 添加左侧装饰条 */
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+      opacity: 0.3;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+      &::before {
+        opacity: 1;
+      }
+    }
 
     &.step-running {
-      background: #e6f7ff;
+      background: linear-gradient(135deg, #e8f4ff 0%, #d6ebff 100%);
       border-color: #91d5ff;
+      box-shadow: 0 4px 16px rgba(24, 144, 255, 0.12);
+
+      &::before {
+        background: linear-gradient(180deg, #1890ff 0%, #0050b3 100%);
+        opacity: 1;
+      }
     }
 
     &.step-completed {
-      background: #f6ffed;
+      background: linear-gradient(135deg, #f6ffed 0%, #edf9e6 100%);
       border-color: #b7eb8f;
+
+      &::before {
+        background: linear-gradient(180deg, #52c41a 0%, #389e0d 100%);
+        opacity: 1;
+      }
     }
 
     &:last-child {
@@ -2782,52 +2910,80 @@ onUnmounted(() => {
     .step-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
+      gap: 10px;
+      margin-bottom: 10px;
 
       .step-number {
-        font-weight: bold;
-        color: #1890ff;
-        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 13px;
+        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
       }
 
       .step-title {
         flex: 1;
-        font-size: 13px;
-        color: #333;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a1a;
+        letter-spacing: 0.2px;
       }
     }
 
     .tool-calls {
       .tool-call-item {
-        margin: 6px 0;
-        padding: 8px;
+        margin: 8px 0;
+        padding: 12px;
         background: white;
-        border-radius: 4px;
-        border: 1px solid #e1e4e8;
+        border-radius: 8px;
+        border: 1px solid #e8eaed;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: #667eea;
+          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
 
         .tool-selection {
-          margin-bottom: 4px;
+          margin-bottom: 6px;
+          color: #667eea;
+          font-weight: 500;
+          font-size: 13px;
         }
 
         .tool-execution {
           .tool-action {
-            font-weight: 500;
-            color: #333;
-            margin-right: 8px;
+            display: inline-block;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-right: 10px;
+            padding: 2px 8px;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+            border-radius: 4px;
+            font-size: 12px;
           }
 
           .file-path {
             color: #666;
-            font-family: 'Monaco', 'Menlo', monospace;
+            font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
             font-size: 12px;
             word-break: break-all;
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
           }
 
           .operation-desc {
-            margin: 4px 0 0 0;
+            margin: 6px 0 0 0;
             font-size: 12px;
             color: #666;
+            line-height: 1.5;
           }
         }
       }

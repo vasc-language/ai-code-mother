@@ -215,81 +215,226 @@ const renderedMarkdown = computed(() => {
   font-weight: 600;
 }
 
-/* —— 修改文件 Diff 渲染样式 —— */
-.markdown-content :deep(.diff-container) {
-  border: 1px solid #e5e5e5;
+/* —— 工具调用信息样式 —— */
+/* 为包含加粗文本的段落添加特殊样式 */
+.markdown-content :deep(p:has(strong)) {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+  border-left: 4px solid #667eea;
   border-radius: 8px;
-  background: #fff;
-  margin: 12px 0;
+  margin: 14px 0;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.markdown-content :deep(.diff-container .diff-header) {
-  padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
+
+.markdown-content :deep(p:has(strong)):hover {
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+  transform: translateX(3px);
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+}
+
+/* 工具调用标签样式 - 强调显示 */
+.markdown-content :deep(p > strong:first-child) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 6px;
   font-size: 13px;
-  color: #555;
+  font-weight: 600;
+  margin-right: 10px;
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.35);
+  letter-spacing: 0.3px;
 }
+
+/* 工具调用内容文本 */
+.markdown-content :deep(p:has(strong)) {
+  color: #2c3e50;
+  font-size: 14px;
+  line-height: 1.7;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* 修复普通段落样式不受影响 */
+.markdown-content :deep(p:not(:has(strong))) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* —— 修改文件 Diff 渲染样式（上下布局优化版）—— */
+.markdown-content :deep(.diff-container) {
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  background: white;
+  margin: 16px 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.markdown-content :deep(.diff-container):hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 文件头部 */
+.markdown-content :deep(.diff-container .diff-header) {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+  border-bottom: 1px solid #e8eaed;
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
 .markdown-content :deep(.diff-container .diff-header .tool) {
-  display: inline-block;
-  background: #fff7e6;
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%);
   color: #d46b08;
   border: 1px solid #ffd591;
-  border-radius: 4px;
-  padding: 2px 6px;
-  margin-right: 8px;
-  font-weight: 600;
-}
-.markdown-content :deep(.diff-container .diff-header .file-path) {
-  color: #888;
-}
-.markdown-content :deep(.diff-container .diff-columns) {
-  display: flex;
-  gap: 12px;
-  padding: 10px 12px 12px 12px;
-}
-.markdown-content :deep(.diff-container .diff-col) {
-  width: 50%;
-}
-.markdown-content :deep(.diff-container .diff-title) {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 6px;
-}
-.markdown-content :deep(.diff-container .diff-code) {
-  background: #fafafa;
-  border: 1px solid #eee;
   border-radius: 6px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  padding: 4px 10px;
+  margin-right: 10px;
+  font-weight: 700;
   font-size: 12px;
-  line-height: 1.5;
-  overflow-x: auto;
-  padding: 8px 0;
+  letter-spacing: 0.3px;
 }
+
+.markdown-content :deep(.diff-container .diff-header .file-path) {
+  color: #666;
+  font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
+  font-size: 12px;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* 上下布局的diff区域 */
+.markdown-content :deep(.diff-container.vertical) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Diff 区块 */
+.markdown-content :deep(.diff-container .diff-section) {
+  background: #fafbfc;
+  padding: 12px 16px;
+}
+
+/* 标题样式 */
+.markdown-content :deep(.diff-container .diff-title) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  letter-spacing: 0.3px;
+}
+
+.markdown-content :deep(.diff-container .diff-title .title-icon) {
+  font-size: 16px;
+}
+
+.markdown-content :deep(.diff-container .diff-title .title-text) {
+  flex: 1;
+}
+
+/* 替换前标题 - 红色系 */
+.markdown-content :deep(.diff-container .before-title) {
+  background: linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%);
+  color: #cf1322;
+  border-left: 4px solid #ff4d4f;
+}
+
+/* 替换后标题 - 绿色系 */
+.markdown-content :deep(.diff-container .after-title) {
+  background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
+  color: #389e0d;
+  border-left: 4px solid #52c41a;
+}
+
+/* 分隔线 */
+.markdown-content :deep(.diff-container .diff-divider) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  background: linear-gradient(to right, transparent, #e8eaed 20%, #e8eaed 80%, transparent);
+  position: relative;
+}
+
+.markdown-content :deep(.diff-container .diff-divider .divider-icon) {
+  font-size: 20px;
+  background: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 代码区域 */
+.markdown-content :deep(.diff-container .diff-code) {
+  background: white;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+  padding: 10px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* 代码行样式 */
 .markdown-content :deep(.diff-container .diff-code .line) {
   display: flex;
-  padding: 0 10px;
+  padding: 2px 12px;
+  transition: background-color 0.2s ease;
 }
+
 .markdown-content :deep(.diff-container .diff-code .line .gutter) {
-  width: 3em;
+  width: 3.5em;
   color: #999;
   text-align: right;
-  padding-right: 8px;
+  padding-right: 10px;
   user-select: none;
+  font-weight: 500;
 }
+
 .markdown-content :deep(.diff-container .diff-code .line .content) {
   flex: 1;
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* 新增行 - 绿色背景 */
 .markdown-content :deep(.diff-container .line.added) {
-  background: #e6ffed;
+  background: linear-gradient(90deg, #e6ffed 0%, #f0fff4 100%);
+  border-left: 3px solid #52c41a;
 }
+
+/* 删除行 - 红色背景 */
 .markdown-content :deep(.diff-container .line.removed) {
-  background: #ffeef0;
+  background: linear-gradient(90deg, #ffeef0 0%, #fff5f5 100%);
+  border-left: 3px solid #ff4d4f;
 }
+
+/* 未修改行 */
 .markdown-content :deep(.diff-container .line.unchanged) {
   background: transparent;
 }
+
+/* 空行 */
 .markdown-content :deep(.diff-container .line.empty .content) {
   color: #bbb;
+  font-style: italic;
 }
 </style>
