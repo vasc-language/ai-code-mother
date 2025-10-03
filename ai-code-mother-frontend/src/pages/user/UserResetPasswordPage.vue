@@ -1,26 +1,25 @@
 <template>
-  <div id="userRegisterPage">
-    <div class="register-background">
+  <div id="userResetPasswordPage">
+    <div class="reset-background">
       <div class="bg-shapes">
         <div class="shape shape-1"></div>
         <div class="shape shape-2"></div>
         <div class="shape shape-3"></div>
         <div class="shape shape-4"></div>
-        <div class="shape shape-5"></div>
       </div>
     </div>
 
-    <div class="register-container">
-      <div class="register-card">
-        <div class="register-header">
+    <div class="reset-container">
+      <div class="reset-card">
+        <div class="reset-header">
           <div class="logo-section">
             <h1 class="brand-title">AI 应用生成</h1>
           </div>
-          <h2 class="page-title">创建账户</h2>
-          <p class="page-subtitle">加入我们，开启AI应用创造之旅</p>
+          <h2 class="page-title">重置密码</h2>
+          <p class="page-subtitle">通过邮箱验证码重置您的账户密码</p>
         </div>
 
-        <div class="register-form">
+        <div class="reset-form">
           <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
             <a-form-item
               name="userEmail"
@@ -31,7 +30,7 @@
             >
               <a-input
                 v-model:value="formState.userEmail"
-                placeholder="邮箱"
+                placeholder="注册邮箱"
                 size="large"
               />
             </a-form-item>
@@ -43,7 +42,7 @@
               <div style="display: flex; gap: 12px;">
                 <a-input
                   v-model:value="formState.emailCode"
-                  placeholder="验证码"
+                  placeholder="邮箱验证码"
                   size="large"
                   style="flex: 1;"
                 />
@@ -60,15 +59,15 @@
             </a-form-item>
 
             <a-form-item
-              name="userPassword"
+              name="newPassword"
               :rules="[
-                { required: true, message: '请输入您的密码' },
-                { min: 8, message: '密码长度不能小于 8 位' },
+                { required: true, message: '请输入新密码' },
+                { min: 8, max: 20, message: '密码长度必须在8-20位之间' },
               ]"
             >
               <a-input-password
-                v-model:value="formState.userPassword"
-                placeholder="密码"
+                v-model:value="formState.newPassword"
+                placeholder="新密码（8-20位）"
                 size="large"
               />
             </a-form-item>
@@ -76,42 +75,30 @@
             <a-form-item
               name="checkPassword"
               :rules="[
-                { required: true, message: '请确认您的密码' },
-                { min: 8, message: '密码长度不能小于 8 位' },
+                { required: true, message: '请确认您的新密码' },
+                { min: 8, max: 20, message: '密码长度必须在8-20位之间' },
                 { validator: validateCheckPassword },
               ]"
             >
               <a-input-password
                 v-model:value="formState.checkPassword"
-                placeholder="确认密码"
+                placeholder="确认新密码"
                 size="large"
               />
             </a-form-item>
 
-            <a-form-item name="inviteCode">
-              <a-input
-                v-model:value="formState.inviteCode"
-                placeholder="邀请码（可选）"
-                size="large"
-              >
-                <template #prefix>
-                  <span style="color: #fb923c;">🎁</span>
-                </template>
-              </a-input>
-            </a-form-item>
-
             <a-form-item class="submit-item">
-              <a-button type="primary" html-type="submit" size="large" class="register-btn">
-                <span class="btn-text">立即注册</span>
-                <span class="btn-sparkle">✨</span>
+              <a-button type="primary" html-type="submit" size="large" class="reset-btn">
+                <span class="btn-text">重置密码</span>
+                <span class="btn-icon">🔑</span>
               </a-button>
             </a-form-item>
           </a-form>
 
-          <div class="register-footer">
+          <div class="reset-footer">
             <div class="login-link">
-              <span>已有账号？</span>
-              <RouterLink to="/user/login" class="link">立即登录</RouterLink>
+              <span>想起密码了？</span>
+              <RouterLink to="/user/login" class="link">返回登录</RouterLink>
             </div>
           </div>
         </div>
@@ -121,27 +108,19 @@
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router'
-import { userRegister } from '@/api/userController.ts'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { reactive, ref, computed } from 'vue'
 import request from '@/request'
 
 const router = useRouter()
-const route = useRoute()
 
-const formState = reactive<API.UserRegisterRequest>({
+const formState = reactive({
   userEmail: '',
   emailCode: '',
-  userPassword: '',
+  newPassword: '',
   checkPassword: '',
-  inviteCode: '',
 })
-
-const queryInviteCode = route.query.inviteCode
-if (typeof queryInviteCode === 'string') {
-  formState.inviteCode = queryInviteCode
-}
 
 // 验证码发送相关状态
 const sendCodeDisabled = ref(false)
@@ -173,7 +152,7 @@ const sendEmailCode = async () => {
     isSendingCode.value = true
     const res = await request.post('/user/email/send', {
       email: formState.userEmail,
-      type: 'REGISTER'
+      type: 'RESET_PASSWORD'
     })
 
     if (res.data.code === 0) {
@@ -201,12 +180,9 @@ const sendEmailCode = async () => {
 
 /**
  * 验证确认密码
- * @param rule
- * @param value
- * @param callback
  */
 const validateCheckPassword = (rule: unknown, value: string, callback: (error?: Error) => void) => {
-  if (value && value !== formState.userPassword) {
+  if (value && value !== formState.newPassword) {
     callback(new Error('两次输入密码不一致'))
   } else {
     callback()
@@ -215,29 +191,28 @@ const validateCheckPassword = (rule: unknown, value: string, callback: (error?: 
 
 /**
  * 提交表单
- * @param values
  */
-const handleSubmit = async (values: API.UserRegisterRequest) => {
-  const payload: API.UserRegisterRequest = {
-    ...values,
-    inviteCode: formState.inviteCode || undefined,
-  }
-  const res = await userRegister(payload)
-  // 注册成功，跳转到登录页面
-  if (res.data.code === 0) {
-    message.success('注册成功')
-    router.push({
-      path: '/user/login',
-      replace: true,
-    })
-  } else {
-    message.error('注册失败，' + res.data.message)
+const handleSubmit = async () => {
+  try {
+    const res = await request.post('/user/reset-password', formState)
+
+    if (res.data.code === 0) {
+      message.success('密码重置成功，请使用新密码登录')
+      router.push({
+        path: '/user/login',
+        replace: true,
+      })
+    } else {
+      message.error('重置失败：' + res.data.message)
+    }
+  } catch (error: any) {
+    message.error('重置失败：' + (error.message || '网络错误'))
   }
 }
 </script>
 
 <style scoped>
-#userRegisterPage {
+#userResetPasswordPage {
   min-height: 100vh;
   position: relative;
   display: flex;
@@ -248,7 +223,7 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 }
 
 /* 动态背景 */
-.register-background {
+.reset-background {
   position: absolute;
   top: 0;
   left: 0;
@@ -270,89 +245,81 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 
 .shape {
   position: absolute;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 50%;
   backdrop-filter: blur(10px);
-  animation: float 8s ease-in-out infinite;
+  animation: float 7s ease-in-out infinite;
 }
 
 .shape-1 {
-  width: 180px;
-  height: 180px;
-  top: 5%;
-  left: 5%;
+  width: 160px;
+  height: 160px;
+  top: 8%;
+  left: 8%;
   animation-delay: 0s;
 }
 
 .shape-2 {
-  width: 120px;
-  height: 120px;
-  top: 60%;
-  right: 10%;
-  animation-delay: 1.5s;
+  width: 110px;
+  height: 110px;
+  top: 65%;
+  right: 12%;
+  animation-delay: 1.8s;
 }
 
 .shape-3 {
-  width: 80px;
-  height: 80px;
-  top: 15%;
-  right: 30%;
-  animation-delay: 3s;
+  width: 90px;
+  height: 90px;
+  top: 18%;
+  right: 28%;
+  animation-delay: 3.2s;
 }
 
 .shape-4 {
-  width: 140px;
-  height: 140px;
-  bottom: 15%;
-  left: 15%;
-  animation-delay: 0.5s;
-}
-
-.shape-5 {
-  width: 60px;
-  height: 60px;
-  top: 35%;
-  left: 70%;
-  animation-delay: 2.5s;
+  width: 130px;
+  height: 130px;
+  bottom: 18%;
+  left: 18%;
+  animation-delay: 0.8s;
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
-  25% { transform: translateY(-15px) rotate(90deg) scale(1.1); }
-  50% { transform: translateY(5px) rotate(180deg) scale(0.9); }
-  75% { transform: translateY(-8px) rotate(270deg) scale(1.05); }
+  25% { transform: translateY(-18px) rotate(90deg) scale(1.08); }
+  50% { transform: translateY(8px) rotate(180deg) scale(0.92); }
+  75% { transform: translateY(-10px) rotate(270deg) scale(1.04); }
 }
 
-/* 注册容器 */
-.register-container {
+/* 重置容器 */
+.reset-container {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 450px;
+  max-width: 440px;
   padding: 20px;
 }
 
-/* 注册卡片 */
-.register-card {
+/* 重置卡片 */
+.reset-card {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 28px;
+  border-radius: 26px;
   box-shadow: 0 32px 64px rgba(0, 0, 0, 0.1), 0 16px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.3);
   overflow: hidden;
-  animation: cardAppear 1s ease-out;
+  animation: cardAppear 0.9s ease-out;
   transition: all 0.3s ease;
 }
 
-.register-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 48px 96px rgba(0, 0, 0, 0.15), 0 24px 48px rgba(0, 0, 0, 0.1);
+.reset-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 44px 88px rgba(0, 0, 0, 0.14), 0 22px 44px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes cardAppear {
   0% {
     opacity: 0;
-    transform: translateY(50px) scale(0.9);
+    transform: translateY(45px) scale(0.92);
   }
   100% {
     opacity: 1;
@@ -360,51 +327,26 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   }
 }
 
-/* 注册头部 */
-.register-header {
+/* 重置头部 */
+.reset-header {
   text-align: center;
-  padding: 42px 36px 36px;
-  background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
-  border-bottom: 1px solid rgba(240, 147, 251, 0.15);
+  padding: 40px 34px 32px;
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%);
+  border-bottom: 1px solid rgba(251, 146, 60, 0.12);
 }
 
 .logo-section {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  margin-bottom: 28px;
-}
-
-.logo-icon {
-  font-size: 52px;
-  animation: sparkle 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 8px rgba(240, 147, 251, 0.3));
-}
-
-@keyframes sparkle {
-  0%, 100% {
-    transform: rotate(0deg) scale(1);
-    filter: drop-shadow(0 4px 8px rgba(240, 147, 251, 0.3));
-  }
-  25% {
-    transform: rotate(-5deg) scale(1.1);
-    filter: drop-shadow(0 6px 12px rgba(240, 147, 251, 0.4));
-  }
-  50% {
-    transform: rotate(5deg) scale(1.05);
-    filter: drop-shadow(0 8px 16px rgba(240, 147, 251, 0.5));
-  }
-  75% {
-    transform: rotate(-3deg) scale(1.08);
-    filter: drop-shadow(0 6px 12px rgba(240, 147, 251, 0.4));
-  }
+  gap: 13px;
+  margin-bottom: 26px;
 }
 
 .brand-title {
-  font-size: 30px;
+  font-size: 29px;
   font-weight: 700;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+  background: linear-gradient(135deg, #fb923c 0%, #ef4444 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -413,36 +355,36 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 }
 
 .page-title {
-  font-size: 34px;
+  font-size: 33px;
   font-weight: 800;
   color: #1a1a1a;
-  margin: 0 0 10px 0;
+  margin: 0 0 9px 0;
   letter-spacing: -0.02em;
 }
 
 .page-subtitle {
-  font-size: 17px;
+  font-size: 16.5px;
   color: #6b7280;
   margin: 0;
   line-height: 1.5;
   font-weight: 400;
 }
 
-/* 注册表单 */
-.register-form {
-  padding: 36px;
+/* 重置表单 */
+.reset-form {
+  padding: 34px;
 }
 
 /* 表单项样式覆盖 */
 :deep(.ant-form-item) {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 :deep(.ant-input) {
-  border-radius: 14px;
+  border-radius: 13px;
   border: 2px solid #e5e7eb;
   transition: all 0.3s ease;
-  padding: 0 18px;
+  padding: 0 17px;
   font-size: 16px;
   height: 52px;
   display: flex;
@@ -451,19 +393,19 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 
 :deep(.ant-input:focus),
 :deep(.ant-input-focused) {
-  border-color: #f093fb;
-  box-shadow: 0 0 0 4px rgba(240, 147, 251, 0.15);
+  border-color: #fb923c;
+  box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.13);
 }
 
 :deep(.ant-input-password) {
-  border-radius: 14px;
+  border-radius: 13px;
 }
 
 :deep(.ant-input-affix-wrapper) {
-  border-radius: 14px !important;
+  border-radius: 13px !important;
   border: 2px solid #e5e7eb !important;
   transition: all 0.3s ease;
-  padding: 0 18px !important;
+  padding: 0 17px !important;
   height: 52px !important;
   display: flex;
   align-items: center;
@@ -487,8 +429,8 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 
 :deep(.ant-input-affix-wrapper:focus),
 :deep(.ant-input-affix-wrapper-focused) {
-  border-color: #f093fb !important;
-  box-shadow: 0 0 0 4px rgba(240, 147, 251, 0.15) !important;
+  border-color: #fb923c !important;
+  box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.13) !important;
 }
 
 /* 覆盖错误状态样式 */
@@ -498,8 +440,8 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 
 :deep(.ant-form-item-has-error .ant-input-affix-wrapper:focus),
 :deep(.ant-form-item-has-error .ant-input-affix-wrapper-focused) {
-  border-color: #f093fb !important;
-  box-shadow: 0 0 0 4px rgba(240, 147, 251, 0.15) !important;
+  border-color: #fb923c !important;
+  box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.13) !important;
 }
 
 .send-code-btn {
@@ -508,28 +450,28 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  background: linear-gradient(135deg, rgba(240, 147, 251, 0.15) 0%, rgba(79, 172, 254, 0.15) 100%);
-  color: rgba(76, 81, 191, 0.7);
+  border-radius: 13px;
+  border: 1px solid rgba(251, 146, 60, 0.28);
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.16) 0%, rgba(239, 68, 68, 0.16) 100%);
+  color: rgba(234, 88, 12, 0.75);
   font-weight: 600;
   letter-spacing: 0.5px;
   transition: all 0.3s ease;
-  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 12px 24px rgba(251, 146, 60, 0.1);
   backdrop-filter: blur(6px);
 }
 
 .send-code-btn:hover,
 .send-code-btn:focus {
-  border-color: rgba(99, 102, 241, 0.4);
-  background: linear-gradient(135deg, rgba(240, 147, 251, 0.2) 0%, rgba(79, 172, 254, 0.2) 100%);
-  color: rgba(59, 66, 165, 0.85);
-  box-shadow: 0 16px 32px rgba(99, 102, 241, 0.14);
+  border-color: rgba(251, 146, 60, 0.45);
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.22) 0%, rgba(239, 68, 68, 0.22) 100%);
+  color: rgba(194, 65, 12, 0.88);
+  box-shadow: 0 16px 32px rgba(251, 146, 60, 0.16);
 }
 
 .send-code-btn:active {
   transform: translateY(1px);
-  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 8px 18px rgba(251, 146, 60, 0.14);
 }
 
 .send-code-btn[disabled] {
@@ -540,86 +482,84 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   cursor: not-allowed;
 }
 
-
 /* 提交按钮 */
 .submit-item {
   margin-bottom: 0 !important;
-  margin-top: 32px !important;
+  margin-top: 30px !important;
 }
 
-.register-btn {
+.reset-btn {
   width: 100%;
-  height: 60px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+  height: 58px;
+  border-radius: 17px;
+  background: linear-gradient(135deg, #fb923c 0%, #ef4444 100%);
   border: none;
-  font-size: 19px;
+  font-size: 18.5px;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 9px;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
-.register-btn::before {
+.reset-btn::before {
   content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, transparent 100%);
-  transition: left 0.6s ease;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.23) 0%, transparent 100%);
+  transition: left 0.55s ease;
 }
 
-.register-btn:hover::before {
+.reset-btn:hover::before {
   left: 100%;
 }
 
-.register-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 20px 40px rgba(240, 147, 251, 0.4);
+.reset-btn:hover {
+  transform: translateY(-2.5px);
+  box-shadow: 0 18px 36px rgba(251, 146, 60, 0.38);
 }
 
-.register-btn:active {
-  transform: translateY(-1px);
+.reset-btn:active {
+  transform: translateY(-0.5px);
 }
 
 .btn-text {
   transition: transform 0.3s ease;
 }
 
-.btn-sparkle {
+.btn-icon {
   transition: transform 0.3s ease;
-  font-size: 22px;
-  animation: sparkle 2s ease-in-out infinite;
+  font-size: 21px;
 }
 
-.register-btn:hover .btn-text {
-  transform: translateX(-6px);
+.reset-btn:hover .btn-text {
+  transform: translateX(-5px);
 }
 
-.register-btn:hover .btn-sparkle {
-  transform: translateX(6px) rotate(180deg);
+.reset-btn:hover .btn-icon {
+  transform: translateX(5px) rotate(15deg);
 }
 
 /* 页脚链接 */
-.register-footer {
-  padding-top: 28px;
+.reset-footer {
+  padding-top: 26px;
   border-top: 1px solid #f3f4f6;
   text-align: center;
 }
 
 .login-link {
-  font-size: 15px;
+  font-size: 14.5px;
   color: #6b7280;
 }
 
 .login-link .link {
-  color: #f093fb;
+  color: #fb923c;
   text-decoration: none;
   font-weight: 600;
   margin-left: 8px;
@@ -634,7 +574,7 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   height: 2px;
   bottom: -2px;
   left: 0;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #fb923c 0%, #ef4444 100%);
   transition: width 0.3s ease;
 }
 
@@ -643,53 +583,49 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 }
 
 .login-link .link:hover {
-  color: #f5576c;
+  color: #ef4444;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .register-container {
+  .reset-container {
     padding: 16px;
-    max-width: 380px;
+    max-width: 370px;
   }
 
-  .register-card {
-    border-radius: 24px;
+  .reset-card {
+    border-radius: 22px;
   }
 
-  .register-header {
-    padding: 36px 28px 28px;
+  .reset-header {
+    padding: 34px 26px 26px;
   }
 
   .brand-title {
-    font-size: 26px;
+    font-size: 25px;
   }
 
   .page-title {
-    font-size: 30px;
+    font-size: 29px;
   }
 
   .page-subtitle {
-    font-size: 15px;
+    font-size: 14.5px;
   }
 
-  .register-form {
-    padding: 28px;
+  .reset-form {
+    padding: 26px;
   }
 
-  .register-btn {
-    height: 56px;
-    font-size: 17px;
-  }
-
-  .logo-icon {
-    font-size: 48px;
+  .reset-btn {
+    height: 54px;
+    font-size: 16.5px;
   }
 }
 
 /* 暗色模式适配 */
 @media (prefers-color-scheme: dark) {
-  .register-card {
+  .reset-card {
     background: rgba(17, 17, 17, 0.95);
     color: white;
   }
@@ -702,16 +638,15 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
     color: #d1d5db;
   }
 
-
   .login-link {
     color: #9ca3af;
   }
 
-  .register-header {
-    border-bottom: 1px solid rgba(240, 147, 251, 0.2);
+  .reset-header {
+    border-bottom: 1px solid rgba(251, 146, 60, 0.18);
   }
 
-  .register-footer {
+  .reset-footer {
     border-top: 1px solid #374151;
   }
 }

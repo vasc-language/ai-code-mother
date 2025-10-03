@@ -258,7 +258,7 @@ onMounted(() => {
     <div class="container">
       <!-- 网站标题和描述 -->
       <div class="hero-section">
-        <h1 class="hero-title">AI 零代码应用生成平台</h1>
+        <h1 class="hero-title">Your Majestic AI Creation Concierge</h1>
         <p class="hero-description">一句话轻松创建网站应用</p>
       </div>
 

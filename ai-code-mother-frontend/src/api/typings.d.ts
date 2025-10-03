@@ -479,6 +479,13 @@ declare namespace API {
     inviteCode?: string
   }
 
+  type UserResetPasswordRequest = {
+    userEmail?: string
+    emailCode?: string
+    newPassword?: string
+    checkPassword?: string
+  }
+
   type UserStatisticsVO = {
     appCount?: number
     generateCount?: number
@@ -497,6 +504,7 @@ declare namespace API {
   type UserVO = {
     id?: number
     userAccount?: string
+    userEmail?: string
     userName?: string
     userAvatar?: string
     userProfile?: string

@@ -13,6 +13,7 @@ import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
 import com.spring.aicodemother.model.dto.user.*;
+import com.spring.aicodemother.model.dto.user.UserResetPasswordRequest;
 import com.spring.aicodemother.model.entity.App;
 import com.spring.aicodemother.model.vo.AppVO;
 import com.spring.aicodemother.model.vo.LoginUserVO;
@@ -116,6 +117,24 @@ public class UserController {
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
         ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR);
         boolean result = userService.userLogout(request);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 重置密码
+     *
+     * @param resetPasswordRequest 重置密码请求参数
+     * @return 是否重置成功
+     */
+    @PostMapping("/reset-password")
+    public BaseResponse<Boolean> resetPassword(@RequestBody UserResetPasswordRequest resetPasswordRequest) {
+        ThrowUtils.throwIf(resetPasswordRequest == null, ErrorCode.PARAMS_ERROR);
+        String userEmail = resetPasswordRequest.getUserEmail();
+        String emailCode = resetPasswordRequest.getEmailCode();
+        String newPassword = resetPasswordRequest.getNewPassword();
+        String checkPassword = resetPasswordRequest.getCheckPassword();
+
+        boolean result = userService.resetPassword(userEmail, emailCode, newPassword, checkPassword);
         return ResultUtils.success(result);
     }
 

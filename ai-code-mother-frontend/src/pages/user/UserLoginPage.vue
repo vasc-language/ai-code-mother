@@ -49,6 +49,10 @@
               />
             </a-form-item>
 
+            <div class="form-options">
+              <RouterLink to="/user/reset-password" class="forgot-password">忘记密码?</RouterLink>
+            </div>
+
             <a-form-item class="submit-item">
               <a-button type="primary" html-type="submit" size="large" class="login-btn">
                 <span class="btn-text">登录</span>
@@ -343,6 +347,41 @@ const handleSubmit = async (values: any) => {
 :deep(.ant-form-item-has-error .ant-input-affix-wrapper-focused) {
   border-color: #667eea !important;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* 表单选项 */
+.form-options {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.forgot-password {
+  color: #667eea;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.forgot-password::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1.5px;
+  bottom: -2px;
+  left: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s ease;
+}
+
+.forgot-password:hover {
+  color: #764ba2;
+}
+
+.forgot-password:hover::after {
+  width: 100%;
 }
 
 

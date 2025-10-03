@@ -99,4 +99,15 @@ public interface UserService extends IService<User> {
      */
     UserStatisticsVO getUserStatistics(Long userId);
 
+    /**
+     * 重置密码
+     *
+     * @param userEmail 用户邮箱
+     * @param emailCode 邮箱验证码
+     * @param newPassword 新密码
+     * @param checkPassword 确认密码
+     * @return 是否重置成功
+     */
+    boolean resetPassword(String userEmail, String emailCode, String newPassword, String checkPassword);
+
 }

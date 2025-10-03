@@ -367,4 +367,54 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         return statistics;
     }
+
+    @Override
+    public boolean resetPassword(String userEmail, String emailCode, String newPassword, String checkPassword) {
+        // 1. 校验参数
+        if (StrUtil.hasBlank(userEmail, emailCode, newPassword, checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数错误");
+        }
+
+        // 2. 校验邮箱格式
+        if (!cn.hutool.core.util.ReUtil.isMatch("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", userEmail)) {
+            throw new BusinessException(ErrorCode.EMAIL_FORMAT_ERROR);
+        }
+
+        // 3. 验证邮箱验证码
+        boolean codeValid = emailService.verifyCode(userEmail, emailCode, "RESET_PASSWORD");
+        if (!codeValid) {
+            throw new BusinessException(ErrorCode.EMAIL_CODE_INVALID);
+        }
+
+        // 4. 验证两次密码是否一致
+        if (!newPassword.equals(checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
+        }
+
+        // 5. 验证密码长度
+        if (newPassword.length() < 8 || newPassword.length() > 20) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度必须在8-20位之间");
+        }
+
+        // 6. 查询用户是否存在
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        queryWrapper.eq("userEmail", userEmail);
+        User user = this.mapper.selectOneByQuery(queryWrapper);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "该邮箱未注册");
+        }
+
+        // 7. 加密新密码
+        String encryptPassword = getEncryptPassword(newPassword);
+
+        // 8. 更新用户密码
+        user.setUserPassword(encryptPassword);
+        boolean result = this.updateById(user);
+        if (!result) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "密码重置失败");
+        }
+
+        log.info("用户 {} 密码重置成功", userEmail);
+        return true;
+    }
 }
