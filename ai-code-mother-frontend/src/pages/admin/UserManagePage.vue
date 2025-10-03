@@ -269,6 +269,17 @@ onMounted(() => {
   font-size: 15px !important;
   font-weight: 500 !important;
   color: var(--gray-800) !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  height: auto !important;
+}
+
+:deep(.search-input .ant-input:focus),
+:deep(.search-input .ant-input-focused) {
+  border: none !important;
+  box-shadow: none !important;
 }
 
 :deep(.search-input .ant-input::placeholder) {
