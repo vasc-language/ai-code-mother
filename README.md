@@ -1565,8 +1565,9 @@ Closes #123
 
 - 提交 [Issue](https://github.com/your-repo/ai-code-mother/issues)
 - 发送邮件至: zrt3ljnygz@163.com
-- 微信联系: ![微信加好友](https://github.com/vasc-language/ai-code-mother/blob/main/WeChatToFirend.png)
-
+<p align="center">
+  <img src="https://raw.githubusercontent.com/vasc-language/ai-code-mother/main/WeChatToFirend.png" alt="微信加好友" width="250">
+</p>
 ---
 
 <p align="center">
@@ -1576,6 +1577,7 @@ Closes #123
 <p align="center">
   让AI为您的代码生成插上翅膀！
 </p>
+
 
 
 
