@@ -1565,9 +1565,8 @@ Closes #123
 
 - 提交 [Issue](https://github.com/your-repo/ai-code-mother/issues)
 - 发送邮件至: zrt3ljnygz@163.com
-<p align="center">
-  <img src="https://raw.githubusercontent.com/vasc-language/ai-code-mother/main/WeChatToFirend.png" alt="微信加好友" width="250">
-</p>
+- 微信联系: Join2049
+- <img src="https://raw.githubusercontent.com/vasc-language/ai-code-mother/main/WeChatToFirend.png" alt="微信加好友" width="40%">
 ---
 
 <p align="center">
