@@ -194,7 +194,9 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
     }
 
     private ChatMemory initTemporaryMemory(AiServiceContext context, List<ChatMessage> messagesToSend) {
-        var chatMemory = MessageWindowChatMemory.withMaxMessages(Integer.MAX_VALUE);
+        // 限制临时记忆的最大消息数为20，避免上下文过长导致AI推理变慢
+        // 原值 Integer.MAX_VALUE 会保留所有历史，导致VUE项目生成中后期严重变慢
+        var chatMemory = MessageWindowChatMemory.withMaxMessages(30);
 
         if (!context.hasChatMemory()) {
             chatMemory.add(messagesToSend);

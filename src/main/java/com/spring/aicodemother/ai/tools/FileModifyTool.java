@@ -78,12 +78,12 @@ public class FileModifyTool extends BaseTool {
         // 显示对比内容
         return String.format("""
                 [工具调用] %s %s
-                
+
                 替换前：
                 ```
                 %s
                 ```
-                
+
                 替换后：
                 ```
                 %s
