@@ -1569,6 +1569,12 @@ Closes #123
 **💬 微信**: Join2049
 **🐛 问题反馈**: [提交Issue](https://github.com/vasc-language/ai-code-mother/issues)
 
+<br>
+
+**扫码添加微信好友**
+
+<img src="https://raw.githubusercontent.com/vasc-language/ai-code-mother/main/WeChatToFirend.png" alt="微信加好友" width="200">
+
 </div>
 
 ---
