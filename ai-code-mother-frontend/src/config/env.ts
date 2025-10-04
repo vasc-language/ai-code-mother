@@ -3,8 +3,11 @@
  */
 import { CodeGenTypeEnum } from '@/utils/codeGenTypes.ts'
 
-// 应用部署域名
+// 应用部署域名（用于部署的子应用访问）
 export const DEPLOY_DOMAIN = import.meta.env.VITE_DEPLOY_DOMAIN || 'http://localhost'
+
+// 应用主域名（用于邀请链接等）
+export const APP_DOMAIN = import.meta.env.VITE_APP_DOMAIN || 'http://localhost:5173'
 
 // API 基础地址
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8123/api'

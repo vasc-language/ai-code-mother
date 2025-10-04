@@ -15,16 +15,16 @@
 
       <a-descriptions bordered :column="1">
         <a-descriptions-item label="API 基础地址">
-          <a-tag color="blue">http://localhost:8123/api</a-tag>
+          <a-tag color="blue">{{ API_HOST }}</a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="在线文档">
-          <a href="http://localhost:8123/api/doc.html" target="_blank">
+          <a :href="`${API_HOST}/doc.html`" target="_blank">
             Swagger UI (Knife4j)
           </a>
         </a-descriptions-item>
         <a-descriptions-item label="OpenAPI 规范">
-          <a href="http://localhost:8123/api/v3/api-docs" target="_blank">
-            http://localhost:8123/api/v3/api-docs
+          <a :href="`${API_HOST}/v3/api-docs`" target="_blank">
+            {{ API_HOST }}/v3/api-docs
           </a>
         </a-descriptions-item>
         <a-descriptions-item label="请求格式">
@@ -276,7 +276,7 @@ data: {"type": "done", "message": "生成完成"}</pre>
       <a-tabs>
         <a-tab-pane key="1" tab="JavaScript">
           <pre class="code-block">// 用户登录
-fetch('http://localhost:8123/api/user/login', {
+fetch('{{ API_HOST }}/user/login', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
@@ -299,7 +299,7 @@ fetch('http://localhost:8123/api/user/login', {
           <pre class="code-block">import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8123/api',
+  baseURL: '{{ API_HOST }}',
   withCredentials: true
 });
 
@@ -315,13 +315,13 @@ const login = async (account, password) => {
 
         <a-tab-pane key="3" tab="cURL">
           <pre class="code-block"># 用户登录
-curl -X POST http://localhost:8123/api/user/login \
+curl -X POST {{ API_HOST }}/user/login \
   -H "Content-Type: application/json" \
   -d '{"userAccount":"username","userPassword":"password"}' \
   --cookie-jar cookies.txt
 
 # 获取登录用户(使用保存的cookie)
-curl -X GET http://localhost:8123/api/user/get/login \
+curl -X GET {{ API_HOST }}/user/get/login \
   --cookie cookies.txt</pre>
         </a-tab-pane>
       </a-tabs>
@@ -332,7 +332,7 @@ curl -X GET http://localhost:8123/api/user/get/login \
     <div style="text-align: center; padding: 24px; background: #f5f5f5; border-radius: 8px;">
       <h3>在线文档</h3>
       <p>更详细的 API 文档请访问 Swagger UI</p>
-      <a-button type="primary" href="http://localhost:8123/api/doc.html" target="_blank">
+      <a-button type="primary" :href="`${API_HOST}/doc.html`" target="_blank">
         <ApiOutlined /> 访问 Swagger UI
       </a-button>
     </div>
@@ -348,6 +348,10 @@ import {
   WalletOutlined,
   ToolOutlined
 } from '@ant-design/icons-vue'
+import { API_BASE_URL } from '@/config/env'
+
+// 获取 API 主机地址（用于文档展示）
+const API_HOST = import.meta.env.PROD ? 'https://joinoai.cloud/api' : 'http://localhost:8123/api'
 
 const errorCodes = [
   { code: 0, name: 'SUCCESS', description: '成功' },

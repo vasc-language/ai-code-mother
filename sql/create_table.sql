@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS `user`
 (
     `id`           bigint       NOT NULL AUTO_INCREMENT COMMENT 'id',
     `userAccount`  varchar(256) NOT NULL COMMENT '账号',
+    `userEmail`    varchar(256) NULL COMMENT '用户邮箱',
+    `emailVerified` tinyint     NOT NULL DEFAULT 0 COMMENT '邮箱是否验证:0-未验证,1-已验证',
     `userPassword` varchar(512) NOT NULL COMMENT '密码',
     `userName`     varchar(256) NULL DEFAULT NULL COMMENT '用户昵称',
     `userAvatar`   varchar(1024) NULL DEFAULT NULL COMMENT '用户头像',
@@ -22,7 +24,8 @@ CREATE TABLE IF NOT EXISTS `user`
     `updateTime`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `isDelete`     tinyint      NOT NULL DEFAULT 0 COMMENT '是否删除',
     PRIMARY KEY (`id`),
-    UNIQUE INDEX `uni_userAccount`(`userAccount`)
+    UNIQUE INDEX `uni_userAccount`(`userAccount`),
+    UNIQUE INDEX `uni_userEmail`(`userEmail`)
 ) COMMENT '用户';
 
 -- 插入数据
@@ -164,4 +167,22 @@ CREATE TABLE IF NOT EXISTS `invite_record`
     INDEX `idx_inviteeId` (`inviteeId`),
     INDEX `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='邀请关系表';
+
+-- 邮箱验证码表（邮箱登录注册功能）
+CREATE TABLE IF NOT EXISTS `email_verification_code`
+(
+    `id`         bigint       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `email`      varchar(256) NOT NULL COMMENT '邮箱地址',
+    `code`       varchar(10)  NOT NULL COMMENT '验证码',
+    `type`       varchar(20)  NOT NULL COMMENT '验证码类型:REGISTER-注册, RESET_PASSWORD-重置密码, LOGIN-登录',
+    `expireTime` datetime     NOT NULL COMMENT '过期时间',
+    `verified`   tinyint      DEFAULT 0 COMMENT '是否已使用:0-未使用, 1-已使用',
+    `createTime` datetime     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updateTime` datetime     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `isDelete`   tinyint      DEFAULT 0 COMMENT '逻辑删除:0-未删除,1-已删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_email` (`email`),
+    INDEX `idx_email_type` (`email`, `type`),
+    INDEX `idx_expire` (`expireTime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='邮箱验证码表';
 

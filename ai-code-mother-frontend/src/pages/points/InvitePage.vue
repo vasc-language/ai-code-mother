@@ -180,6 +180,7 @@ import {
 import dayjs from 'dayjs'
 import { getInviteCode, getInviteRecords } from '@/api/yaoqingguanli'
 import { getUserLogin } from '@/api/userController'
+import { APP_DOMAIN } from '@/config/env'
 
 const router = useRouter()
 
@@ -195,7 +196,7 @@ interface InviteRecord {
 
 const inviteCode = ref('')
 const inviteLink = computed(() => {
-  return `${window.location.origin}/user/register?inviteCode=${inviteCode.value}`
+  return `${APP_DOMAIN}/user/register?inviteCode=${inviteCode.value}`
 })
 const copyLoading = ref(false)
 const copyLinkLoading = ref(false)

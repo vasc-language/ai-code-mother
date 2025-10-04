@@ -1,10 +1,29 @@
 ### CUSTOM ###
-*.md
+# 排除包含敏感信息的 markdown 文件
+tasks/*.md
+deploy/README.md
+
+# 排除包含敏感配置的部署脚本
+deploy/deploy.sh
+deploy/backup.sh
+
+# 但允许公开的文档
+!/README.md
+!deploy/README_PUBLIC.md
+!deploy/DEPLOY_DOCS_GUIDE.md
+!deploy/README_FILES.md
+!CLAUDE.md
+!ai-code-mother-frontend/CLAUDE.md
+
+# 排除生产环境配置文件
 application-local.yml
 application-prod.yml
 application-local.properties
 *.env
 .env*
+!.env.example
+
+# 排除证书和密钥文件
 *.key
 *.pem
 *.cert
@@ -12,7 +31,11 @@ application-local.properties
 secrets/
 credentials/
 config/private*
+
+# 排除临时文件
 tmp
+*.log
+*.pid
 
 HELP.md
 target/
