@@ -119,6 +119,15 @@
           </template>
         </a-alert>
 
+        <!-- AI模型选择器 -->
+        <div v-if="isOwner" class="model-selector-container">
+          <AiModelSelector
+            ref="modelSelectorRef"
+            :disabled="isGenerating"
+            @change="handleModelChange"
+          />
+        </div>
+
         <!-- 用户消息输入框 -->
         <div class="input-container">
           <div class="input-wrapper">
@@ -523,6 +532,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import CodeHighlight from '@/components/CodeHighlight.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
+import AiModelSelector from '@/components/AiModelSelector.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
@@ -587,6 +597,11 @@ const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
+
+// AI模型选择相关
+const modelSelectorRef = ref()
+const selectedModelKey = ref('deepseek-reasoner')
+
 // Streaming control state - 使用全局 store 管理 EventSource，避免页面切换时中断
 const currentRunId = ref<string | null>(null)
 const stoppedByUser = ref(false)
@@ -751,6 +766,12 @@ const onInputKeydown = (e: KeyboardEvent) => {
       sendMessage()
     }
   }
+}
+
+// 处理模型选择变化
+const handleModelChange = (modelKey: string, model: API.AiModelConfig) => {
+  selectedModelKey.value = modelKey
+  message.success(`已选择模型: ${model.modelName} (${model.pointsPerKToken}积分/1K tokens)`)
 }
 
 const onPrimaryActionClick = async () => {
@@ -1067,6 +1088,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       runId: (currentRunId.value = (crypto as any)?.randomUUID?.() || `run_${Date.now()}_${Math.random()
         .toString(36)
         .slice(2)}`),
+      modelKey: selectedModelKey.value || 'deepseek-reasoner',
     })
 
     const url = `${baseURL}/app/chat/gen/code?${params}`
@@ -2984,6 +3006,13 @@ watch(
       }
     }
   }
+}
+
+/* AI模型选择器容器 */
+.model-selector-container {
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e8e8e8;
 }
 
 /* 输入区域 */

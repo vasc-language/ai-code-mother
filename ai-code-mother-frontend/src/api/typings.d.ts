@@ -1,4 +1,17 @@
 declare namespace API {
+  type AiModelConfig = {
+    id?: number
+    modelKey?: string
+    modelName?: string
+    provider?: string
+    baseUrl?: string
+    tier?: string
+    pointsPerKToken?: number
+    description?: string
+    isEnabled?: number
+    sortOrder?: number
+  }
+
   type AppAddRequest = {
     initPrompt?: string
   }
@@ -80,6 +93,12 @@ declare namespace API {
     user?: UserVO
   }
 
+  type BaseResponseAiModelConfig = {
+    code?: number
+    data?: AiModelConfig
+    message?: string
+  }
+
   type BaseResponseAppVersionVO = {
     code?: number
     data?: AppVersionVO
@@ -95,6 +114,12 @@ declare namespace API {
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
+    message?: string
+  }
+
+  type BaseResponseListAiModelConfig = {
+    code?: number
+    data?: AiModelConfig[]
     message?: string
   }
 
@@ -216,6 +241,7 @@ declare namespace API {
     appId: number
     message: string
     runId?: string
+    modelKey?: string
   }
 
   type DeleteRequest = {
@@ -258,6 +284,10 @@ declare namespace API {
   type getFileContentParams = {
     appId: number
     filePath: string
+  }
+
+  type getModelByKeyParams = {
+    modelKey: string
   }
 
   type getPointsRecordsParams = {
@@ -337,6 +367,10 @@ declare namespace API {
     appId: number
   }
 
+  type listModelsByTierParams = {
+    tier: string
+  }
+
   type listVersionsByAppIdParams = {
     appId: number
   }
@@ -400,6 +434,8 @@ declare namespace API {
     type?: string
     reason?: string
     relatedId?: number
+    modelKey?: string
+    tokenCount?: number
     expireTime?: string
     createTime?: string
     isDelete?: number

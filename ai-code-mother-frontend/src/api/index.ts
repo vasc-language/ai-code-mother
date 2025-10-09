@@ -14,6 +14,7 @@ import * as jifenguanli from './jifenguanli'
 import * as yaoqingguanli from './yaoqingguanli'
 import * as healthController from './healthController'
 import * as codePreviewController from './codePreviewController'
+import * as aImoxingpeizhi from './aImoxingpeizhi'
 export default {
   workflowSseController,
   userController,
@@ -27,4 +28,5 @@ export default {
   yaoqingguanli,
   healthController,
   codePreviewController,
+  aImoxingpeizhi,
 }
