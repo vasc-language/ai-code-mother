@@ -16,6 +16,7 @@ public enum PointsTypeEnum {
     FIRST_GENERATE("首次生成", "FIRST_GENERATE"),
     INVITE("邀请", "INVITE"),
     GENERATE("生成应用", "GENERATE"),
+    AI_GENERATE("AI生成扣费", "AI_GENERATE"),
     REFUND("返还", "REFUND"),
     EXPIRE_REMINDER("到期提醒", "EXPIRE_REMINDER"),
     EXPIRE("过期", "EXPIRE"),

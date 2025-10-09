@@ -22,6 +22,11 @@ public class MonitorContext implements Serializable {
     private String appId;
 
     /**
+     * 选择的AI模型key
+     */
+    private String modelKey;
+
+    /**
      * 最近一次生成的Token总消耗
      */
     private Long totalTokens;

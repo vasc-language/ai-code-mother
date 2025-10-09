@@ -79,10 +79,15 @@ public class AppController {
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        @RequestParam(required = false) String runId,
+                                                       @RequestParam(required = false) String modelKey,
                                                        HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 id 错误");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "提示词不能为空");
+        // modelKey 可选，如果不传则使用默认模型
+        if (StrUtil.isBlank(modelKey)) {
+            modelKey = "deepseek-reasoner"; // 默认模型
+        }
 
         // IP级别限流检查（每分钟10次）
         checkIpRateLimit(request);
@@ -93,10 +98,11 @@ public class AppController {
         final String rid = StrUtil.isBlank(runId) ? java.util.UUID.randomUUID().toString() : runId;
         final Long finalAppId = appId;
         final Long finalUserId = loginUser.getId();
+        final String finalModelKey = modelKey;
         GenerationControl control = generationControlRegistry.register(rid, String.valueOf(finalUserId), finalAppId);
-        log.info("[SSE-START] runId={}, appId={}, userId={}", rid, finalAppId, finalUserId);
+        log.info("[SSE-START] runId={}, appId={}, userId={}, modelKey={}", rid, finalAppId, finalUserId, finalModelKey);
         // 调用服务生成代码（SSE 流式返回）并绑定取消信号
-        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser, control);
+        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser, control, finalModelKey);
         // 将业务流与取消信号融合，取消时立刻向前端发送 interrupted 事件并终止
         // 为了提升首包到达速度（TTFT），在真实内容前先发送一条轻量 keepalive 数据帧
         ServerSentEvent<String> keepalive = ServerSentEvent.<String>builder()

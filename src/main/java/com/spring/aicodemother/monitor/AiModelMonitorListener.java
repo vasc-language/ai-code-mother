@@ -1,5 +1,6 @@
 package com.spring.aicodemother.monitor;
 
+import cn.hutool.core.util.StrUtil;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -29,6 +30,13 @@ public class AiModelMonitorListener implements ChatModelListener {
 
     @Resource
     private AiModelMetricsCollector aiModelMetricsCollector;
+
+    @Resource
+    private com.spring.aicodemother.service.UserPointsService userPointsService;
+
+    @Resource
+    private com.spring.aicodemother.service.AiModelConfigService aiModelConfigService;
+
     @Autowired
     private View error;
 
@@ -93,7 +101,7 @@ public class AiModelMonitorListener implements ChatModelListener {
     }
 
     /**
-     * 记录Token使用情况
+     * 记录Token使用情况(并扣除积分)
      */
     private void recordTokenUsage(ChatModelResponseContext responseContext, MonitorContext context,
                                   String userId, String appId, String modelName) {
@@ -102,9 +110,37 @@ public class AiModelMonitorListener implements ChatModelListener {
             aiModelMetricsCollector.recordTokenUsage(userId, appId, modelName, "input", tokenUsage.inputTokenCount());
             aiModelMetricsCollector.recordTokenUsage(userId, appId, modelName, "output", tokenUsage.outputTokenCount());
             aiModelMetricsCollector.recordTokenUsage(userId, appId, modelName, "total", tokenUsage.totalTokenCount());
+
+            // 更新监控上下文中的token总数
             if (context != null) {
                 Integer total = tokenUsage.totalTokenCount();
                 context.setTotalTokens(total == null ? null : total.longValue());
+
+                // 获取modelKey并扣除积分
+                String modelKey = context.getModelKey();
+                if (StrUtil.isNotBlank(modelKey) && total != null && total > 0) {
+                    try {
+                        // 计算需要扣除的积分
+                        Integer points = aiModelConfigService.calculatePoints(modelKey, total);
+                        if (points != null && points > 0) {
+                            // 扣除积分并记录模型key和token数量
+                            userPointsService.deductPointsWithModel(
+                                Long.valueOf(userId),
+                                points,
+                                com.spring.aicodemother.model.enums.PointsTypeEnum.AI_GENERATE.getValue(),
+                                String.format("AI生成消耗(%s, %d tokens)", modelKey, total),
+                                Long.valueOf(appId),
+                                modelKey,
+                                total
+                            );
+                            log.info("AI生成积分扣除: userId={}, modelKey={}, tokens={}, points={}",
+                                     userId, modelKey, total, points);
+                        }
+                    } catch (Exception e) {
+                        log.error("AI生成积分扣除失败: userId={}, modelKey={}, tokens={}, error={}",
+                                  userId, modelKey, total, e.getMessage(), e);
+                    }
+                }
             }
         }
     }

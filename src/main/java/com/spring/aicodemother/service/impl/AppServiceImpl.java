@@ -105,6 +105,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private com.spring.aicodemother.monitor.PointsMetricsCollector pointsMetricsCollector;
 
+    @Resource
+    private com.spring.aicodemother.service.AiModelConfigService aiModelConfigService;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // Backward compatibility: run without external cancellation
@@ -114,9 +117,28 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     // New entry with cancellation control
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser,
                                       com.spring.aicodemother.core.control.GenerationControlRegistry.GenerationControl control) {
+        // Delegate to modelKey version with default model
+        return chatToGenCode(appId, message, loginUser, control, "deepseek-reasoner");
+    }
+
+    // New entry with dynamic model selection
+    @Override
+    public Flux<String> chatToGenCode(Long appId, String message, User loginUser,
+                                      com.spring.aicodemother.core.control.GenerationControlRegistry.GenerationControl control,
+                                      String modelKey) {
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户提示词不能为空");
+
+        // 1.1 验证模型配置
+        com.spring.aicodemother.model.entity.AiModelConfig modelConfig = aiModelConfigService.getByModelKey(modelKey);
+        ThrowUtils.throwIf(modelConfig == null, ErrorCode.PARAMS_ERROR, "不支持的模型: " + modelKey);
+        ThrowUtils.throwIf(modelConfig.getIsEnabled() == null || modelConfig.getIsEnabled() != 1,
+                ErrorCode.PARAMS_ERROR, "模型已禁用: " + modelKey);
+        log.info("用户 {} 选择模型: {} ({}), 等级: {}, 费用: {}/1K tokens",
+                 loginUser.getId(), modelConfig.getModelName(), modelKey,
+                 modelConfig.getTier(), modelConfig.getPointsPerKToken());
+
         // 2. 查询应用信息
         App app = this.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
@@ -207,11 +229,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             // 不阻断主流程，模板机制失败时继续按原逻辑生成
             log.warn("[TEMPLATE-ERROR] appId={}, 处理预置模板时出错：{}", appId, e.getMessage());
         }
-        // 6. 设置监控上下文
+        // 6. 设置监控上下文(包含modelKey)
         MonitorContextHolder.setContext(
                 MonitorContext.builder()
                         .userId(loginUser.getId().toString())
                         .appId(appId.toString())
+                        .modelKey(modelKey)
                         .build()
         );
         // 7. 调用 AI 生成代码（流式）并绑定取消信号（若命中模板，则使用增强后的 finalMessage）

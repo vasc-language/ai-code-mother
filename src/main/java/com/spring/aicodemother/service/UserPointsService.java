@@ -43,6 +43,21 @@ public interface UserPointsService extends IService<UserPoints> {
     boolean deductPoints(Long userId, Integer points, String type, String reason, Long relatedId);
 
     /**
+     * 扣减用户积分（AI生成专用，包含模型和token信息）
+     *
+     * @param userId 用户ID
+     * @param points 积分数量
+     * @param type 积分类型
+     * @param reason 变动原因
+     * @param relatedId 关联ID（可选）
+     * @param modelKey 使用的模型key
+     * @param tokenCount 消耗的token数量
+     * @return 是否成功
+     */
+    boolean deductPointsWithModel(Long userId, Integer points, String type, String reason,
+                                   Long relatedId, String modelKey, Integer tokenCount);
+
+    /**
      * 查询用户当前可用积分
      *
      * @param userId 用户ID

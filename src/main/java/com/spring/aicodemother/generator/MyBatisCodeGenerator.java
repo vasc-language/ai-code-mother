@@ -11,7 +11,7 @@ import java.util.Map;
 public class MyBatisCodeGenerator {
 
     // 需要生成的表名
-    private static final String[] TABLE_NAMES = {"user_points", "points_record", "sign_in_record", "invite_record"};
+    private static final String[] TABLE_NAMES = {"ai_model_config"};
 
     public static void main(String[] args) {
         // 获取数据源信息

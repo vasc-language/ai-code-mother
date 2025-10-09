@@ -32,6 +32,9 @@ public interface AppService extends IService<App> {
     // New signature supporting manual cancellation
     Flux<String> chatToGenCode(Long appId, String message, User loginUser, GenerationControl control);
 
+    // New signature supporting dynamic model selection
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser, GenerationControl control, String modelKey);
+
     Long createApp(AppAddRequest appAddRequest, User loginUser);
 
     String deployApp(Long appId, User loginUser);

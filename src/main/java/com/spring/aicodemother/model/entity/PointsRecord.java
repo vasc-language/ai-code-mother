@@ -72,6 +72,18 @@ public class PointsRecord implements Serializable {
     private Long relatedId;
 
     /**
+     * 使用的AI模型key（用于AI生成积分扣除）
+     */
+    @Column("model_key")
+    private String modelKey;
+
+    /**
+     * 消耗的token数量（用于AI生成积分扣除）
+     */
+    @Column("token_count")
+    private Integer tokenCount;
+
+    /**
      * 积分过期时间
      */
     @Column("expireTime")
