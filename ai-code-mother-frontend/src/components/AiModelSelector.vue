@@ -49,7 +49,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  defaultModelKey: 'deepseek-reasoner',
+  defaultModelKey: 'qwen3-235b-free',
   disabled: false
 })
 

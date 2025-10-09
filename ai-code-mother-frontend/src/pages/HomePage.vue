@@ -6,6 +6,7 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import { addApp, getAppVoById, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
 import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
+import AiModelSelector from '@/components/AiModelSelector.vue'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -13,6 +14,10 @@ const loginUserStore = useLoginUserStore()
 // 用户提示词
 const userPrompt = ref('')
 const creating = ref(false)
+
+// AI模型选择相关
+const modelSelectorRef = ref()
+const selectedModelKey = ref('qwen3-235b-free')
 
 // 在输入框中：Enter 发送，Shift+Enter 换行
 const onPromptKeydown = (e: KeyboardEvent) => {
@@ -22,6 +27,12 @@ const onPromptKeydown = (e: KeyboardEvent) => {
       createApp()
     }
   }
+}
+
+// 处理模型选择变化
+const handleModelChange = (modelKey: string, model: API.AiModelConfig) => {
+  selectedModelKey.value = modelKey
+  message.success(`已选择模型: ${model.modelName} (${model.pointsPerKToken}积分/1K tokens)`)
 }
 
 // 我的应用数据
@@ -264,6 +275,15 @@ onMounted(() => {
 
       <!-- 用户提示词输入框 -->
       <div class="input-section">
+        <!-- AI模型选择器 -->
+        <div class="model-selector-wrapper">
+          <AiModelSelector
+            ref="modelSelectorRef"
+            :disabled="creating"
+            @change="handleModelChange"
+          />
+        </div>
+
         <a-textarea
           v-model:value="userPrompt"
           placeholder="帮我创建个人博客网站"
@@ -550,6 +570,13 @@ onMounted(() => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   padding: var(--spacing-lg);
   transition: var(--transition-normal);
+}
+
+/* AI模型选择器包装器 */
+.model-selector-wrapper {
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .prompt-input {
