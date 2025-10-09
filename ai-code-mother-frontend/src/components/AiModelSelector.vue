@@ -1,51 +1,39 @@
 <template>
   <div class="ai-model-selector">
-    <a-select
-      v-model:value="selectedModelKey"
-      :loading="loading"
-      :disabled="disabled"
-      placeholder="选择AI模型"
-      style="width: 200px"
-      @change="handleModelChange"
-    >
-      <a-select-option
-        v-for="model in models"
-        :key="model.modelKey"
-        :value="model.modelKey"
+    <div class="selector-header">
+      <span class="header-label">AI模型选择:</span>
+      <a-select
+        v-model:value="selectedModelKey"
+        :loading="loading"
+        :disabled="disabled"
+        placeholder="选择AI模型"
+        style="width: 280px"
+        @change="handleModelChange"
+        size="large"
       >
-        <div class="model-option">
-          <span class="model-name">{{ model.modelName }}</span>
-          <a-tag :color="getTierColor(model.tier)" size="small" class="tier-tag">
-            {{ getTierLabel(model.tier) }}
-          </a-tag>
-          <span class="model-points">{{ model.pointsPerKToken }}积分/1K</span>
-        </div>
-      </a-select-option>
-    </a-select>
+        <a-select-option
+          v-for="model in models"
+          :key="model.modelKey"
+          :value="model.modelKey"
+        >
+          <div class="model-option">
+            <span class="model-name">{{ model.modelName }}</span>
+            <a-tag :color="getTierColor(model.tier)" size="small" class="tier-tag">
+              {{ getTierLabel(model.tier) }}
+            </a-tag>
+            <span class="model-points">{{ model.pointsPerKToken }}分/1K</span>
+          </div>
+        </a-select-option>
+      </a-select>
 
-    <!-- 模型详情卡片 -->
-    <a-card v-if="currentModel" size="small" class="model-info-card">
-      <div class="model-details">
-        <div class="detail-row">
-          <span class="label">模型:</span>
-          <span class="value">{{ currentModel.modelName }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="label">等级:</span>
-          <a-tag :color="getTierColor(currentModel.tier)">
-            {{ getTierLabel(currentModel.tier) }}
-          </a-tag>
-        </div>
-        <div class="detail-row">
-          <span class="label">费用:</span>
-          <span class="value">{{ currentModel.pointsPerKToken }} 积分/1K tokens</span>
-        </div>
-        <div v-if="currentModel.description" class="detail-row">
-          <span class="label">说明:</span>
-          <span class="value">{{ currentModel.description }}</span>
-        </div>
+      <!-- 当前模型信息(简化显示) -->
+      <div v-if="currentModel" class="current-model-info">
+        <a-tag :color="getTierColor(currentModel.tier)">
+          {{ getTierLabel(currentModel.tier) }}等级
+        </a-tag>
+        <span class="current-points">{{ currentModel.pointsPerKToken }} 积分/1K tokens</span>
       </div>
-    </a-card>
+    </div>
   </div>
 </template>
 
@@ -161,9 +149,20 @@ defineExpose({
 
 <style scoped>
 .ai-model-selector {
+  width: 100%;
+}
+
+.selector-header {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
 }
 
 .model-option {
@@ -184,32 +183,20 @@ defineExpose({
 .model-points {
   font-size: 12px;
   color: #666;
+  white-space: nowrap;
 }
 
-.model-info-card {
-  margin-top: 8px;
-}
-
-.model-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.detail-row {
+.current-model-info {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 4px 12px;
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+.current-points {
   font-size: 13px;
-}
-
-.detail-row .label {
   color: #666;
-  min-width: 50px;
-}
-
-.detail-row .value {
-  color: #333;
-  font-weight: 500;
 }
 </style>

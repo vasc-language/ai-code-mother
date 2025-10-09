@@ -3010,9 +3010,10 @@ watch(
 
 /* AI模型选择器容器 */
 .model-selector-container {
-  padding: 12px 16px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 16px;
+  background: #ffffff;
+  border-bottom: 2px solid #1890ff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* 输入区域 */
