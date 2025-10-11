@@ -8,6 +8,12 @@ import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
 import AiModelSelector from '@/components/AiModelSelector.vue'
 
+// 导入模型SVG图标
+import deepseekIcon from '@/assets/deepseek-color.svg'
+import qwenIcon from '@/assets/qwen-color.svg'
+import openaiIcon from '@/assets/openai.svg'
+import kimiIcon from '@/assets/kimi-color.svg'
+
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
@@ -17,7 +23,119 @@ const creating = ref(false)
 
 // AI模型选择相关
 const modelSelectorRef = ref()
-const selectedModelKey = ref('qwen3-235b-free')
+const selectedModelKey = ref('codex-mini-latest')
+const showModelSelector = ref(false) // 控制模型选择器显示
+const popupStyle = ref({}) // 弹出框动态样式
+let hoverTimeout: number | null = null
+
+// 计算弹出框位置（fixed定位，确保始终在视口内可见）
+const calculatePopupPosition = () => {
+  const inputWrapper = document.querySelector('.input-wrapper') as HTMLElement
+  if (!inputWrapper) return {}
+
+  const rect = inputWrapper.getBoundingClientRect()
+  const viewportHeight = window.innerHeight
+  const viewportWidth = window.innerWidth
+
+  // 弹出框的尺寸
+  const popupHeight = 480
+  const popupWidth = 360
+  const gap = 8 // 与输入框的间距
+
+  // 计算上方和下方的可用空间
+  const spaceAbove = rect.top
+  const spaceBelow = viewportHeight - rect.bottom
+
+  let style: any = {
+    position: 'fixed',
+    left: `${rect.left}px`,
+    minWidth: `${popupWidth}px`,
+    maxHeight: `${popupHeight}px`,
+  }
+
+  // 决定显示在上方还是下方
+  if (spaceAbove >= popupHeight || spaceAbove > spaceBelow) {
+    // 显示在上方
+    style.bottom = `${viewportHeight - rect.top + gap}px`
+    style.top = 'auto'
+  } else {
+    // 显示在下方
+    style.top = `${rect.bottom + gap}px`
+    style.bottom = 'auto'
+    // 如果下方空间也不够，限制最大高度
+    if (spaceBelow < popupHeight) {
+      style.maxHeight = `${spaceBelow - gap - 20}px`
+    }
+  }
+
+  // 确保不会超出视口左右边界
+  if (rect.left + popupWidth > viewportWidth) {
+    style.left = `${viewportWidth - popupWidth - 20}px`
+  }
+  if (rect.left < 0) {
+    style.left = '20px'
+  }
+
+  return style
+}
+
+// 鼠标悬停在+号上，延迟显示模型列表
+const handlePlusButtonHover = () => {
+  if (hoverTimeout) {
+    clearTimeout(hoverTimeout)
+  }
+  hoverTimeout = window.setTimeout(() => {
+    popupStyle.value = calculatePopupPosition() // 计算位置
+    showModelSelector.value = true
+  }, 200) // 200ms延迟，避免误触
+}
+
+// 鼠标离开+号按钮
+const handlePlusButtonLeave = () => {
+  if (hoverTimeout) {
+    clearTimeout(hoverTimeout)
+    hoverTimeout = null
+  }
+}
+
+// 鼠标离开整个模型选择区域
+const handleSelectorAreaLeave = () => {
+  if (hoverTimeout) {
+    clearTimeout(hoverTimeout)
+    hoverTimeout = null
+  }
+  showModelSelector.value = false
+}
+
+// 点击+号按钮切换模型选择器
+const toggleModelSelector = () => {
+  if (!showModelSelector.value) {
+    // 打开时计算位置
+    popupStyle.value = calculatePopupPosition()
+  }
+  showModelSelector.value = !showModelSelector.value
+}
+
+// 点击外部区域关闭模型选择器
+const handleClickOutside = (event: MouseEvent) => {
+  if (!showModelSelector.value) return
+
+  const target = event.target as HTMLElement
+  const popup = document.querySelector('.model-selector-popup')
+  const plusBtn = document.querySelector('.plus-btn')
+
+  // 如果点击的不是弹出层内部或+号按钮，则关闭
+  if (popup && !popup.contains(target) && plusBtn && !plusBtn.contains(target)) {
+    showModelSelector.value = false
+  }
+}
+
+// 自动调整textarea高度
+const autoResizeTextarea = (e: Event) => {
+  const textarea = e.target as HTMLTextAreaElement
+  textarea.style.height = 'auto'
+  textarea.style.height = textarea.scrollHeight + 'px'
+}
 
 // 在输入框中：Enter 发送，Shift+Enter 换行
 const onPromptKeydown = (e: KeyboardEvent) => {
@@ -27,12 +145,34 @@ const onPromptKeydown = (e: KeyboardEvent) => {
       createApp()
     }
   }
+  // 自动调整高度
+  setTimeout(() => autoResizeTextarea(e), 0)
 }
 
 // 处理模型选择变化
 const handleModelChange = (modelKey: string, model: API.AiModelConfig) => {
   selectedModelKey.value = modelKey
-  message.success(`已选择模型: ${model.modelName} (${model.pointsPerKToken}积分/1K tokens)`)
+  // 选择模型后自动关闭列表
+  showModelSelector.value = false
+}
+
+// 获取当前选中模型的图标
+const getCurrentModelIcon = () => {
+  const modelKey = selectedModelKey.value?.toLowerCase() || ''
+
+  // 根据modelKey匹配对应的图标
+  if (modelKey.includes('deepseek')) {
+    return deepseekIcon
+  } else if (modelKey.includes('qwen')) {
+    return qwenIcon
+  } else if (modelKey.includes('gpt') || modelKey.includes('o3') || modelKey.includes('o4')) {
+    return openaiIcon
+  } else if (modelKey.includes('kimi')) {
+    return kimiIcon
+  }
+
+  // 默认返回null，显示+号
+  return null
 }
 
 // 我的应用数据
@@ -76,9 +216,11 @@ const createApp = async () => {
 
   try {
     console.log('开始创建应用，用户输入:', userPrompt.value.trim())
+    console.log('选择的模型:', selectedModelKey.value)
 
     const res = await addApp({
       initPrompt: userPrompt.value.trim(),
+      modelKey: selectedModelKey.value,  // 传递用户选择的模型
     })
 
     console.log('应用创建API响应:', res.data)
@@ -255,11 +397,24 @@ onMounted(() => {
     document.documentElement.style.setProperty('--mouse-y', `${y}%`)
   }
 
+  // 窗口滚动或resize时更新弹出框位置
+  const updatePopupPosition = () => {
+    if (showModelSelector.value) {
+      popupStyle.value = calculatePopupPosition()
+    }
+  }
+
   document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('click', handleClickOutside)
+  window.addEventListener('scroll', updatePopupPosition, true) // 捕获阶段监听所有滚动
+  window.addEventListener('resize', updatePopupPosition)
 
   // 清理事件监听器
   return () => {
     document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('click', handleClickOutside)
+    window.removeEventListener('scroll', updatePopupPosition, true)
+    window.removeEventListener('resize', updatePopupPosition)
   }
 })
 </script>
@@ -275,8 +430,14 @@ onMounted(() => {
 
       <!-- 用户提示词输入框 -->
       <div class="input-section">
-        <!-- AI模型选择器 -->
-        <div class="model-selector-wrapper">
+        <!-- AI模型选择器 - fixed定位，确保始终在视口内可见 -->
+        <div
+          class="model-selector-popup"
+          :style="popupStyle"
+          v-if="showModelSelector"
+          @mouseenter="handlePlusButtonHover"
+          @mouseleave="handleSelectorAreaLeave"
+        >
           <AiModelSelector
             ref="modelSelectorRef"
             :disabled="creating"
@@ -284,20 +445,46 @@ onMounted(() => {
           />
         </div>
 
-        <a-textarea
-          v-model:value="userPrompt"
-          placeholder="帮我创建个人博客网站"
-          :rows="4"
-          :maxlength="1000"
-          class="prompt-input"
-          @keydown="onPromptKeydown"
-        />
-        <div class="input-actions">
-          <a-button type="primary" size="large" @click="createApp" :loading="creating">
-            <template #icon>
-              <span>↑</span>
-            </template>
-          </a-button>
+        <div class="input-wrapper">
+          <!-- 左侧+号按钮 -->
+          <button
+            class="action-btn plus-btn"
+            @click="toggleModelSelector"
+            @mouseenter="handlePlusButtonHover"
+            @mouseleave="handlePlusButtonLeave"
+            :title="showModelSelector ? '收起模型选择' : '展开模型选择'"
+          >
+            <!-- 如果有选中的模型图标，显示图标；否则显示+号 -->
+            <img
+              v-if="getCurrentModelIcon()"
+              :src="getCurrentModelIcon()!"
+              alt="模型图标"
+              class="model-icon-img"
+            />
+            <span v-else class="plus-icon" :class="{ rotated: showModelSelector }">+</span>
+          </button>
+
+          <!-- 主输入框 -->
+          <textarea
+            v-model="userPrompt"
+            placeholder="描述你想创建的应用..."
+            :maxlength="1000"
+            class="main-input"
+            @keydown="onPromptKeydown"
+            @input="autoResizeTextarea"
+            rows="1"
+          ></textarea>
+
+          <!-- 右侧发送按钮 -->
+          <button
+            class="action-btn send-btn"
+            @click="createApp"
+            :disabled="!userPrompt.trim() || creating"
+            :class="{ loading: creating }"
+          >
+            <span v-if="!creating" class="send-icon">↑</span>
+            <span v-else class="loading-spinner">⟳</span>
+          </button>
         </div>
       </div>
 
@@ -558,79 +745,204 @@ onMounted(() => {
   z-index: 2;
 }
 
-/* 输入区域 */
+/* ChatGPT风格输入框 */
 .input-section {
   position: relative;
-  margin: 0 auto var(--spacing-md);
-  max-width: 800px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-2xl);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  padding: var(--spacing-lg);
-  transition: var(--transition-normal);
+  margin: 0 auto var(--spacing-2xl);
+  max-width: 900px;
 }
 
-/* AI模型选择器包装器 */
-.model-selector-wrapper {
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.prompt-input {
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--gray-200);
-  font-size: var(--font-size-base);
-  font-family: var(--font-family-primary);
-  padding: var(--spacing-lg) 80px var(--spacing-lg) var(--spacing-lg);
-  background: var(--white);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: var(--transition-normal);
-  resize: none;
-}
-
-.prompt-input:focus {
-  background: var(--white);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
-  border-color: var(--primary-color);
-  outline: none;
-}
-
-.input-actions {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
+.input-wrapper {
+  position: relative;
   display: flex;
-  gap: var(--spacing-sm);
   align-items: center;
+  gap: 12px;
+  background: white;
+  border-radius: 32px;
+  padding: 14px 20px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 3px solid rgba(255, 107, 53, 0.15);
+  box-shadow:
+    0 0 0 1px rgba(255, 107, 53, 0.08),
+    0 4px 16px rgba(255, 107, 53, 0.12),
+    0 12px 32px rgba(255, 107, 53, 0.08);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.input-actions .ant-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-full);
-  background: var(--button-gradient-primary);
+.input-wrapper:hover {
+  border-color: rgba(255, 107, 53, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(255, 107, 53, 0.12),
+    0 6px 20px rgba(255, 107, 53, 0.15),
+    0 16px 40px rgba(255, 107, 53, 0.1);
+  transform: translateY(-2px);
+}
+
+.input-wrapper:focus-within {
+  border-color: #ff6b35;
+  box-shadow:
+    0 0 0 3px rgba(255, 107, 53, 0.2),
+    0 8px 24px rgba(255, 107, 53, 0.2),
+    0 20px 48px rgba(255, 107, 53, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 主输入框 */
+.main-input {
+  flex: 1;
   border: none;
-  color: var(--white);
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  font-family: var(--font-family-primary);
+  color: var(--gray-800);
+  resize: none;
+  line-height: 26px;
+  min-height: 26px;
+  height: auto;
+  max-height: none;
+  overflow: hidden;
+  padding: 6px 0;
+  display: block;
+}
+
+.main-input::placeholder {
+  color: rgba(255, 107, 53, 0.4);
+}
+
+.main-input::-webkit-scrollbar {
+  width: 6px;
+}
+
+.main-input::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 53, 0.3);
+  border-radius: 10px;
+}
+
+/* 操作按钮通用样式 */
+.action-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  box-shadow: var(--shadow-md);
-  transition: var(--transition-fast);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: transparent;
+  align-self: flex-end;
 }
 
-.input-actions .ant-btn:hover {
-  background: var(--button-gradient-secondary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+/* +号按钮 - Lovable 风格 */
+.plus-btn {
+  color: #ff6b35;
+  background: rgba(255, 107, 53, 0.1);
+  border: 2px solid rgba(255, 107, 53, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.15);
 }
 
-.input-actions .ant-btn:active {
-  transform: translateY(0);
+.plus-btn:hover {
+  background: rgba(255, 107, 53, 0.15);
+  border-color: rgba(255, 107, 53, 0.3);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+}
+
+.plus-icon {
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff6b35;
+}
+
+.plus-icon.rotated {
+  transform: rotate(45deg);
+}
+
+/* 模型图标 */
+.model-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 2px 4px rgba(255, 107, 53, 0.2));
+}
+
+.plus-btn:hover .model-icon-img {
+  transform: scale(1.1);
+}
+
+/* 模型选择器弹出层 - Lovable 风格 */
+.model-selector-popup {
+  /* position, top, bottom, left 由JavaScript动态设置 */
+  z-index: 1000;
+  background: white;
+  border-radius: 24px;
+  border: 3px solid rgba(255, 107, 53, 0.15);
+  box-shadow:
+    0 0 0 1px rgba(255, 107, 53, 0.08),
+    0 8px 24px rgba(255, 107, 53, 0.15),
+    0 16px 48px rgba(255, 107, 53, 0.1);
+  overflow: hidden;
+  animation: popupFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 发送按钮 */
+.send-btn {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+}
+
+.send-btn:not(:disabled):hover {
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: 0 8px 24px rgba(255, 107, 53, 0.5);
+}
+
+.send-btn:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.send-icon {
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.loading-spinner {
+  font-size: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 快捷按钮 */
