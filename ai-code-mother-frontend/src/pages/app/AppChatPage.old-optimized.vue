@@ -247,91 +247,90 @@
       <!-- 中间：可调节分隔条 -->
       <div class="resizer" @mousedown="startResize"></div>
 
-      <!-- 右侧：代码/预览面板 - VSCode风格左右分栏 -->
-      <div class="right-panel code-panel-container vscode-layout">
-        <!-- 左侧：文件树 -->
-        <div class="file-explorer" :style="{ width: codeExplorerWidth + 'px' }">
-          <div class="explorer-header">
-            <div class="header-title">
-              <FolderOutlined class="title-icon" />
-              <span>文件资源管理器</span>
+      <!-- 右侧：代码/预览面板 -->
+      <div class="right-panel code-panel-container">
+        <!-- 代码视图 - VSCode风格左右分栏 -->
+        <div v-if="currentView === 'code'" class="code-view-container vscode-layout">
+          <!-- 左侧：文件树 -->
+          <div class="file-explorer" :style="{ width: codeExplorerWidth + 'px' }">
+            <div class="explorer-header">
+              <div class="header-title">
+                <FolderOutlined class="title-icon" />
+                <span>文件资源管理器</span>
+              </div>
+            </div>
+
+            <div class="explorer-content">
+              <!-- 项目根目录 -->
+              <div v-if="hasAnyFiles" class="project-root">
+                <FolderOpenOutlined class="root-icon" />
+                <span class="root-name">{{ projectName }}</span>
+              </div>
+
+              <!-- 文件列表 -->
+              <div class="file-list">
+                <!-- HTML 单文件 -->
+                <div
+                  v-if="simpleCodeFile"
+                  class="file-item"
+                  :class="{ active: selectedFileId === simpleCodeFile.id }"
+                  @click="selectFile(simpleCodeFile.id)"
+                >
+                  <FileTextOutlined class="file-icon" />
+                  <span class="file-name">{{ simpleCodeFile.name }}</span>
+                  <span v-if="!simpleCodeFile.completed" class="file-badge">生成中</span>
+                </div>
+
+                <!-- 多文件项目 -->
+                <div
+                  v-for="file in multiFiles"
+                  :key="file.id"
+                  class="file-item"
+                  :class="{ active: selectedFileId === file.id }"
+                  @click="selectFile(file.id)"
+                >
+                  <FileTextOutlined class="file-icon" />
+                  <span class="file-name">{{ file.name }}</span>
+                  <span v-if="currentMultiFile === file.name && isMultiFileGenerating" class="file-badge">生成中</span>
+                </div>
+
+                <!-- Vue项目已完成文件 -->
+                <div
+                  v-for="file in completedFiles"
+                  :key="file.id"
+                  class="file-item"
+                  :class="{ active: selectedFileId === file.id }"
+                  @click="selectFile(file.id)"
+                >
+                  <FileTextOutlined class="file-icon" />
+                  <span class="file-name">{{ file.name }}</span>
+                </div>
+
+                <!-- 空状态 -->
+                <div v-if="!hasAnyFiles && !isGenerating" class="explorer-empty">
+                  <CodeOutlined class="empty-icon-small" />
+                  <p class="empty-text-small">等待文件生成</p>
+                </div>
+
+                <div v-if="!hasAnyFiles && isGenerating" class="explorer-empty">
+                  <a-spin size="small" />
+                  <p class="empty-text-small">正在生成中...</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="explorer-content">
-            <!-- 项目根目录 -->
-            <div v-if="hasAnyFiles" class="project-root">
-              <FolderOpenOutlined class="root-icon" />
-              <span class="root-name">{{ projectName }}</span>
-            </div>
-
-            <!-- 文件列表 -->
-            <div class="file-list">
-              <!-- HTML 单文件 -->
-              <div
-                v-if="simpleCodeFile"
-                class="file-item"
-                :class="{ active: selectedFileId === simpleCodeFile.id }"
-                @click="selectFile(simpleCodeFile.id)"
-              >
-                <FileTextOutlined class="file-icon" />
-                <span class="file-name">{{ simpleCodeFile.name }}</span>
-                <span v-if="!simpleCodeFile.completed" class="file-badge">生成中</span>
-              </div>
-
-              <!-- 多文件项目 -->
-              <div
-                v-for="file in multiFiles"
-                :key="file.id"
-                class="file-item"
-                :class="{ active: selectedFileId === file.id }"
-                @click="selectFile(file.id)"
-              >
-                <FileTextOutlined class="file-icon" />
-                <span class="file-name">{{ file.name }}</span>
-                <span v-if="currentMultiFile === file.name && isMultiFileGenerating" class="file-badge">生成中</span>
-              </div>
-
-              <!-- Vue项目已完成文件 -->
-              <div
-                v-for="file in completedFiles"
-                :key="file.id"
-                class="file-item"
-                :class="{ active: selectedFileId === file.id }"
-                @click="selectFile(file.id)"
-              >
-                <FileTextOutlined class="file-icon" />
-                <span class="file-name">{{ file.name }}</span>
-              </div>
-
-              <!-- 空状态 -->
-              <div v-if="!hasAnyFiles && !isGenerating" class="explorer-empty">
-                <CodeOutlined class="empty-icon-small" />
-                <p class="empty-text-small">等待文件生成</p>
-              </div>
-
-              <div v-if="!hasAnyFiles && isGenerating" class="explorer-empty">
-                <a-spin size="small" />
-                <p class="empty-text-small">正在生成中...</p>
-              </div>
-            </div>
+          <!-- 竖向分隔条 -->
+          <div
+            class="vertical-resizer"
+            @mousedown="startCodeResize"
+            @dblclick="resetCodeSize"
+          >
+            <div class="resizer-handle"></div>
           </div>
-        </div>
 
-        <!-- 竖向分隔条 -->
-        <div
-          class="vertical-resizer"
-          @mousedown="startCodeResize"
-          @dblclick="resetCodeSize"
-        >
-          <div class="resizer-handle"></div>
-        </div>
-
-        <!-- 右侧：代码/预览切换区域 -->
-        <div class="content-area">
-          <!-- 代码视图 -->
-          <div v-if="currentView === 'code'" class="code-view-container">
-            <div class="code-editor-area">
+          <!-- 右侧：代码编辑器区域 -->
+          <div class="code-editor-area">
               <!-- 文件标签栏 -->
               <div v-if="selectedFile" class="file-tabs">
                 <div class="file-tab active">
@@ -383,21 +382,20 @@
                 </div>
               </div>
             </div>
-          </div>
+        </div>
 
-          <!-- 预览视图 -->
-          <div v-else class="preview-view-container">
-            <div class="preview-container">
-              <iframe
-                v-if="previewUrl"
-                :src="previewUrl"
-                class="preview-iframe"
-                frameborder="0"
-                @load="onIframeLoad"
-              />
-              <div v-else class="preview-placeholder">
-                <a-empty description="暂无预览，请先生成或部署" />
-              </div>
+        <!-- 预览视图 -->
+        <div v-else class="preview-view-container">
+          <div class="preview-container">
+            <iframe
+              v-if="previewUrl"
+              :src="previewUrl"
+              class="preview-iframe"
+              frameborder="0"
+              @load="onIframeLoad"
+            />
+            <div v-else class="preview-placeholder">
+              <a-empty description="暂无预览，请先生成或部署" />
             </div>
           </div>
         </div>
@@ -3226,21 +3224,6 @@ watch(
   flex-direction: row;
 }
 
-/* VSCode 风格左右分栏 */
-.right-panel.vscode-layout {
-  background: #1E1E1E;
-  color: #D4D4D4;
-}
-
-/* 内容区域（代码/预览切换） */
-.content-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #1E1E1E;
-}
-
 /* ========== 中间分隔条 - Lovable风格 ========== */
 .resizer {
   width: 8px;
@@ -3983,6 +3966,11 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* VSCode 风格布局：横向排列 */
+.code-view-container.vscode-layout {
+  flex-direction: row;
 }
 
 /* ========== VSCode 风格左右分栏布局 ========== */
