@@ -278,6 +278,11 @@ export function useCodeGeneration() {
     if (!content || !codeGenType) return
 
     try {
+      // ✅ 调试：打印原始内容的前500和后500字符
+      console.log('[调试] 原始内容长度:', content.length)
+      console.log('[调试] 原始内容开头500字符:', content.substring(0, 500))
+      console.log('[调试] 原始内容结尾500字符:', content.substring(content.length - 500))
+
       if (codeGenType === CodeGenTypeEnum.HTML) {
         const htmlContent = extractHtmlFromStream(content)
         if (htmlContent) {
@@ -292,6 +297,13 @@ export function useCodeGeneration() {
       } else if (codeGenType === CodeGenTypeEnum.MULTI_FILE || codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
         const files = parseMultiFileContent(content)
         multiFiles.value = files
+
+        // ✅ 调试：打印解析后的文件信息
+        console.log('[调试] 解析后的文件数量:', files.length)
+        files.forEach((file, index) => {
+          console.log(`[调试] 文件${index + 1}: ${file.name}, 内容长度: ${file.content.length}`)
+          console.log(`[调试] 文件${index + 1}的前200字符:`, file.content.substring(0, 200))
+        })
 
         if (files.length > 0) {
           activeMultiFileKey.value = files[0].id
@@ -322,6 +334,7 @@ export function useCodeGeneration() {
     const appendToCurrentFile = (snippet: string) => {
       if (!currentFile) return
       const cleaned = cleanupCodeChunk(snippet)
+      console.log(`[调试] appendToCurrentFile - 文件: ${currentFile}, 原始长度: ${snippet.length}, 清理后长度: ${cleaned.length}`)
       if (!cleaned.trim()) return
       if (!fileBuffers.has(currentFile)) {
         fileBuffers.set(currentFile, [])
@@ -334,8 +347,11 @@ export function useCodeGeneration() {
       const [, markerType, rawFilename] = match
       const filename = rawFilename.trim()
 
+      console.log(`[调试] 匹配到标记: [MULTI_FILE_${markerType}:${filename}], 位置: ${match.index}`)
+
       const preceding = content.slice(cursor, match.index)
       if (preceding) {
+        console.log(`[调试] 提取preceding内容, 长度: ${preceding.length}, 内容前100字符:`, preceding.substring(0, 100))
         appendToCurrentFile(preceding)
       }
 
@@ -354,11 +370,15 @@ export function useCodeGeneration() {
 
     const tail = content.slice(cursor)
     if (tail) {
+      console.log(`[调试] 处理尾部内容, 长度: ${tail.length}`)
       appendToCurrentFile(tail)
     }
 
+    console.log(`[调试] fileBuffers数量: ${fileBuffers.size}`)
     fileBuffers.forEach((chunks, filename) => {
+      console.log(`[调试] 文件 ${filename} 有 ${chunks.length} 个chunk`)
       const code = chunks.join('').trim()
+      console.log(`[调试] 文件 ${filename} 合并后长度: ${code.length}`)
       if (!code) return
       files.push({
         id: `file-${files.length}`,

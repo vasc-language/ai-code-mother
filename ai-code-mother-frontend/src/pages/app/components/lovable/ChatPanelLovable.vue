@@ -20,10 +20,6 @@
                 <p class="message-text">{{ message.content }}</p>
               </div>
             </div>
-            <div class="message-avatar">
-              <img v-if="userAvatar" :src="userAvatar" alt="User" class="avatar-img" />
-              <div v-else class="avatar-placeholder">U</div>
-            </div>
           </div>
 
           <!-- AI 消息 -->

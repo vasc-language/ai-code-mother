@@ -219,34 +219,33 @@ const renderedMarkdown = computed(() => {
 /* 为包含加粗文本的段落添加特殊样式 */
 .markdown-content :deep(p:has(strong)) {
   padding: 12px 16px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
-  border-left: 4px solid transparent;
-  border-image: linear-gradient(109deg, rgb(0, 56, 255) 9.43%, rgb(0, 209, 255) 96.31%) 1;
+  background: linear-gradient(135deg, #f8f6f0 0%, #faf8f3 100%);
+  border-left: 4px solid #d4cfc4;
   border-radius: 8px;
   margin: 14px 0;
-  box-shadow: 0 2px 8px rgba(0, 56, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .markdown-content :deep(p:has(strong)):hover {
-  box-shadow: 0 4px 16px rgba(0, 56, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   transform: translateX(3px);
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+  background: linear-gradient(135deg, #faf8f3 0%, #f5f3ed 100%);
 }
 
-/* 工具调用标签样式 - 使用 AI Code Mother 同款渐变 */
+/* 工具调用标签样式 - 米色主题 */
 .markdown-content :deep(p > strong:first-child) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(109deg, rgb(0, 56, 255) 9.43%, rgb(0, 209, 255) 96.31%);
-  color: white;
+  background: linear-gradient(135deg, #e8e3d8 0%, #d4cfc4 100%);
+  color: #2d3748;
   padding: 5px 12px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
   margin-right: 10px;
-  box-shadow: 0 3px 10px rgba(0, 56, 255, 0.35);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
   letter-spacing: 0.3px;
 }
 
@@ -268,9 +267,9 @@ const renderedMarkdown = computed(() => {
 
 /* —— 修改文件 Diff 渲染样式（上下布局优化版）—— */
 .markdown-content :deep(.diff-container) {
-  border: 1px solid #e1e4e8;
+  border: 1px solid #d4cfc4;
   border-radius: 12px;
-  background: white;
+  background: linear-gradient(135deg, #f8f6f0 0%, #faf8f3 100%);
   margin: 16px 0;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -285,8 +284,8 @@ const renderedMarkdown = computed(() => {
 /* 文件头部 */
 .markdown-content :deep(.diff-container .diff-header) {
   padding: 12px 16px;
-  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
-  border-bottom: 1px solid #e8eaed;
+  background: linear-gradient(135deg, #faf8f3 0%, #f5f3ed 100%);
+  border-bottom: 1px solid #d4cfc4;
   font-size: 13px;
   color: #1a1a1a;
 }
@@ -294,9 +293,9 @@ const renderedMarkdown = computed(() => {
 .markdown-content :deep(.diff-container .diff-header .tool) {
   display: inline-flex;
   align-items: center;
-  background: linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%);
-  color: #d46b08;
-  border: 1px solid #ffd591;
+  background: linear-gradient(135deg, #e8e3d8 0%, #d4cfc4 100%);
+  color: #2d3748;
+  border: 1px solid #d4cfc4;
   border-radius: 6px;
   padding: 4px 10px;
   margin-right: 10px;
@@ -322,7 +321,7 @@ const renderedMarkdown = computed(() => {
 
 /* Diff 区块 */
 .markdown-content :deep(.diff-container .diff-section) {
-  background: #fafbfc;
+  background: transparent;
   padding: 12px 16px;
 }
 
@@ -337,8 +336,41 @@ const renderedMarkdown = computed(() => {
   padding: 8px 12px;
   border-radius: 8px;
   letter-spacing: 0.3px;
-  background: linear-gradient(109deg, rgb(0, 56, 255) 9.43%, rgb(0, 209, 255) 96.31%);
-  color: white;
+  background: linear-gradient(135deg, #e8e3d8 0%, #d4cfc4 100%);
+  color: #2d3748;
+}
+
+/* 可折叠标题样式 */
+.markdown-content :deep(.diff-container .diff-title.collapsible) {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.markdown-content :deep(.diff-container .diff-title.collapsible:hover) {
+  background: linear-gradient(135deg, #d4cfc4 0%, #c9c3b8 100%);
+  transform: translateX(2px);
+}
+
+/* 折叠图标 */
+.markdown-content :deep(.diff-container .diff-title .collapse-icon) {
+  display: inline-block;
+  font-size: 12px;
+  transition: transform 0.3s ease;
+  width: 14px;
+  text-align: center;
+}
+
+.markdown-content :deep(.diff-container .diff-title.collapsed .collapse-icon) {
+  transform: rotate(-90deg);
+}
+
+/* 行数显示 */
+.markdown-content :deep(.diff-container .diff-title .line-count) {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.7;
+  font-weight: normal;
 }
 
 .markdown-content :deep(.diff-container .diff-title .title-text) {
@@ -347,17 +379,18 @@ const renderedMarkdown = computed(() => {
 
 /* 代码区域 */
 .markdown-content :deep(.diff-container .diff-code) {
-  background: white;
-  border: 1px solid #e8eaed;
+  background: #1E1E1E;
+  border: 1px solid #3E3E42;
   border-radius: 8px;
-  font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
+  font-family: 'Monaco', 'Menlo', 'Cascadia Code', 'Consolas', monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.5;
   overflow-x: auto;
   padding: 10px 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   max-height: 400px;
   overflow-y: auto;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
 }
 
 /* 代码行样式 */
@@ -365,11 +398,12 @@ const renderedMarkdown = computed(() => {
   display: flex;
   padding: 2px 12px;
   transition: background-color 0.2s ease;
+  color: #D4D4D4;
 }
 
 .markdown-content :deep(.diff-container .diff-code .line .gutter) {
   width: 3.5em;
-  color: #999;
+  color: #858585;
   text-align: right;
   padding-right: 10px;
   user-select: none;
@@ -380,18 +414,27 @@ const renderedMarkdown = computed(() => {
   flex: 1;
   white-space: pre-wrap;
   word-break: break-word;
+  color: #D4D4D4;
 }
 
-/* 新增行 - 绿色背景 */
+/* 新增行 - VS Code 绿色主题 */
 .markdown-content :deep(.diff-container .line.added) {
-  background: linear-gradient(90deg, #e6ffed 0%, #f0fff4 100%);
-  border-left: 3px solid #52c41a;
+  background: rgba(16, 185, 129, 0.15);
+  border-left: 3px solid #10B981;
 }
 
-/* 删除行 - 红色背景 */
+.markdown-content :deep(.diff-container .line.added .content) {
+  color: #4EC9B0;
+}
+
+/* 删除行 - VS Code 红色主题 */
 .markdown-content :deep(.diff-container .line.removed) {
-  background: linear-gradient(90deg, #ffeef0 0%, #fff5f5 100%);
-  border-left: 3px solid #ff4d4f;
+  background: rgba(248, 81, 73, 0.15);
+  border-left: 3px solid #F85149;
+}
+
+.markdown-content :deep(.diff-container .line.removed .content) {
+  color: #F48771;
 }
 
 /* 未修改行 */
@@ -399,9 +442,22 @@ const renderedMarkdown = computed(() => {
   background: transparent;
 }
 
-/* 空行 */
-.markdown-content :deep(.diff-container .line.empty .content) {
-  color: #bbb;
-  font-style: italic;
+/* 滚动条样式 - VS Code 风格 */
+.markdown-content :deep(.diff-container .diff-code::-webkit-scrollbar) {
+  width: 10px;
+  height: 10px;
+}
+
+.markdown-content :deep(.diff-container .diff-code::-webkit-scrollbar-track) {
+  background: #1E1E1E;
+}
+
+.markdown-content :deep(.diff-container .diff-code::-webkit-scrollbar-thumb) {
+  background: #424242;
+  border-radius: 5px;
+}
+
+.markdown-content :deep(.diff-container .diff-code::-webkit-scrollbar-thumb):hover {
+  background: #4E4E4E;
 }
 </style>
