@@ -38,26 +38,54 @@ public class AiCodeGenTypeRoutingServiceFactory {
 }
 
 /**
- * 本地启发式路由：在未配置模型时使用，尽量不阻断主流程。
+ * 本地启发式路由：在未配置模型或AI失败时使用，尽量不阻断主流程。
  */
 class HeuristicRoutingService implements AiCodeGenTypeRoutingService {
     @Override
     public CodeGenTypeEnum routeCodeGenType(String userPrompt) {
         if (userPrompt == null) {
-            return CodeGenTypeEnum.HTML;
+            return CodeGenTypeEnum.MULTI_FILE;
         }
         String p = userPrompt.toLowerCase();
-        // 触发 Vue 项目关键词（中英文）
-        String[] vueHints = new String[]{
-                "vue", "vite", "component", "router", "pinia", "dashboard",
-                "管理后台", "后台", "系统", "页面路由", "组件化", "前端项目", "单页应用"
+        String original = userPrompt; // 保留原始大小写用于中文匹配
+
+        // 优先级1: 明确技术栈要求
+        String[] vueExplicitHints = new String[]{
+            "vue", "VUE", "Vue", "vue模式", "VUE模式", "使用vue", "使用VUE",
+            "router", "路由", "pinia", "状态管理", "组件化"
         };
-        for (String h : vueHints) {
-            if (p.contains(h) || userPrompt.contains(h)) {
+        for (String hint : vueExplicitHints) {
+            if (p.contains(hint.toLowerCase()) || original.contains(hint)) {
                 return CodeGenTypeEnum.VUE_PROJECT;
             }
         }
-        return CodeGenTypeEnum.HTML;
+
+        // 优先级2: 复杂项目关键词
+        String[] vueComplexHints = new String[]{
+            "管理后台", "后台", "系统", "平台", "工程", "dashboard",
+            "作品展示", "画廊", "瀑布流", "前端项目", "单页应用", "spa"
+        };
+        int complexCount = 0;
+        for (String h : vueComplexHints) {
+            if (p.contains(h) || original.contains(h)) {
+                complexCount++;
+            }
+        }
+        // 包含2个以上复杂关键词，或者文字很长且包含1个
+        if (complexCount >= 2 || (complexCount >= 1 && userPrompt.length() > 50)) {
+            return CodeGenTypeEnum.VUE_PROJECT;
+        }
+
+        // 优先级3: 简单HTML页面
+        String[] htmlHints = new String[]{"登录页", "注册页", "404", "简单页面", "单页"};
+        for (String h : htmlHints) {
+            if (original.contains(h)) {
+                return CodeGenTypeEnum.HTML;
+            }
+        }
+
+        // 默认返回多文件模式
+        return CodeGenTypeEnum.MULTI_FILE;
     }
 }
 

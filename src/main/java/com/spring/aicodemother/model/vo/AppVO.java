@@ -34,6 +34,11 @@ public class AppVO implements Serializable {
     private String codeGenType;
 
     /**
+     * AI模型标识
+     */
+    private String modelKey;
+
+    /**
      * 部署标识
      */
     private String deployKey;

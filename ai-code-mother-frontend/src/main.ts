@@ -7,6 +7,9 @@ import router from './router'
 import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/reset.css'
 
+// 导入 Lovable 深色主题样式
+import '@/styles/lovable-theme.css'
+
 import '@/access'
 
 const app = createApp(App)

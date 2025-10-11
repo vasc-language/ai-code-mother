@@ -6,7 +6,7 @@
         <RouterLink to="/">
           <div class="logo-section">
             <img class="logo" src="@/assets/logo.png" alt="Logo" />
-            <h1 class="site-title">AI Code Mother</h1>
+            <h1 class="site-title">AICodeHub</h1>
           </div>
         </RouterLink>
       </div>

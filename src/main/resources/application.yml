@@ -21,7 +21,6 @@ spring:
       ttl: 3600 # 缓存存活时间
   profiles:
     active: local
-
 server:
   port: 8123
   servlet:
@@ -58,24 +57,34 @@ pixabay:
 dashscope:
   api-key: <Your API Key>
   image-model: wan2.2-t2i-flash
-# AI 模型配置
+## AI 模型配置
 langchain4j:
   open-ai:
     # 推理 AI 模型配置（用于复杂的推理任务）
     reasoning-streaming-chat-model:
-      base-url: https://api.deepseek.com
-      api-key: <Your API Key>
-      model-name: deepseek-reasoner
-      max-tokens: 32768
-      temperature: 0.1
+      base-url: https://204992.xyz/v1
+      api-key: sk-6d9175726392996b969a9ded28fe2a47dce1884c2023f28fc3cb666d22db57d8
+      model-name: gpt-5-codex-medium
+      max-tokens: 4000
+      temperature: 0.7
       log-requests: true
       log-responses: true
     # 智能路由 AI 模型配置（用于简单的分类任务）
     routing-chat-model:
-      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-      api-key: <Your API Key>
-      model-name: qwen-turbo
-      max-tokens: 100
+      base-url: https://204992.xyz/v1
+      api-key: sk-6d9175726392996b969a9ded28fe2a47dce1884c2023f28fc3cb666d22db57d8
+      model-name: gpt-5-low  # 使用MEDIUM级别模型（3积分/1K tokens），稳定可靠
+      max-tokens: 50
+      temperature: 0.3
+      log-requests: true
+      log-responses: true
+    # 流式聊天模型配置（用于动态模型选择，DynamicAiModelFactory需要此配置）
+    streaming-chat-model:
+      base-url: https://204992.xyz/v1
+      api-key: sk-6d9175726392996b969a9ded28fe2a47dce1884c2023f28fc3cb666d22db57d8
+      model-name: gpt-5-low
+      max-tokens: 8192
+      temperature: 0.7
       log-requests: true
       log-responses: true
 management:

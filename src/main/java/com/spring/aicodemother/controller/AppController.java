@@ -84,9 +84,9 @@ public class AppController {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 id 错误");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "提示词不能为空");
-        // modelKey 可选，如果不传则使用默认模型
+        // modelKey 可选，如果不传则使用默认模型（轻量级编程模型）
         if (StrUtil.isBlank(modelKey)) {
-            modelKey = "deepseek-reasoner"; // 默认模型
+            modelKey = "codex-mini-latest"; // 默认模型：Codex Mini 最新版（1积分/1K tokens）
         }
 
         // IP级别限流检查（每分钟10次）

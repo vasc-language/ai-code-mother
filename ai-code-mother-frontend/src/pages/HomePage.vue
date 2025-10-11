@@ -482,8 +482,12 @@ onMounted(() => {
             :disabled="!userPrompt.trim() || creating"
             :class="{ loading: creating }"
           >
+            <!-- 发送图标 -->
             <span v-if="!creating" class="send-icon">↑</span>
-            <span v-else class="loading-spinner">⟳</span>
+            <!-- 停止图标 - 小正方块 -->
+            <svg v-else class="stop-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <rect x="5" y="5" width="10" height="10" rx="1"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -931,17 +935,26 @@ onMounted(() => {
   line-height: 1;
 }
 
-.loading-spinner {
-  font-size: 20px;
-  animation: spin 1s linear infinite;
+.stop-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
+/* loading状态样式 */
+.send-btn.loading {
+  background: #ef4444 !important;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    opacity: 0.8;
+    transform: scale(0.95);
   }
 }
 

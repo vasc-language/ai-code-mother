@@ -1,0 +1,365 @@
+/**
+ * Lovable 风格主题覆盖样式
+ * 用于 AppChatPage.vue
+ *
+ * 此文件会覆盖原页面的默认样式，应用深色主题
+ */
+
+/* 导入基础主题变量 */
+@import '@/styles/lovable-theme.css';
+
+/* ========== 页面整体 ========== */
+#appChatPage {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ========== 顶部导航栏 ========== */
+.header-bar {
+  background: var(--bg-elevated) !important;
+  border-bottom: 1px solid var(--border-primary) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.app-name {
+  color: var(--text-primary) !important;
+}
+
+.code-gen-type-tag {
+  background: var(--color-primary) !important;
+  color: var(--text-inverse) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* ========== 按钮样式 ========== */
+.header-right .ant-btn-default {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.header-right .ant-btn-default:hover {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.header-right .ant-btn-primary {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.header-right .ant-btn-primary:hover {
+  background: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+/* ========== 主内容区 ========== */
+.main-content {
+  background: var(--bg-primary) !important;
+}
+
+/* ========== 左侧聊天区域 ========== */
+.chat-section {
+  background: var(--bg-primary) !important;
+  border-right: 1px solid var(--border-primary) !important;
+}
+
+.messages-container {
+  background: var(--bg-primary) !important;
+}
+
+/* 用户消息 */
+.user-message .message-content {
+  background: var(--chat-user-bg) !important;
+  color: var(--chat-user-text) !important;
+}
+
+/* AI 消息 */
+.ai-message .message-content {
+  background: var(--chat-ai-bg) !important;
+  color: var(--chat-ai-text) !important;
+  border: 1px solid var(--border-secondary) !important;
+}
+
+/* 加载指示器 */
+.loading-indicator {
+  color: var(--text-tertiary) !important;
+}
+
+/* 输入容器 */
+.input-container {
+  background: var(--bg-secondary) !important;
+  border-top: 1px solid var(--border-primary) !important;
+}
+
+.input-wrapper {
+  background: var(--input-bg) !important;
+  border: 2px solid var(--input-border) !important;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--input-focus-border) !important;
+}
+
+.message-input {
+  background: transparent !important;
+  color: var(--input-text) !important;
+}
+
+.message-input::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+.send-button,
+.stream-toggle {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-tertiary) !important;
+}
+
+.send-button:hover:not(:disabled),
+.stream-toggle:hover:not(:disabled) {
+  background: var(--color-primary) !important;
+  color: white !important;
+}
+
+/* ========== 右侧代码区域 ========== */
+.code-generation-section {
+  background: var(--code-bg) !important;
+}
+
+.section-header {
+  background: var(--code-bg-highlight) !important;
+  border-bottom: 1px solid var(--border-primary) !important;
+}
+
+.section-header h3 {
+  color: var(--text-primary) !important;
+}
+
+/* 文件头部 */
+.file-header {
+  background: var(--code-bg-highlight) !important;
+  border-bottom: 1px solid var(--border-secondary) !important;
+}
+
+.file-tab {
+  color: var(--text-primary) !important;
+}
+
+.file-name {
+  color: var(--text-primary) !important;
+}
+
+/* 代码内容 */
+.code-content {
+  background: var(--code-bg) !important;
+  color: var(--code-text) !important;
+}
+
+.code-plain {
+  background: var(--code-bg) !important;
+  color: var(--code-text) !important;
+}
+
+/* 代码高亮 */
+.code-content code {
+  color: var(--code-text) !important;
+}
+
+/* 折叠面板 */
+.completed-files .ant-collapse {
+  background: var(--code-bg) !important;
+  border-color: var(--border-secondary) !important;
+}
+
+.completed-files .ant-collapse-item {
+  border-color: var(--border-secondary) !important;
+}
+
+.completed-files .ant-collapse-header {
+  background: var(--code-bg-highlight) !important;
+  color: var(--text-primary) !important;
+}
+
+.completed-files .ant-collapse-content {
+  background: var(--code-bg) !important;
+  border-color: var(--border-secondary) !important;
+}
+
+.file-panel-header {
+  color: var(--text-primary) !important;
+}
+
+.file-path {
+  color: var(--text-tertiary) !important;
+}
+
+/* 文件内容包装器 */
+.file-content-wrapper {
+  background: var(--code-bg) !important;
+}
+
+/* ========== 预览区域 ========== */
+.preview-container {
+  background: white !important; /* 预览保持白色 */
+}
+
+/* ========== 占位符和加载 ========== */
+.code-placeholder,
+.code-loading {
+  color: var(--text-tertiary) !important;
+}
+
+/* ========== 选中元素信息 ========== */
+.selected-element-alert {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.element-tag {
+  background: var(--color-info) !important;
+  color: white !important;
+}
+
+.element-id {
+  color: var(--color-primary) !important;
+}
+
+.element-class {
+  color: var(--color-success) !important;
+}
+
+.element-selector-code {
+  background: var(--bg-primary) !important;
+  color: var(--code-string) !important;
+  border-color: var(--border-primary) !important;
+}
+
+/* ========== 模态框 ========== */
+.ant-modal-content {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-modal-header {
+  background: var(--bg-elevated) !important;
+  border-bottom-color: var(--border-primary) !important;
+}
+
+.ant-modal-title {
+  color: var(--text-primary) !important;
+}
+
+.ant-modal-body {
+  color: var(--text-primary) !important;
+}
+
+.ant-modal-footer {
+  border-top-color: var(--border-primary) !important;
+}
+
+/* 版本详情 */
+.version-item {
+  background: var(--bg-secondary) !important;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.version-header h4 {
+  color: var(--text-primary) !important;
+}
+
+.version-info {
+  color: var(--text-secondary) !important;
+}
+
+.version-info-item {
+  color: var(--text-secondary) !important;
+}
+
+/* ========== 时间轴 ========== */
+.ant-timeline-item-content {
+  color: var(--text-primary) !important;
+}
+
+/* ========== 描述列表 ========== */
+.ant-descriptions-bordered .ant-descriptions-item-label {
+  background: var(--bg-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+
+.ant-descriptions-bordered .ant-descriptions-item-content {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ========== 空状态 ========== */
+.ant-empty-description {
+  color: var(--text-tertiary) !important;
+}
+
+/* ========== Spin 加载 ========== */
+.ant-spin-dot-item {
+  background-color: var(--color-primary) !important;
+}
+
+/* ========== 标签 ========== */
+.ant-tag {
+  border-color: var(--border-primary) !important;
+}
+
+/* ========== 链接 ========== */
+a {
+  color: var(--color-primary) !important;
+}
+
+a:hover {
+  color: var(--color-primary-hover) !important;
+}
+
+/* ========== 编辑模式按钮 ========== */
+.edit-mode-active {
+  background-color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+  color: white !important;
+}
+
+/* ========== 滚动条 ========== */
+.messages-container::-webkit-scrollbar,
+.code-content::-webkit-scrollbar,
+.code-output-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.messages-container::-webkit-scrollbar-track,
+.code-content::-webkit-scrollbar-track,
+.code-output-container::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.messages-container::-webkit-scrollbar-thumb,
+.code-content::-webkit-scrollbar-thumb,
+.code-output-container::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover,
+.code-content::-webkit-scrollbar-thumb:hover,
+.code-output-container::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ========== 响应式优化 ========== */
+@media (max-width: 1024px) {
+  .main-content {
+    background: var(--bg-primary) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-bar {
+    background: var(--bg-elevated) !important;
+  }
+}

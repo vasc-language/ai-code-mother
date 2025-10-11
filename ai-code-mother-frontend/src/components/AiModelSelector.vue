@@ -1,37 +1,58 @@
 <template>
   <div class="ai-model-selector">
+    <!-- 标题栏 -->
     <div class="selector-header">
-      <span class="header-label">AI模型选择:</span>
-      <a-select
-        v-model:value="selectedModelKey"
-        :loading="loading"
-        :disabled="disabled"
-        placeholder="选择AI模型"
-        style="width: 280px"
-        @change="handleModelChange"
-        size="large"
-      >
-        <a-select-option
-          v-for="model in models"
-          :key="model.modelKey"
-          :value="model.modelKey"
-        >
-          <div class="model-option">
-            <span class="model-name">{{ model.modelName }}</span>
-            <a-tag :color="getTierColor(model.tier)" size="small" class="tier-tag">
-              {{ getTierLabel(model.tier) }}
-            </a-tag>
-            <span class="model-points">{{ model.pointsPerKToken }}分/1K</span>
-          </div>
-        </a-select-option>
-      </a-select>
+      <span class="header-label">AICodeHub</span>
+    </div>
 
-      <!-- 当前模型信息(简化显示) -->
-      <div v-if="currentModel" class="current-model-info">
-        <a-tag :color="getTierColor(currentModel.tier)">
-          {{ getTierLabel(currentModel.tier) }}等级
-        </a-tag>
-        <span class="current-points">{{ currentModel.pointsPerKToken }} 积分/1K tokens</span>
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-state">
+      <a-spin size="small" />
+      <span>加载中...</span>
+    </div>
+
+    <!-- 模型列表 - 直接在组件内滚动，无额外嵌套 -->
+    <div
+      v-for="model in models"
+      :key="model.modelKey"
+      class="model-item"
+      :class="{ selected: selectedModelKey === model.modelKey }"
+      @click="handleModelSelect(model)"
+      v-else
+    >
+      <!-- 左侧：SVG图标 -->
+      <div class="model-icon">
+        <img
+          :src="getModelIcon(model)"
+          :alt="model.provider"
+          class="icon-img"
+        />
+      </div>
+
+      <!-- 中间：模型名称 -->
+      <div class="model-info">
+        <span class="model-name">{{ model.modelKey }}</span>
+      </div>
+
+      <!-- 右侧：能力图标组 + Token -->
+      <div class="model-meta">
+        <!-- 能力图标组 -->
+        <div class="capability-icons">
+          <span
+            v-for="(icon, index) in getCapabilityIcons(model)"
+            :key="index"
+            class="capability-badge"
+            :class="icon.type"
+            :title="icon.title"
+          >
+            {{ icon.emoji }}
+          </span>
+        </div>
+
+        <!-- Token数量 -->
+        <div class="token-count">
+          {{ formatTokenCount(model) }}
+        </div>
       </div>
     </div>
   </div>
@@ -42,6 +63,12 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { listEnabledModels } from '@/api/aImoxingpeizhi'
 
+// 导入SVG图标
+import deepseekIcon from '@/assets/deepseek-color.svg'
+import qwenIcon from '@/assets/qwen-color.svg'
+import openaiIcon from '@/assets/openai.svg'
+import kimiIcon from '@/assets/kimi-color.svg'
+
 // Props
 interface Props {
   defaultModelKey?: string
@@ -49,7 +76,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  defaultModelKey: 'qwen3-235b-free',
+  defaultModelKey: 'codex-mini-latest',
   disabled: false
 })
 
@@ -69,10 +96,30 @@ const currentModel = computed(() => {
 })
 
 // Methods
+const getModelIcon = (model: API.AiModelConfig) => {
+  const provider = model.provider?.toLowerCase() || ''
+  const modelKey = model.modelKey?.toLowerCase() || ''
+
+  // 根据provider或modelKey匹配图标
+  if (provider.includes('deepseek') || modelKey.includes('deepseek')) {
+    return deepseekIcon
+  } else if (provider.includes('dashscope') || modelKey.includes('qwen')) {
+    return qwenIcon
+  } else if (provider.includes('openai') || modelKey.includes('gpt') || modelKey.includes('o3') || modelKey.includes('o4')) {
+    return openaiIcon
+  } else if (provider.includes('moonshot') || modelKey.includes('kimi')) {
+    return kimiIcon
+  }
+
+  // 默认返回OpenAI图标
+  return openaiIcon
+}
+
 const loadModels = async () => {
   loading.value = true
   try {
-    const res = await listEnabledModels()
+    const response = await listEnabledModels()
+    const res = response.data // axios响应需要访问.data
     if (res.code === 0 && res.data) {
       models.value = res.data
       // 如果默认模型不在列表中,选择第一个
@@ -81,20 +128,22 @@ const loadModels = async () => {
         selectedModelKey.value = models.value[0].modelKey || ''
       }
     } else {
-      message.error('加载模型列表失败: ' + res.message)
+      message.error('加载模型列表失败: ' + (res.message || '未知错误'))
     }
   } catch (error: any) {
-    message.error('加载模型列表失败: ' + error.message)
+    console.error('加载模型列表异常:', error)
+    const errorMsg = error?.response?.data?.message || error?.message || '网络请求失败'
+    message.error('加载模型列表失败: ' + errorMsg)
   } finally {
     loading.value = false
   }
 }
 
-const handleModelChange = (value: string) => {
-  const model = models.value.find(m => m.modelKey === value)
-  if (model) {
-    emit('change', value, model)
-  }
+const handleModelSelect = (model: API.AiModelConfig) => {
+  if (props.disabled) return
+  selectedModelKey.value = model.modelKey || ''
+  emit('change', model.modelKey || '', model)
+  console.log('选择模型:', model.modelName, model.modelKey)
 }
 
 const getTierColor = (tier?: string) => {
@@ -127,6 +176,89 @@ const getTierLabel = (tier?: string) => {
   }
 }
 
+// 获取品牌类名（用于品牌配色）
+const getBrandClass = (model: API.AiModelConfig) => {
+  const provider = model.provider?.toLowerCase() || ''
+  const modelKey = model.modelKey?.toLowerCase() || ''
+
+  if (provider.includes('deepseek') || modelKey.includes('deepseek')) {
+    return 'deepseek'
+  } else if (provider.includes('dashscope') || modelKey.includes('qwen')) {
+    return 'qwen'
+  } else if (provider.includes('openai') || modelKey.includes('gpt') || modelKey.includes('o3') || modelKey.includes('o4')) {
+    return 'openai'
+  } else if (provider.includes('moonshot') || modelKey.includes('kimi')) {
+    return 'kimi'
+  }
+  return 'default'
+}
+
+// 获取模型显示名称
+const getModelDisplayName = (model: API.AiModelConfig) => {
+  const modelKey = model.modelKey || ''
+
+  // 提取品牌名称
+  if (modelKey.toLowerCase().includes('deepseek')) {
+    return 'DeepSeek'
+  } else if (modelKey.toLowerCase().includes('qwen')) {
+    return 'Qwen'
+  } else if (modelKey.toLowerCase().includes('gpt')) {
+    return 'GPT'
+  } else if (modelKey.toLowerCase().includes('o3') || modelKey.toLowerCase().includes('o4')) {
+    return 'OpenAI'
+  } else if (modelKey.toLowerCase().includes('kimi')) {
+    return 'Kimi'
+  }
+
+  return model.modelName || modelKey
+}
+
+// 获取能力图标组（返回图标数组）
+const getCapabilityIcons = (model: API.AiModelConfig) => {
+  const icons: Array<{ emoji: string; type: string; title: string }> = []
+  const modelKey = model.modelKey?.toLowerCase() || ''
+
+  // GPT-5系列 - 全能型(👁️ 🌐 ❄️ 🔧)
+  const isGpt5 = modelKey.includes('gpt-5') || modelKey.includes('codex-mini') ||
+                 modelKey.includes('o3') || modelKey.includes('o4')
+
+  // DeepSeek系列 - 推理+工具型(❄️ 🔧)
+  const isDeepSeek = modelKey.includes('deepseek')
+
+  // Qwen3高端系列(235B) - 推理+工具型(❄️ 🔧)
+  const isQwen235b = modelKey.includes('qwen3-235b')
+
+  // Qwen3 Coder和Kimi系列 - 工具专精型(🔧)
+  const isToolOnly = modelKey.includes('qwen3-coder') || modelKey.includes('qwen3-max') ||
+                     modelKey.includes('kimi')
+
+  if (isGpt5) {
+    // 全能型模型
+    icons.push({ emoji: '👁️', type: 'vision', title: '视觉 - 支持图像识别和处理' })
+    icons.push({ emoji: '🌐', type: 'web', title: '联网 - 支持实时网络搜索' })
+    icons.push({ emoji: '❄️', type: 'reasoning', title: '推理 - 支持复杂推理能力' })
+    icons.push({ emoji: '🔧', type: 'tool', title: '工具 - 支持函数调用和工具使用' })
+  } else if (isDeepSeek || isQwen235b) {
+    // 推理+工具型
+    icons.push({ emoji: '❄️', type: 'reasoning', title: '推理 - 支持复杂推理能力' })
+    icons.push({ emoji: '🔧', type: 'tool', title: '工具 - 支持函数调用和工具使用' })
+  } else if (isToolOnly) {
+    // 工具专精型
+    icons.push({ emoji: '🔧', type: 'tool', title: '工具 - 支持函数调用和工具使用' })
+  } else {
+    // 未分类模型,默认显示工具能力
+    icons.push({ emoji: '🔧', type: 'tool', title: '工具 - 支持函数调用和工具使用' })
+  }
+
+  return icons
+}
+
+// 格式化积分显示
+const formatTokenCount = (model: API.AiModelConfig) => {
+  // 直接显示积分数
+  return model.pointsPerKToken ? `${model.pointsPerKToken}积分` : '-'
+}
+
 // Watch props changes
 watch(() => props.defaultModelKey, (newValue) => {
   if (newValue) {
@@ -148,55 +280,253 @@ defineExpose({
 </script>
 
 <style scoped>
+/* ========== 单层容器结构 ========== */
 .ai-model-selector {
   width: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .selector-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fff5f0 0%, #ffe8dd 100%);
+  border-bottom: 2px solid rgba(255, 107, 53, 0.1);
 }
 
 .header-label {
-  font-weight: 600;
-  font-size: 14px;
-  color: #333;
+  font-weight: 700;
+  font-size: 16px;
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.3px;
 }
 
-.model-option {
+.loading-state {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* ========== 模型列表项 - 直接在.ai-model-selector下 ========== */
+.model-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 0 8px 6px 8px;
+  border-radius: 16px;
+  background: white;
+  border: 2px solid rgba(255, 107, 53, 0.1);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-height: 56px;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.06);
+}
+
+.model-item:first-of-type {
+  margin-top: 8px;
+}
+
+.model-item:hover {
+  background: rgba(255, 245, 240, 0.6);
+  border-color: rgba(255, 107, 53, 0.3);
+  transform: translateX(4px) translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
+}
+
+.model-item.selected {
+  background: linear-gradient(135deg, #fff5f0 0%, #ffe8dd 100%);
+  border-color: #ff6b35;
+  box-shadow:
+    0 0 0 1px rgba(255, 107, 53, 0.2),
+    0 4px 16px rgba(255, 107, 53, 0.2);
+}
+
+.model-item.selected:hover {
+  background: linear-gradient(135deg, #ffe8dd 0%, #ffd9cc 100%);
+  transform: translateX(4px) translateY(-2px);
+}
+
+/* ========== SVG图标 ========== */
+.model-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* ========== 模型信息 ========== */
+.model-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .model-name {
-  flex: 1;
+  font-size: 14px;
   font-weight: 500;
-}
-
-.tier-tag {
-  margin: 0;
-}
-
-.model-points {
-  font-size: 12px;
-  color: #666;
+  color: #1a1a1a;
+  line-height: 1.5;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.current-model-info {
+/* ========== 右侧元数据 ========== */
+.model-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  background: #f0f0f0;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* ========== 能力图标组 ========== */
+.capability-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.capability-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  cursor: help;
+}
+
+.capability-badge:hover {
+  background: rgba(0, 0, 0, 0.08);
+  transform: scale(1.15);
+}
+
+/* 视觉能力 - 绿色 */
+.capability-badge.vision {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+/* 联网 - 青色 */
+.capability-badge.web {
+  background: rgba(6, 182, 212, 0.1);
+}
+
+/* 推理能力 - 蓝色 */
+.capability-badge.reasoning {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* 工具能力 - 紫色 */
+.capability-badge.tool {
+  background: rgba(168, 85, 247, 0.1);
+}
+
+/* 上下文 - 蓝色 (保留兼容性) */
+.capability-badge.context {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* 代码能力 - 紫色 (保留兼容性) */
+.capability-badge.code {
+  background: rgba(168, 85, 247, 0.1);
+}
+
+/* 无联网 - 红色淡化 (保留兼容性) */
+.capability-badge.no-web {
+  background: rgba(239, 68, 68, 0.08);
+  opacity: 0.5;
+}
+
+/* ========== Token数量 ========== */
+.token-count {
+  min-width: 60px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ff8c42;
+  font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+  letter-spacing: -0.3px;
+}
+
+.model-item.selected .token-count {
+  color: #ff6b35;
+}
+
+/* ========== 滚动条样式 ========== */
+.ai-model-selector::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ai-model-selector::-webkit-scrollbar-track {
+  background: rgba(255, 107, 53, 0.05);
   border-radius: 4px;
 }
 
-.current-points {
-  font-size: 13px;
-  color: #666;
+.ai-model-selector::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 53, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.ai-model-selector::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 53, 0.5);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .model-item {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  .model-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .icon-img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .model-name {
+    font-size: 13px;
+  }
+
+  .capability-badge {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .token-count {
+    font-size: 12px;
+    min-width: 50px;
+  }
 }
 </style>

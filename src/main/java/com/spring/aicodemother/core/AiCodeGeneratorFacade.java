@@ -73,15 +73,27 @@ public class AiCodeGeneratorFacade {
      *
      * @param userMessage     用户提示词
      * @param codeGenTypeEnum 生成类型
+     * @param appId           应用ID
+     * @param control         生成控制
+     * @param modelKey        模型key（支持动态模型选择）
      * @return 保存的目录
      */
     public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId,
-                                                  GenerationControl control) {
+                                                  GenerationControl control, String modelKey) {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型不能为空");
         }
-        // 根据 appId 获取相对应的 AI Service
-        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
+
+        // 根据 appId、codeGenType 和 modelKey 获取相对应的 AI Service
+        AiCodeGeneratorService aiCodeGeneratorService;
+        if (modelKey != null && !modelKey.isBlank()) {
+            log.info("使用动态模型创建AI服务 - appId: {}, codeGenType: {}, modelKey: {}", appId, codeGenTypeEnum, modelKey);
+            aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum, modelKey);
+        } else {
+            log.info("使用默认模型创建AI服务 - appId: {}, codeGenType: {}", appId, codeGenTypeEnum);
+            aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
+        }
+
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
@@ -106,6 +118,18 @@ public class AiCodeGeneratorFacade {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
             }
         };
+    }
+
+    /**
+     * 统一入口：根据类型生成并保存代码（流式，兼容旧版）
+     *
+     * @param userMessage     用户提示词
+     * @param codeGenTypeEnum 生成类型
+     * @return 保存的目录
+     */
+    public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId,
+                                                  GenerationControl control) {
+        return generateAndSaveCodeStream(userMessage, codeGenTypeEnum, appId, control, null);
     }
 
     /**

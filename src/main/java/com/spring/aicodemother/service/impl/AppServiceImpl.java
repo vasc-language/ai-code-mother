@@ -117,8 +117,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     // New entry with cancellation control
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser,
                                       com.spring.aicodemother.core.control.GenerationControlRegistry.GenerationControl control) {
-        // Delegate to modelKey version with default model
-        return chatToGenCode(appId, message, loginUser, control, "deepseek-reasoner");
+        // Delegate to modelKey version with default model (使用轻量级编程模型)
+        return chatToGenCode(appId, message, loginUser, control, "codex-mini-latest");
     }
 
     // New entry with dynamic model selection
@@ -238,7 +238,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                         .build()
         );
         // 7. 调用 AI 生成代码（流式）并绑定取消信号（若命中模板，则使用增强后的 finalMessage）
-        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(finalMessage, codeGenTypeEnum, appId, control);
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(finalMessage, codeGenTypeEnum, appId, control, modelKey);
         // 8. 收集AI响应内容并在完成后记录到对话历史（根据取消状态抑制副作用）
         java.util.function.BooleanSupplier cancelled = (control == null) ? (() -> false) : control::isCancelled;
         AtomicReference<String> finalResponseRef = new AtomicReference<>("");
@@ -533,39 +533,56 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 参数校验
         String initPrompt = appAddRequest.getInitPrompt();
         ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
+
+        // 获取用户选择的模型Key（可选）
+        String modelKey = appAddRequest.getModelKey();
+        if (StrUtil.isNotBlank(modelKey)) {
+            // 验证模型是否存在且启用
+            com.spring.aicodemother.model.entity.AiModelConfig modelConfig = aiModelConfigService.getByModelKey(modelKey);
+            if (modelConfig != null && modelConfig.getIsEnabled() == 1) {
+                log.info("用户选择模型: {} ({})", modelConfig.getModelName(), modelKey);
+            } else {
+                log.warn("用户选择的模型不存在或已禁用: {}, 将使用默认模型", modelKey);
+                modelKey = null; // 重置为null，使用默认行为
+            }
+        }
+
         // 构造入库对象
         App app = new App();
         BeanUtil.copyProperties(appAddRequest, app);
         app.setUserId(loginUser.getId());
-        // 使用 AI 生成简洁项目名称（失败则回退到截断策略）
-        String appName = null;
+
+        // 使用AI生成项目名称
+        String appName;
         try {
-            var nameService = appNameGeneratorServiceFactory.createAppNameGeneratorService();
-            String rawName = nameService.generateName(initPrompt);
-            if (StrUtil.isNotBlank(rawName)) {
-                // 清洗：去除引号/换行/特殊符号，限制长度
-                appName = rawName.replaceAll("[\r\n\t]", " ")
-                        .replaceAll("^[\"'`，。！？,.\s]+|[\"'`，。！？,.\s]+$", "")
-                        .trim();
-                if (appName.length() > 20) {
-                    appName = appName.substring(0, 20);
-                }
-            }
+            com.spring.aicodemother.ai.AppNameGeneratorService nameGenerator =
+                appNameGeneratorServiceFactory.createAppNameGeneratorService();
+            appName = nameGenerator.generateName(initPrompt);
+            log.info("AI生成应用名称成功: {}", appName);
         } catch (Exception e) {
-            log.warn("AI 生成项目名称失败，使用回退策略：{}", e.getMessage());
-        }
-        if (StrUtil.isBlank(appName)) {
+            log.warn("AI生成应用名称失败，使用简化策略: {}", e.getMessage());
             appName = initPrompt.substring(0, Math.min(initPrompt.length(), 12));
         }
         app.setAppName(appName);
-        // 使用 AI 智能选择代码生成类型（多例模式）
-        AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
-        CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
-        app.setCodeGenType(selectedCodeGenType.getValue());
+
+        // 使用AI路由判断代码生成类型
+        CodeGenTypeEnum codeGenType;
+        try {
+            AiCodeGenTypeRoutingService routingService =
+                aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
+            codeGenType = routingService.routeCodeGenType(initPrompt);
+            log.info("AI路由判断生成类型成功: {}", codeGenType.getText());
+        } catch (Exception e) {
+            log.warn("AI路由判断失败，使用默认类型: {}", e.getMessage());
+            codeGenType = CodeGenTypeEnum.MULTI_FILE;
+        }
+        app.setCodeGenType(codeGenType.getValue());
+
         // 插入数据库
         boolean result = this.save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        log.info("应用创建成功，ID: {}, 类型: {}", app.getId(), selectedCodeGenType.getValue());
+        log.info("应用创建成功，ID: {}, 名称: {}, 类型: {}, 模型: {}",
+            app.getId(), appName, codeGenType.getText(), modelKey != null ? modelKey : "default");
         return app.getId();
     }
 

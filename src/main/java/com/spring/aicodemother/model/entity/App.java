@@ -60,6 +60,12 @@ public class App implements Serializable {
     private String codeGenType;
 
     /**
+     * AI模型标识
+     */
+    @Column("modelKey")
+    private String modelKey;
+
+    /**
      * 部署标识
      */
     @Column("deployKey")

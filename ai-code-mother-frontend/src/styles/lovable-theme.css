@@ -1,0 +1,198 @@
+/**
+ * Lovable 风格暖色调主题配色方案
+ *
+ * 设计规范参考:
+ * - Lovable.dev 橙色/珊瑚色系
+ * - 现代化圆角设计
+ * - 温暖渐变效果
+ */
+
+:root {
+  /* ========== 主题颜色 ========== */
+  /* 背景色系 - Lovable 暖色调 */
+  --bg-primary: #FFFBF7;        /* 主背景 - 极浅暖白 */
+  --bg-secondary: #FFF5ED;      /* 次级背景 - 浅橙白 */
+  --bg-tertiary: #FFE8D9;       /* 三级背景 - 悬停、选中状态 */
+  --bg-elevated: #FFFFFF;       /* 浮动元素背景(卡片、弹窗) */
+
+  /* 文字颜色 */
+  --text-primary: #2D3748;      /* 主要文字 - 深灰 */
+  --text-secondary: #4A5568;    /* 次要文字 - 中灰 */
+  --text-tertiary: #718096;     /* 三级文字 - 浅灰 */
+  --text-inverse: #FFFFFF;      /* 反色文字(用于深色背景) */
+
+  /* 主题色 - Lovable 橙色/珊瑚色系 */
+  --color-primary: #FF6B35;     /* 主色 - Lovable 橙 */
+  --color-primary-hover: #FF8C42; /* 主色悬停 - 亮橙 */
+  --color-primary-active: #E85A2C; /* 主色激活 - 深橙 */
+  --color-primary-light: #FFA574; /* 主色浅色 */
+  --color-primary-lighter: #FFD4BF; /* 主色更浅 */
+
+  /* 辅助色 */
+  --color-success: #10B981;     /* 成功 - 绿色 */
+  --color-warning: #F59E0B;     /* 警告 - 橙色 */
+  --color-error: #EF4444;       /* 错误 - 红色 */
+  --color-info: #FF6B35;        /* 信息 - 橙色(统一主题) */
+
+  /* 边框颜色 */
+  --border-primary: rgba(255, 107, 53, 0.15);    /* 主要边框 - 淡橙色 */
+  --border-secondary: rgba(255, 107, 53, 0.08);  /* 次要边框 - 更淡橙色 */
+  --border-focus: var(--color-primary); /* 聚焦边框 */
+
+  /* ========== 布局尺寸 ========== */
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* 圆角 - 增大所有圆角半径 */
+  --radius-sm: 12px;            /* 小圆角 - 从4px增大到12px */
+  --radius-md: 20px;            /* 中圆角 - 从8px增大到20px */
+  --radius-lg: 28px;            /* 大圆角 - 从12px增大到28px */
+  --radius-xl: 36px;            /* 超大圆角 - 从16px增大到36px */
+  --radius-full: 9999px;        /* 完全圆角 */
+
+  /* 阴影 - 暖色调阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(255, 107, 53, 0.08);
+  --shadow-md: 0 4px 12px rgba(255, 107, 53, 0.12), 0 2px 6px rgba(255, 107, 53, 0.08);
+  --shadow-lg: 0 10px 24px rgba(255, 107, 53, 0.15), 0 4px 8px rgba(255, 107, 53, 0.1);
+  --shadow-xl: 0 20px 40px rgba(255, 107, 53, 0.2), 0 10px 20px rgba(255, 107, 53, 0.12);
+
+  /* ========== 动画时长 ========== */
+  --transition-fast: 150ms;
+  --transition-base: 200ms;
+  --transition-slow: 300ms;
+
+  /* ========== 层级 ========== */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+  /* ========== 字体 ========== */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+
+  /* 字体大小 */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+
+  /* 行高 */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* ========== 代码编辑器配色(VS Code 风格) ========== */
+  --code-bg: #1E1E1E;           /* 代码背景 */
+  --code-bg-highlight: #2D2D30; /* 代码高亮行背景 */
+  --code-text: #D4D4D4;         /* 代码文字 */
+  --code-comment: #6A9955;      /* 注释 */
+  --code-keyword: #569CD6;      /* 关键字 */
+  --code-string: #CE9178;       /* 字符串 */
+  --code-number: #B5CEA8;       /* 数字 */
+  --code-function: #DCDCAA;     /* 函数 */
+  --code-variable: #9CDCFE;     /* 变量 */
+  --code-constant: #4FC1FF;     /* 常量 */
+  --code-operator: #D4D4D4;     /* 操作符 */
+  --code-tag: #569CD6;          /* HTML 标签 */
+  --code-attribute: #9CDCFE;    /* HTML 属性 */
+
+  /* ========== 聊天界面专用 ========== */
+  /* 消息气泡 */
+  --chat-user-bg: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+  --chat-user-text: var(--text-inverse);
+  --chat-ai-bg: var(--bg-elevated);
+  --chat-ai-text: var(--text-primary);
+
+  /* 输入框 */
+  --input-bg: var(--bg-elevated);
+  --input-border: var(--border-primary);
+  --input-focus-border: var(--border-focus);
+  --input-text: var(--text-primary);
+  --input-placeholder: var(--text-tertiary);
+
+  /* 滚动条 */
+  --scrollbar-track: var(--bg-secondary);
+  --scrollbar-thumb: rgba(255, 107, 53, 0.2);
+  --scrollbar-thumb-hover: rgba(255, 107, 53, 0.35);
+}
+
+/* ========== 全局样式重置 ========== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========== 自定义滚动条 ========== */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ========== 通用工具类 ========== */
+.transition-all {
+  transition: all var(--transition-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.transition-colors {
+  transition: color var(--transition-base) ease-in-out,
+              background-color var(--transition-base) ease-in-out,
+              border-color var(--transition-base) ease-in-out;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

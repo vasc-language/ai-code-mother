@@ -15,9 +15,10 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@microsoft/fetch-event-source": "^2.0.1",
+    "@types/markdown-it": "^14.1.2",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.11.0",
-    "@types/markdown-it": "^14.1.2",
     "highlight.js": "^11.11.1",
     "markdown-it": "^14.1.0",
     "pinia": "^3.0.3",

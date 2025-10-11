@@ -63,7 +63,12 @@ const highlightedCode = computed(() => {
   }
   
   // 最后转义HTML返回
-  return hljs.escapeHtml(props.code)
+  return props.code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
 })
 
 // 动态加载主题样式

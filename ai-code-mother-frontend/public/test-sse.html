@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SSE测试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.clear {
+            background: #f44336;
+        }
+        button.clear:hover {
+            background: #da190b;
+        }
+        #log {
+            background: #f5f5f5;
+            padding: 15px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🔧 SSE接口测试工具</h1>
+
+    <div class="controls">
+        <button onclick="testSSE()">🚀 开始测试</button>
+        <button class="clear" onclick="clearLog()">🗑️ 清空日志</button>
+    </div>
+
+    <pre id="log"></pre>
+
+    <script>
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logEl.innerHTML += `<span class="${className}">[${time}] ${msg}</span>\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function testSSE() {
+            clearLog();
+
+            // 使用最新创建的应用ID
+            const appId = 334411905117859840;
+            const message = "生成一个简单的红色按钮";
+            const modelKey = "gpt-5-low";
+
+            const url = `http://localhost:8123/api/app/chat/gen/code?appId=${appId}&message=${encodeURIComponent(message)}&modelKey=${modelKey}`;
+
+            log('🎬 开始测试SSE接口...', 'info');
+            log(`📍 URL: ${url}`, 'info');
+            log(`🆔 应用ID: ${appId}`, 'info');
+            log(`💬 提示词: ${message}`, 'info');
+            log(`🤖 模型: ${modelKey}`, 'info');
+            log('━'.repeat(80), 'info');
+
+            const eventSource = new EventSource(url);
+            let dataCount = 0;
+            let totalChars = 0;
+            const startTime = Date.now();
+
+            eventSource.onopen = () => {
+                log('✅ SSE连接已建立', 'success');
+            };
+
+            eventSource.onmessage = (event) => {
+                dataCount++;
+                try {
+                    const data = JSON.parse(event.data);
+                    const content = data.d || '';
+                    totalChars += content.length;
+
+                    if (content) {
+                        const preview = content.length > 100 ? content.substring(0, 100) + '...' : content;
+                        log(`📨 [消息 #${dataCount}] 收到 ${content.length} 字符: ${preview}`, 'info');
+                    } else {
+                        log(`📭 [消息 #${dataCount}] 收到空数据（keepalive）`, 'info');
+                    }
+                } catch (e) {
+                    log(`⚠️ [消息 #${dataCount}] 无法解析数据: ${event.data.substring(0, 100)}`, 'error');
+                }
+            };
+
+            eventSource.addEventListener('done', (event) => {
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+                log('━'.repeat(80), 'info');
+                log('✅ 生成完成！', 'success');
+                log(`📊 统计信息:`, 'info');
+                log(`   - 总消息数: ${dataCount}`, 'info');
+                log(`   - 总字符数: ${totalChars}`, 'info');
+                log(`   - 耗时: ${duration}秒`, 'info');
+                eventSource.close();
+            });
+
+            eventSource.addEventListener('interrupted', (event) => {
+                log('⚠️ 生成被中断', 'error');
+                eventSource.close();
+            });
+
+            eventSource.onerror = (error) => {
+                log(`❌ 连接错误!`, 'error');
+                log(`   ReadyState: ${eventSource.readyState}`, 'error');
+                log(`   (0=CONNECTING, 1=OPEN, 2=CLOSED)`, 'error');
+
+                if (eventSource.readyState === 2) {
+                    log('💡 可能的原因:', 'info');
+                    log('   1. 未登录 - 请先在主应用中登录', 'info');
+                    log('   2. 网络错误 - 检查后端是否运行', 'info');
+                    log('   3. 权限问题 - 检查应用是否属于当前用户', 'info');
+                }
+
+                eventSource.close();
+            };
+
+            // 60秒超时
+            setTimeout(() => {
+                if (eventSource.readyState !== EventSource.CLOSED) {
+                    log('⏱️ 测试超时(60秒)，关闭连接', 'error');
+                    eventSource.close();
+                }
+            }, 60000);
+        }
+
+        // 页面加载时显示欢迎信息
+        window.onload = () => {
+            log('👋 欢迎使用SSE测试工具!', 'success');
+            log('💡 使用说明:', 'info');
+            log('   1. 确保已在主应用(http://localhost:5173)中登录', 'info');
+            log('   2. 点击"开始测试"按钮', 'info');
+            log('   3. 查看SSE数据流输出', 'info');
+            log('━'.repeat(80), 'info');
+        };
+    </script>
+</body>
+</html>

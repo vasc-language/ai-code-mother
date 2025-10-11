@@ -6,7 +6,9 @@ import UserResetPasswordPage from '@/pages/user/UserResetPasswordPage.vue'
 import UserProfilePage from '@/pages/user/UserProfilePage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import AppManagePage from '@/pages/admin/AppManagePage.vue'
-import AppChatPage from '@/pages/app/AppChatPage.vue'
+// import AppChatPage from '@/pages/app/AppChatPage.vue' // 原页面 + Lovable 主题（重构版本）
+import AppChatPage from '@/pages/app/AppChatPage.old-optimized.vue' // 旧的优化版本
+// import AppChatPage from '@/pages/app/AppChatPage.lovable.vue' // Lovable 风格新版本（UI only）
 import AppEditPage from '@/pages/app/AppEditPage.vue'
 import ChatManagePage from '@/pages/admin/ChatManagePage.vue'
 import SignInPage from '@/pages/points/SignInPage.vue'
