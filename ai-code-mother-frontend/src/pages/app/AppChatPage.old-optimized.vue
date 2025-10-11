@@ -81,9 +81,6 @@
           <div v-for="(message, index) in messages" :key="index" class="message-item">
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content">{{ message.content }}</div>
-              <div class="message-avatar">
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-              </div>
             </div>
             <div v-else class="ai-message">
               <div class="message-avatar">
@@ -245,7 +242,12 @@
       </div>
 
       <!-- 中间：可调节分隔条 -->
-      <div class="resizer" @mousedown="startResize"></div>
+      <div
+        class="resizer"
+        :class="{ 'is-resizing': isResizing }"
+        @mousedown="startResize"
+        @touchstart="startTouchResize"
+      ></div>
 
       <!-- 右侧：代码/预览面板 -->
       <div class="right-panel code-panel-container">
@@ -543,6 +545,7 @@ import {
 } from '@/api/appVersionController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
+import { initMessageCollapse } from '@/utils/messageCollapse'
 import request from '@/request'
 
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
@@ -1101,6 +1104,74 @@ const stopResize = () => {
 
   document.removeEventListener('mousemove', doResize)
   document.removeEventListener('mouseup', stopResize)
+}
+
+// ========== 触摸事件处理（手机端） ==========
+const startTouchResize = (e: TouchEvent) => {
+  e.preventDefault() // 防止页面滚动
+  isResizing.value = true
+
+  // 禁用用户选择，防止拖动时选中文本
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = 'col-resize'
+
+  document.addEventListener('touchmove', doTouchResize, { passive: false })
+  document.addEventListener('touchend', stopTouchResize)
+}
+
+const doTouchResize = (e: TouchEvent) => {
+  if (!isResizing.value) return
+  e.preventDefault() // 防止页面滚动
+
+  const touch = e.touches[0]
+  const container = document.querySelector('.lovable-main') as HTMLElement
+  if (!container) return
+
+  const containerRect = container.getBoundingClientRect()
+
+  // 判断是横向还是纵向布局
+  const isVerticalLayout = window.innerWidth <= 768
+
+  if (isVerticalLayout) {
+    // 手机端：纵向拖动
+    const topHeight = ((touch.clientY - containerRect.top) / containerRect.height) * 100
+
+    // 限制高度范围：25% - 75%
+    if (topHeight >= 25 && topHeight <= 75) {
+      const leftPanel = document.querySelector('.left-panel') as HTMLElement
+      const rightPanel = document.querySelector('.right-panel') as HTMLElement
+      if (leftPanel && rightPanel) {
+        leftPanel.style.height = `${topHeight}%`
+        rightPanel.style.height = `${100 - topHeight}%`
+      }
+    }
+  } else {
+    // 桌面端：横向拖动
+    const leftWidth = ((touch.clientX - containerRect.left) / containerRect.width) * 100
+
+    // 限制宽度范围：25% - 75%
+    if (leftWidth >= 25 && leftWidth <= 75) {
+      const leftPanel = document.querySelector('.left-panel') as HTMLElement
+      const rightPanel = document.querySelector('.right-panel') as HTMLElement
+      if (leftPanel && rightPanel) {
+        leftPanel.style.width = `${leftWidth}%`
+        rightPanel.style.width = `${100 - leftWidth}%`
+      }
+    }
+  }
+}
+
+const stopTouchResize = () => {
+  if (!isResizing.value) return
+
+  isResizing.value = false
+
+  // 恢复用户选择和光标
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+
+  document.removeEventListener('touchmove', doTouchResize)
+  document.removeEventListener('touchend', stopTouchResize)
 }
 
 onMounted(() => {
@@ -2166,6 +2237,104 @@ const diffLines = (oldStr: string, newStr: string): DiffOp[] => {
   return ops
 }
 
+// —— Diff折叠功能初始化 ——
+const initDiffCollapse = () => {
+  // 处理diff容器的函数
+  const processDiffContainers = () => {
+    nextTick(() => {
+      const diffContainers = document.querySelectorAll('.diff-container')
+
+      diffContainers.forEach((container) => {
+        // 检查是否已经初始化过
+        if (container.hasAttribute('data-initialized')) return
+        container.setAttribute('data-initialized', 'true')
+
+        // 获取自动折叠延迟时间
+        const autoCollapseDelay = parseInt(container.getAttribute('data-auto-collapse') || '0')
+
+        // 为每个可折叠标题添加点击事件
+        const collapsibleTitles = container.querySelectorAll('.diff-title.collapsible')
+
+        collapsibleTitles.forEach((title) => {
+          const target = title.getAttribute('data-target')
+          const codeElement = container.querySelector(`.diff-code.${target}-code`) as HTMLElement
+          const icon = title.querySelector('.collapse-icon')
+
+          if (!codeElement || !icon) return
+
+          // 点击切换折叠状态
+          const toggleCollapse = () => {
+            // 判断当前是否折叠：检查类名或maxHeight
+            const isCollapsed = title.classList.contains('collapsed') || codeElement.style.maxHeight === '0px'
+
+            if (isCollapsed) {
+              // 展开
+              codeElement.style.maxHeight = codeElement.scrollHeight + 'px'
+              codeElement.style.opacity = '1'
+              icon.textContent = '▼'
+              title.classList.remove('collapsed')
+
+              // 等待过渡完成后移除maxHeight限制
+              setTimeout(() => {
+                if (!title.classList.contains('collapsed')) {
+                  codeElement.style.maxHeight = 'none'
+                }
+              }, 300)
+            } else {
+              // 折叠
+              codeElement.style.maxHeight = codeElement.scrollHeight + 'px'
+              void codeElement.offsetHeight // 强制重绘
+              codeElement.style.maxHeight = '0px'
+              codeElement.style.opacity = '0'
+              icon.textContent = '▶'
+              title.classList.add('collapsed')
+            }
+          }
+
+          title.addEventListener('click', toggleCollapse)
+        })
+
+        // 自动折叠
+        if (autoCollapseDelay > 0) {
+          setTimeout(() => {
+            collapsibleTitles.forEach((title) => {
+              const target = title.getAttribute('data-target')
+              const codeElement = container.querySelector(`.diff-code.${target}-code`) as HTMLElement
+              const icon = title.querySelector('.collapse-icon')
+
+              if (codeElement && icon) {
+                codeElement.style.maxHeight = codeElement.scrollHeight + 'px'
+                void codeElement.offsetHeight // 强制重绘
+                codeElement.style.maxHeight = '0px'
+                codeElement.style.opacity = '0'
+                icon.textContent = '▶'
+                title.classList.add('collapsed')
+              }
+            })
+          }, autoCollapseDelay)
+        }
+      })
+    })
+  }
+
+  // 使用 MutationObserver 监听DOM变化
+  const observer = new MutationObserver(() => {
+    processDiffContainers()
+  })
+
+  // 监听消息容器的变化
+  const messagesContainer = document.querySelector('.messages-container')
+  if (messagesContainer) {
+    observer.observe(messagesContainer, {
+      childList: true,
+      subtree: true
+    })
+  }
+
+  // 初始化已存在的diff容器
+  processDiffContainers()
+}
+
 // —— 生成上下对比 HTML（替换前在上，替换后在下）——
 const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): string => {
   const ops = diffLines(oldCnt, newCnt)
@@ -2189,21 +2358,27 @@ const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): 
   }
 
   const safePath = escapeHtml(filePath || '未知文件')
+  const uniqueId = `diff-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
   return (
-    `<div class="diff-container vertical">
+    `<div class="diff-container vertical" id="${uniqueId}" data-auto-collapse="5000">
       <div class="diff-header">
         <span class="tool">修改文件</span>
         <span class="file-path">${safePath}</span>
       </div>
       <div class="diff-section">
-        <div class="diff-title before-title">
+        <div class="diff-title before-title collapsible" data-target="before">
+          <span class="collapse-icon">▼</span>
           <span class="title-text">替换前</span>
+          <span class="line-count">${beforeRows.length} 行</span>
         </div>
         <div class="diff-code before-code">${beforeRows.join('')}</div>
       </div>
       <div class="diff-section">
-        <div class="diff-title after-title">
+        <div class="diff-title after-title collapsible" data-target="after">
+          <span class="collapse-icon">▼</span>
           <span class="title-text">替换后</span>
+          <span class="line-count">${afterRows.length} 行</span>
         </div>
         <div class="diff-code after-code">${afterRows.join('')}</div>
       </div>
@@ -2937,6 +3112,12 @@ onMounted(() => {
   }
   window.addEventListener('beforeunload', handleBeforeUnload)
 
+  // 初始化diff折叠功能
+  initDiffCollapse()
+
+  // 初始化消息摘要折叠功能
+  initMessageCollapse()
+
   // 在组件卸载时移除事件监听
   onUnmounted(() => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -3226,17 +3407,21 @@ watch(
 
 /* ========== 中间分隔条 - Lovable风格 ========== */
 .resizer {
-  width: 8px;
+  width: 12px; /* 增加宽度，更容易抓取 */
   background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(255, 140, 66, 0.12) 100%);
   cursor: col-resize;
   position: relative;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow:
     0 0 20px rgba(255, 107, 53, 0.06),
     inset 0 0 10px rgba(255, 107, 53, 0.03);
   flex-shrink: 0;
   z-index: 10;
   user-select: none;
+  /* 触摸设备支持 */
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
 }
 
 .resizer:hover {
@@ -3244,8 +3429,16 @@ watch(
   box-shadow:
     0 0 30px rgba(255, 107, 53, 0.15),
     inset 0 0 15px rgba(255, 107, 53, 0.1);
-  transform: scaleX(1.5);
-  width: 10px;
+  transform: scaleX(1.4);
+}
+
+/* 拖动中的样式 */
+.resizer.is-resizing {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.35) 0%, rgba(255, 140, 66, 0.45) 100%);
+  box-shadow:
+    0 0 40px rgba(255, 107, 53, 0.3),
+    inset 0 0 20px rgba(255, 107, 53, 0.2);
+  transform: scaleX(1.6);
 }
 
 .resizer:active {
@@ -3253,18 +3446,18 @@ watch(
   box-shadow:
     0 0 40px rgba(255, 107, 53, 0.25),
     inset 0 0 20px rgba(255, 107, 53, 0.15);
-  transform: scaleX(1.8);
-  width: 12px;
+  transform: scaleX(1.6);
 }
 
+/* 中间的拖动把手 */
 .resizer::before {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 3px;
-  height: 40px;
+  width: 4px;
+  height: 50px;
   background: linear-gradient(
     180deg,
     rgba(255, 107, 53, 0.4) 0%,
@@ -3272,17 +3465,20 @@ watch(
     rgba(255, 107, 53, 0.4) 100%
   );
   border-radius: 10px;
-  opacity: 0;
-  transition: opacity 0.25s ease;
+  opacity: 0.6;
+  transition: all 0.2s ease;
 }
 
-.resizer:hover::before {
+.resizer:hover::before,
+.resizer.is-resizing::before {
   opacity: 1;
+  height: 60px;
+  width: 5px;
 }
 
 .resizer:active::before {
   opacity: 1;
-  width: 4px;
+  width: 5px;
   height: 60px;
   background: linear-gradient(
     180deg,
@@ -3320,7 +3516,6 @@ watch(
 }
 
 .message-content {
-  max-width: 70%;
   padding: 12px 16px;
   border-radius: 8px;
   line-height: 1.6;
@@ -3328,12 +3523,18 @@ watch(
 }
 
 .user-message .message-content {
-  background: #1890ff;
-  color: white;
+  max-width: 65%;
+  background: linear-gradient(135deg, #f8f6f0 0%, #faf8f3 100%);
+  color: #2d3748;
+  border-radius: 24px;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .ai-message .message-content {
-  background: #f7f7f8;
+  max-width: 90%;
+  background: transparent;
   color: #1a1a1a;
   padding: 12px 16px;
 }
@@ -4448,6 +4649,43 @@ watch(
 }
 
 @media (max-width: 768px) {
+  /* 手机端：左右面板改为上下布局 */
+  .lovable-main {
+    flex-direction: column;
+  }
+
+  .left-panel,
+  .right-panel {
+    width: 100% !important;
+    height: 50%;
+    min-width: unset;
+    min-height: 200px;
+  }
+
+  /* 手机端：拖动条改为横向 */
+  .resizer {
+    width: 100%;
+    height: 12px; /* 手机端改为横向拖动条 */
+    cursor: row-resize;
+    /* 纵向拖动 */
+    touch-action: pan-y;
+  }
+
+  .resizer::before {
+    width: 50px;
+    height: 4px;
+    background: linear-gradient(90deg,
+      rgba(255, 107, 53, 0.4) 0%,
+      rgba(255, 140, 66, 0.7) 50%,
+      rgba(255, 107, 53, 0.4) 100%);
+  }
+
+  .resizer:hover::before,
+  .resizer.is-resizing::before {
+    width: 60px;
+    height: 5px;
+  }
+
   .header-bar {
     padding: 12px 16px;
   }
@@ -4581,6 +4819,86 @@ watch(
 
   .version-detail {
     padding: 16px 0;
+  }
+
+  /* —— 消息摘要栏样式（Lovable 风格）—— */
+  :deep(.message-summary-bar) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 8px 10px 14px;
+    margin: 0 0 16px 0;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+  }
+
+  :deep(.message-summary-bar:hover) {
+    background: #ececec;
+    border-color: #d0d0d0;
+  }
+
+  /* SVG图标 */
+  :deep(.message-summary-bar .summary-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    flex-shrink: 0;
+    color: #666;
+  }
+
+  :deep(.message-summary-bar .summary-icon svg) {
+    display: block;
+  }
+
+  /* 统计文本 */
+  :deep(.message-summary-bar .summary-text) {
+    flex: 1;
+    color: #666;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* 按钮 - 米色主题，增强层次感 */
+  :deep(.message-content .message-summary-bar .summary-toggle-btn) {
+    padding: 7px 14px !important;
+    background: linear-gradient(135deg, #f8f6f0 0%, #e8e3d8 100%) !important;
+    color: #2d3748 !important;
+    border: 1px solid #d4cfc4 !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    outline: none !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12),
+                0 1px 3px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  :deep(.message-content .message-summary-bar .summary-toggle-btn:hover) {
+    background: linear-gradient(135deg, #e8e3d8 0%, #d4cfc4 100%) !important;
+    border-color: #c9c3b8 !important;
+    color: #1a1a1a !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16),
+                0 2px 6px rgba(0, 0, 0, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+    transform: translateY(-2px) !important;
+  }
+
+  :deep(.message-content .message-summary-bar .summary-toggle-btn:active) {
+    transform: translateY(0px) scale(0.97) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
+                0 1px 2px rgba(0, 0, 0, 0.08),
+                inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   }
 }
 </style>

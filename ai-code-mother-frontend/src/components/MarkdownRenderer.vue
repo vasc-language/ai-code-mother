@@ -460,4 +460,11 @@ const renderedMarkdown = computed(() => {
 .markdown-content :deep(.diff-container .diff-code::-webkit-scrollbar-thumb):hover {
   background: #4E4E4E;
 }
+
+/* 折叠时隐藏工具调用和修改文件的过渡动画 */
+.message-content :deep(p:has(strong)),
+.message-content :deep(.diff-container) {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+}
 </style>
