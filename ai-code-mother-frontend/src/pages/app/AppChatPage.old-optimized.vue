@@ -247,20 +247,160 @@
       <!-- 中间：可调节分隔条 -->
       <div class="resizer" @mousedown="startResize"></div>
 
-      <!-- 右侧：代码/预览面板 - 使用CodePanelLovable组件 -->
-      <div class="right-panel code-panel-container">
-        <CodePanelLovable
-          :current-view="currentView"
-          :code-gen-type="appInfo?.codeGenType"
-          :show-preview="generationFinished"
-          :preview-url="previewUrl"
-          :simple-code-file="simpleCodeFile"
-          :multi-files="multiFiles"
-          :active-file-key="activeMultiFileKey"
-          :generation-finished="generationFinished"
-          @preview-loaded="onIframeLoad"
-          @update:activeFileKey="activeMultiFileKey = $event"
-        />
+      <!-- 右侧：代码/预览面板 - VSCode风格左右分栏 -->
+      <div class="right-panel code-panel-container vscode-layout">
+        <!-- 左侧：文件树 -->
+        <div class="file-explorer" :style="{ width: codeExplorerWidth + 'px' }">
+          <div class="explorer-header">
+            <div class="header-title">
+              <FolderOutlined class="title-icon" />
+              <span>文件资源管理器</span>
+            </div>
+          </div>
+
+          <div class="explorer-content">
+            <!-- 项目根目录 -->
+            <div v-if="hasAnyFiles" class="project-root">
+              <FolderOpenOutlined class="root-icon" />
+              <span class="root-name">{{ projectName }}</span>
+            </div>
+
+            <!-- 文件列表 -->
+            <div class="file-list">
+              <!-- HTML 单文件 -->
+              <div
+                v-if="simpleCodeFile"
+                class="file-item"
+                :class="{ active: selectedFileId === simpleCodeFile.id }"
+                @click="selectFile(simpleCodeFile.id)"
+              >
+                <FileTextOutlined class="file-icon" />
+                <span class="file-name">{{ simpleCodeFile.name }}</span>
+                <span v-if="!simpleCodeFile.completed" class="file-badge">生成中</span>
+              </div>
+
+              <!-- 多文件项目 -->
+              <div
+                v-for="file in multiFiles"
+                :key="file.id"
+                class="file-item"
+                :class="{ active: selectedFileId === file.id }"
+                @click="selectFile(file.id)"
+              >
+                <FileTextOutlined class="file-icon" />
+                <span class="file-name">{{ file.name }}</span>
+                <span v-if="currentMultiFile === file.name && isMultiFileGenerating" class="file-badge">生成中</span>
+              </div>
+
+              <!-- Vue项目已完成文件 -->
+              <div
+                v-for="file in completedFiles"
+                :key="file.id"
+                class="file-item"
+                :class="{ active: selectedFileId === file.id }"
+                @click="selectFile(file.id)"
+              >
+                <FileTextOutlined class="file-icon" />
+                <span class="file-name">{{ file.name }}</span>
+              </div>
+
+              <!-- 空状态 -->
+              <div v-if="!hasAnyFiles && !isGenerating" class="explorer-empty">
+                <CodeOutlined class="empty-icon-small" />
+                <p class="empty-text-small">等待文件生成</p>
+              </div>
+
+              <div v-if="!hasAnyFiles && isGenerating" class="explorer-empty">
+                <a-spin size="small" />
+                <p class="empty-text-small">正在生成中...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 竖向分隔条 -->
+        <div
+          class="vertical-resizer"
+          @mousedown="startCodeResize"
+          @dblclick="resetCodeSize"
+        >
+          <div class="resizer-handle"></div>
+        </div>
+
+        <!-- 右侧：代码/预览切换区域 -->
+        <div class="content-area">
+          <!-- 代码视图 -->
+          <div v-if="currentView === 'code'" class="code-view-container">
+            <div class="code-editor-area">
+              <!-- 文件标签栏 -->
+              <div v-if="selectedFile" class="file-tabs">
+                <div class="file-tab active">
+                  <FileTextOutlined class="tab-icon" />
+                  <span class="tab-name">{{ selectedFile.name }}</span>
+                </div>
+                <!-- 复制按钮 -->
+                <button class="copy-btn-icon" @click="copyCode(selectedFile.content)" title="复制代码">
+                  <CopyOutlined />
+                </button>
+              </div>
+
+              <!-- 代码编辑器主体 -->
+              <div class="editor-main">
+                <div v-if="selectedFile" class="editor-container">
+                  <!-- 代码内容 -->
+                  <div class="code-content">
+                    <CodeHighlight
+                      :code="selectedFile.content"
+                      :language="selectedFile.language"
+                      :fileName="selectedFile.name"
+                    />
+                    <div class="typing-cursor" v-if="isFileGenerating(selectedFile)">|</div>
+                  </div>
+                </div>
+
+                <!-- 空状态 -->
+                <div v-else class="empty-state">
+                  <div class="empty-icon">
+                    <CodeOutlined />
+                  </div>
+                  <p class="empty-text">{{ isGenerating ? '正在生成代码...' : '等待代码生成' }}</p>
+                  <p class="empty-hint">AI 生成的代码文件将在这里实时显示</p>
+                </div>
+              </div>
+
+              <!-- 状态栏 -->
+              <div v-if="selectedFile" class="status-bar">
+                <div class="status-left">
+                  <span class="status-item">
+                    <span class="status-icon">⚡</span>
+                    {{ formatCodeGenType(appInfo?.codeGenType) }}
+                  </span>
+                </div>
+                <div class="status-right">
+                  <span class="status-item">LF</span>
+                  <span class="status-item">{{ selectedFile.language || 'plaintext' }}</span>
+                  <span class="status-item">UTF-8</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 预览视图 -->
+          <div v-else class="preview-view-container">
+            <div class="preview-container">
+              <iframe
+                v-if="previewUrl"
+                :src="previewUrl"
+                class="preview-iframe"
+                frameborder="0"
+                @load="onIframeLoad"
+              />
+              <div v-else class="preview-placeholder">
+                <a-empty description="暂无预览，请先生成或部署" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -411,7 +551,6 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import CodeHighlight from '@/components/CodeHighlight.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
-import CodePanelLovable from './components/lovable/CodePanelLovable.vue'
 import AiModelSelector from '@/components/AiModelSelector.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 
@@ -439,6 +578,10 @@ import {
   EyeOutlined,
   CodeOutlined,
   EditOutlined,
+  FolderOutlined,
+  FolderOpenOutlined,
+  FileTextOutlined,
+  CopyOutlined,
 } from '@ant-design/icons-vue'
 
 defineOptions({
@@ -615,6 +758,127 @@ const visualEditor = new VisualEditor({
 
 // UI 视图控制（新布局需要）
 const currentView = ref<'preview' | 'code'>('preview')
+
+// ========== VSCode 风格文件树状态 ==========
+// 代码编辑器左侧文件树宽度
+const codeExplorerWidth = ref(248)
+
+// 当前选中的文件ID
+const selectedFileId = ref<string | null>(null)
+
+// 计算属性：获取所有文件
+const allFiles = computed(() => {
+  const files = []
+  if (simpleCodeFile.value) {
+    files.push(simpleCodeFile.value)
+  }
+  files.push(...multiFiles.value)
+  files.push(...completedFiles.value)
+  return files
+})
+
+// 计算属性：是否有任何文件
+const hasAnyFiles = computed(() => {
+  return allFiles.value.length > 0
+})
+
+// 计算属性：项目名称
+const projectName = computed(() => {
+  if (appInfo.value?.codeGenType === 'HTML') return 'html-project'
+  if (appInfo.value?.codeGenType === 'MULTI_FILE') return 'multi-file-project'
+  if (appInfo.value?.codeGenType === 'VUE') return 'vue-project'
+  return 'project'
+})
+
+// 计算属性：当前选中的文件对象
+const selectedFile = computed(() => {
+  if (!selectedFileId.value) return null
+  return allFiles.value.find(f => f.id === selectedFileId.value) || null
+})
+
+// 选择文件
+const selectFile = (fileId: string) => {
+  selectedFileId.value = fileId
+}
+
+// 判断文件是否正在生成
+const isFileGenerating = (file: any) => {
+  if (!file) return false
+
+  // HTML 单文件
+  if (file.id === simpleCodeFile.value?.id) {
+    return !simpleCodeFile.value?.completed
+  }
+
+  // 多文件项目
+  if (multiFiles.value.some(f => f.id === file.id)) {
+    return currentMultiFile.value === file.name && isMultiFileGenerating.value
+  }
+
+  // Vue项目
+  if (file.id === currentGeneratingFile.value?.id) {
+    return !currentGeneratingFile.value?.completed
+  }
+
+  return false
+}
+
+// 获取文件行数
+const getLineCount = (content: string) => {
+  if (!content) return 0
+  return content.split('\n').length
+}
+
+// 获取文件大小
+const getFileSize = (content: string) => {
+  if (!content) return '0 B'
+  const bytes = new Blob([content]).size
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+// 复制代码
+const copyCode = async (code: string) => {
+  try {
+    await navigator.clipboard.writeText(code)
+    message.success('代码已复制到剪贴板')
+  } catch (err) {
+    message.error('复制失败')
+  }
+}
+
+// 代码编辑器左侧文件树宽度调节
+const startCodeResize = (e: MouseEvent) => {
+  const startX = e.clientX
+  const startWidth = codeExplorerWidth.value
+
+  const onMouseMove = (e: MouseEvent) => {
+    const delta = e.clientX - startX
+    const newWidth = Math.max(180, Math.min(500, startWidth + delta))
+    codeExplorerWidth.value = newWidth
+  }
+
+  const onMouseUp = () => {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
+
+// 重置代码编辑器文件树宽度
+const resetCodeSize = () => {
+  codeExplorerWidth.value = 248
+}
+
+// 监听文件变化，自动选中第一个文件
+watch(allFiles, (newFiles) => {
+  if (newFiles.length > 0 && !selectedFileId.value) {
+    selectedFileId.value = newFiles[0].id
+  }
+}, { immediate: true })
 
 // 权限相关
 const isOwner = computed(() => {
@@ -2953,13 +3217,28 @@ watch(
   width: 50%;
   height: 100%;
   min-width: 480px;
-  background: var(--code-bg);
+  background: #1E1E1E;
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
   overflow: hidden;
   transition: width 0.1s ease;
   box-shadow: var(--shadow-md);
   display: flex;
+  flex-direction: row;
+}
+
+/* VSCode 风格左右分栏 */
+.right-panel.vscode-layout {
+  background: #1E1E1E;
+  color: #D4D4D4;
+}
+
+/* 内容区域（代码/预览切换） */
+.content-area {
+  flex: 1;
+  display: flex;
   flex-direction: column;
+  overflow: hidden;
+  background: #1E1E1E;
 }
 
 /* ========== 中间分隔条 - Lovable风格 ========== */
@@ -3704,6 +3983,420 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* ========== VSCode 风格左右分栏布局 ========== */
+/* 左侧：文件树 */
+.file-explorer {
+  display: flex;
+  flex-direction: column;
+  background: #252526;
+  border-right: 1px solid #3E3E42;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.explorer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 35px;
+  padding: 0 12px;
+  background: #252526;
+  border-bottom: 1px solid #3E3E42;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #CCCCCC;
+  letter-spacing: 0.5px;
+}
+
+.title-icon {
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.explorer-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+}
+
+.project-root {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #CCCCCC;
+  cursor: pointer;
+  user-select: none;
+}
+
+.project-root:hover {
+  background: #2A2D2E;
+}
+
+.root-icon {
+  font-size: 16px;
+  color: var(--color-primary);
+}
+
+.root-name {
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px 0 28px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  user-select: none;
+  position: relative;
+}
+
+.file-item:hover {
+  background: #2A2D2E;
+}
+
+.file-item.active {
+  background: linear-gradient(90deg,
+    rgba(255, 107, 53, 0.15) 0%,
+    rgba(255, 140, 66, 0.08) 100%);
+  color: #FFFFFF;
+}
+
+.file-icon {
+  font-size: 16px;
+  color: #CCCCCC;
+  flex-shrink: 0;
+}
+
+.file-name {
+  flex: 1;
+  font-size: 13px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  color: #CCCCCC;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-item.active .file-name {
+  color: #FFFFFF;
+}
+
+.file-badge {
+  padding: 2px 6px;
+  background: rgba(255, 107, 53, 0.2);
+  color: var(--color-primary);
+  font-size: 10px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.explorer-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #6A6A6A;
+}
+
+.empty-icon-small {
+  font-size: 24px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.empty-text-small {
+  font-size: 12px;
+  color: #858585;
+  margin: 0;
+}
+
+/* 竖向分隔条 */
+.vertical-resizer {
+  width: 4px;
+  background: #3E3E42;
+  cursor: col-resize;
+  position: relative;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.vertical-resizer:hover {
+  background: linear-gradient(180deg,
+    rgba(255, 107, 53, 0.3) 0%,
+    rgba(255, 140, 66, 0.3) 100%);
+}
+
+.resizer-handle {
+  position: absolute;
+  top: 0;
+  left: -2px;
+  right: -2px;
+  bottom: 0;
+}
+
+/* 右侧：代码编辑器区域 */
+.code-editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #1E1E1E;
+}
+
+/* 文件标签栏 */
+.file-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #252526;
+  border-bottom: 1px solid #3E3E42;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 35px;
+  flex-shrink: 0;
+  padding-right: 8px;
+}
+
+.file-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 35px;
+  padding: 0 12px;
+  background: #2D2D30;
+  color: #969696;
+  border-right: 1px solid #3E3E42;
+  font-size: 13px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+}
+
+.file-tab:hover {
+  background: #1E1E1E;
+  color: #FFFFFF;
+}
+
+.file-tab.active {
+  background: #1E1E1E;
+  color: #FFFFFF;
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.tab-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.tab-name {
+  font-size: 13px;
+}
+
+/* 复制按钮图标 */
+.copy-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  color: #858585;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.copy-btn-icon:hover {
+  background: #2D2D30;
+  color: var(--color-primary);
+}
+
+/* 编辑器主体 */
+.editor-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.editor-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: max-content;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 16px;
+  background: #252526;
+  border-bottom: 1px solid #3E3E42;
+  flex-shrink: 0;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-path {
+  font-size: 12px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  color: #CCCCCC;
+}
+
+.file-stats {
+  font-size: 11px;
+  color: #858585;
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: transparent;
+  color: #858585;
+  border: 1px solid #3E3E42;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+  background: #2D2D30;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.code-content {
+  flex: 1;
+  overflow: visible;
+  background: #1E1E1E;
+  position: relative;
+  min-width: max-content;
+}
+
+/* 状态栏 */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+  padding: 0 12px;
+  background: #007ACC;
+  font-size: 12px;
+  color: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.status-left,
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.status-icon {
+  font-size: 14px;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6A6A6A;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #858585;
+}
+
+.empty-hint {
+  font-size: 14px;
+  color: #6A6A6A;
+}
+
+/* 滚动条样式 */
+.explorer-content::-webkit-scrollbar,
+.file-tabs::-webkit-scrollbar,
+.editor-main::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.explorer-content::-webkit-scrollbar-track,
+.file-tabs::-webkit-scrollbar-track,
+.editor-main::-webkit-scrollbar-track {
+  background: #1E1E1E;
+}
+
+.explorer-content::-webkit-scrollbar-thumb,
+.file-tabs::-webkit-scrollbar-thumb,
+.editor-main::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 5px;
+}
+
+.explorer-content::-webkit-scrollbar-thumb:hover,
+.file-tabs::-webkit-scrollbar-thumb:hover,
+.editor-main::-webkit-scrollbar-thumb:hover {
+  background: #4E4E4E;
 }
 
 /* 预览容器：生成完成后填满右侧面板 */
