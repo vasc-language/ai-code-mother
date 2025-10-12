@@ -93,20 +93,20 @@
   --leading-normal: 1.5;
   --leading-relaxed: 1.75;
 
-  /* ========== 代码编辑器配色(VS Code 风格) ========== */
-  --code-bg: #1E1E1E;           /* 代码背景 */
-  --code-bg-highlight: #2D2D30; /* 代码高亮行背景 */
-  --code-text: #D4D4D4;         /* 代码文字 */
-  --code-comment: #6A9955;      /* 注释 */
-  --code-keyword: #569CD6;      /* 关键字 */
-  --code-string: #CE9178;       /* 字符串 */
-  --code-number: #B5CEA8;       /* 数字 */
-  --code-function: #DCDCAA;     /* 函数 */
-  --code-variable: #9CDCFE;     /* 变量 */
-  --code-constant: #4FC1FF;     /* 常量 */
-  --code-operator: #D4D4D4;     /* 操作符 */
-  --code-tag: #569CD6;          /* HTML 标签 */
-  --code-attribute: #9CDCFE;    /* HTML 属性 */
+  /* ========== 代码编辑器配色(GitHub Light 风格) ========== */
+  --code-bg: #FFFFFF;           /* 代码背景 - 白色 */
+  --code-bg-highlight: #F6F8FA; /* 代码高亮行背景 - 浅灰 */
+  --code-text: #24292E;         /* 代码文字 - 深灰黑 */
+  --code-comment: #6A737D;      /* 注释 - 灰色 */
+  --code-keyword: #D73A49;      /* 关键字 - 红色 */
+  --code-string: #032F62;       /* 字符串 - 深蓝 */
+  --code-number: #005CC5;       /* 数字 - 蓝色 */
+  --code-function: #6F42C1;     /* 函数 - 紫色 */
+  --code-variable: #24292E;     /* 变量 - 深灰黑 */
+  --code-constant: #005CC5;     /* 常量 - 蓝色 */
+  --code-operator: #D73A49;     /* 操作符 - 红色 */
+  --code-tag: #22863A;          /* HTML 标签 - 绿色 */
+  --code-attribute: #6F42C1;    /* HTML 属性 - 紫色 */
 
   /* ========== 聊天界面专用 ========== */
   /* 消息气泡 */

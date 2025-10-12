@@ -1,7 +1,18 @@
 <template>
   <div class="code-highlight-container">
-    <div class="code-content">
-      <pre><code :class="`hljs language-${language}`" v-html="highlightedCode"></code></pre>
+    <div class="code-content-wrapper">
+      <!-- 行号列 -->
+      <div class="line-numbers" aria-hidden="true">
+        <span
+          v-for="(line, index) in codeLines"
+          :key="index"
+          class="line-number"
+        >{{ index + 1 }}</span>
+      </div>
+      <!-- 代码内容 -->
+      <div class="code-content">
+        <pre><code :class="`hljs language-${language}`" v-html="highlightedCode"></code></pre>
+      </div>
     </div>
   </div>
 </template>
@@ -20,6 +31,12 @@ interface Props {
 const props = defineProps<Props>()
 
 const currentTheme = ref(props.theme || 'atom-one-dark')
+
+// 计算代码行数组
+const codeLines = computed(() => {
+  if (!props.code) return []
+  return props.code.split('\n')
+})
 
 // 计算高亮后的代码
 const highlightedCode = computed(() => {
@@ -96,12 +113,50 @@ onMounted(() => {
   min-width: max-content;
 }
 
-.code-content {
+.code-content-wrapper {
+  display: flex;
   position: relative;
   height: auto;
   overflow: visible;
   background: transparent;
   min-width: max-content;
+}
+
+/* 行号样式 - GitHub Light 风格 */
+.line-numbers {
+  display: flex;
+  flex-direction: column;
+  background: var(--code-bg, #FFFFFF);
+  padding: 16px 0;
+  margin: 0;
+  user-select: none;
+  text-align: right;
+  min-width: 50px;
+  border-right: 1px solid #E1E4E8;
+  flex-shrink: 0;
+}
+
+.line-number {
+  display: block;
+  padding: 0 12px 0 16px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6A737D;
+  height: 19.5px; /* 13px * 1.5 = 19.5px */
+}
+
+.line-number::before {
+  content: attr(data-line);
+}
+
+.code-content {
+  position: relative;
+  height: auto;
+  overflow: visible;
+  background: transparent;
+  flex: 1;
+  min-width: 0;
 }
 
 .code-content pre {
@@ -117,33 +172,43 @@ onMounted(() => {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Cascadia Code', monospace;
   font-size: 13px;
   line-height: 1.5;
-  color: #abb2bf;
+  color: var(--code-text, #24292E);
   background: transparent;
   display: inline-block;
   min-width: 100%;
 }
 
-/* 自定义滚动条样式 */
+/* 自定义滚动条样式 - GitHub Light 风格 */
 .code-content pre::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 .code-content pre::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: var(--code-bg, #FFFFFF);
 }
 
 .code-content pre::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: #C8C8C8;
   border-radius: 5px;
 }
 
 .code-content pre::-webkit-scrollbar-thumb:hover {
-  background: #4E4E4E;
+  background: #A8A8A8;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  .line-numbers {
+    min-width: 40px;
+    padding: 12px 0;
+  }
+
+  .line-number {
+    padding: 0 8px 0 12px;
+    font-size: 12px;
+  }
+
   .code-content pre {
     padding: 12px;
   }

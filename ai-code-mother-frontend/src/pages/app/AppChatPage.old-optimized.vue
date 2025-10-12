@@ -276,41 +276,36 @@
 
               <!-- 文件列表 -->
               <div class="file-list">
-                <!-- HTML 单文件 -->
+                <!-- 文件树节点 -->
                 <div
-                  v-if="simpleCodeFile"
+                  v-for="node in flatFileTree"
+                  :key="node.path"
                   class="file-item"
-                  :class="{ active: selectedFileId === simpleCodeFile.id }"
-                  @click="selectFile(simpleCodeFile.id)"
+                  :class="{
+                    active: node.type === 'file' && selectedFileId === node.file?.id,
+                    'is-folder': node.type === 'folder'
+                  }"
+                  :style="{ paddingLeft: `${node.level * 16 + 8}px` }"
+                  @click="node.type === 'folder' ? toggleFolder(node.path) : selectFile(node.file!.id)"
                 >
-                  <FileTextOutlined class="file-icon" />
-                  <span class="file-name">{{ simpleCodeFile.name }}</span>
-                  <span v-if="!simpleCodeFile.completed" class="file-badge">生成中</span>
-                </div>
+                  <!-- 目录节点 -->
+                  <template v-if="node.type === 'folder'">
+                    <RightOutlined v-if="!isFolderExpanded(node.path)" class="folder-arrow" />
+                    <DownOutlined v-else class="folder-arrow" />
+                    <FolderOutlined v-if="!isFolderExpanded(node.path)" class="file-icon" />
+                    <FolderOpenOutlined v-else class="file-icon" />
+                    <span class="file-name">{{ node.name }}</span>
+                  </template>
 
-                <!-- 多文件项目 -->
-                <div
-                  v-for="file in multiFiles"
-                  :key="file.id"
-                  class="file-item"
-                  :class="{ active: selectedFileId === file.id }"
-                  @click="selectFile(file.id)"
-                >
-                  <FileTextOutlined class="file-icon" />
-                  <span class="file-name">{{ file.name }}</span>
-                  <span v-if="currentMultiFile === file.name && isMultiFileGenerating" class="file-badge">生成中</span>
-                </div>
-
-                <!-- Vue项目已完成文件 -->
-                <div
-                  v-for="file in completedFiles"
-                  :key="file.id"
-                  class="file-item"
-                  :class="{ active: selectedFileId === file.id }"
-                  @click="selectFile(file.id)"
-                >
-                  <FileTextOutlined class="file-icon" />
-                  <span class="file-name">{{ file.name }}</span>
+                  <!-- 文件节点 -->
+                  <template v-else>
+                    <FileTextOutlined class="file-icon file-icon-indent" />
+                    <span class="file-name">{{ node.name }}</span>
+                    <span
+                      v-if="node.file && !node.file.completed"
+                      class="file-badge"
+                    >生成中</span>
+                  </template>
                 </div>
 
                 <!-- 空状态 -->
@@ -594,6 +589,8 @@ import {
   FolderOpenOutlined,
   FileTextOutlined,
   CopyOutlined,
+  RightOutlined,
+  DownOutlined,
 } from '@ant-design/icons-vue'
 
 defineOptions({
@@ -717,6 +714,16 @@ interface GeneratedFile {
   lastUpdated?: string
 }
 
+// 文件树节点接口
+interface TreeNode {
+  name: string // 节点名称（文件名或目录名）
+  path: string // 完整路径
+  type: 'file' | 'folder' // 节点类型
+  children?: TreeNode[] // 子节点（仅目录有）
+  file?: GeneratedFile // 文件数据（仅文件有）
+  level: number // 层级（用于缩进）
+}
+
 const currentGeneratingFile = ref<GeneratedFile | null>(null)
 const completedFiles = ref<GeneratedFile[]>([])
 const activeFileKeys = ref<string[]>([])
@@ -797,6 +804,9 @@ const codeExplorerWidth = ref(248)
 // 当前选中的文件ID
 const selectedFileId = ref<string | null>(null)
 
+// 文件树展开状态（记录哪些目录是展开的）
+const expandedFolders = ref<Set<string>>(new Set())
+
 // 计算属性：获取所有文件
 const allFiles = computed(() => {
   const files = []
@@ -868,6 +878,131 @@ const getFileSize = (content: string) => {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
+
+// ========== 文件树转换函数 ==========
+/**
+ * 将扁平的文件列表转换为树形结构
+ * @param files 文件数组
+ * @returns 树形节点数组
+ */
+const buildFileTree = (files: GeneratedFile[]): TreeNode[] => {
+  if (!files || files.length === 0) return []
+
+  const root: TreeNode[] = []
+  const folderMap = new Map<string, TreeNode>()
+
+  // 遍历所有文件
+  files.forEach(file => {
+    // 解析文件路径，分割成路径段
+    const pathSegments = file.path.split('/').filter(seg => seg.length > 0)
+
+    let currentLevel = root
+    let currentPath = ''
+
+    // 遍历路径段，构建目录结构
+    pathSegments.forEach((segment, index) => {
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment
+      const isLastSegment = index === pathSegments.length - 1
+
+      if (isLastSegment) {
+        // 最后一段是文件
+        const fileNode: TreeNode = {
+          name: segment,
+          path: currentPath,
+          type: 'file',
+          file: file,
+          level: index
+        }
+        currentLevel.push(fileNode)
+      } else {
+        // 中间段是目录
+        let folderNode = folderMap.get(currentPath)
+
+        if (!folderNode) {
+          // 创建新目录节点
+          folderNode = {
+            name: segment,
+            path: currentPath,
+            type: 'folder',
+            children: [],
+            level: index
+          }
+          folderMap.set(currentPath, folderNode)
+          currentLevel.push(folderNode)
+        }
+
+        // 移动到下一层
+        currentLevel = folderNode.children!
+      }
+    })
+  })
+
+  return root
+}
+
+/**
+ * 切换目录的展开/收起状态
+ * @param folderPath 目录路径
+ */
+const toggleFolder = (folderPath: string) => {
+  if (expandedFolders.value.has(folderPath)) {
+    expandedFolders.value.delete(folderPath)
+  } else {
+    expandedFolders.value.add(folderPath)
+  }
+}
+
+/**
+ * 判断目录是否展开
+ * @param folderPath 目录路径
+ */
+const isFolderExpanded = (folderPath: string): boolean => {
+  return expandedFolders.value.has(folderPath)
+}
+
+// 计算属性：文件树结构
+const fileTree = computed(() => {
+  // 合并所有文件（HTML单文件 + 多文件项目 + Vue项目文件）
+  const allFilesList: GeneratedFile[] = []
+
+  if (simpleCodeFile.value) {
+    allFilesList.push(simpleCodeFile.value)
+  }
+
+  allFilesList.push(...multiFiles.value)
+  allFilesList.push(...completedFiles.value)
+
+  // 转换为树形结构
+  return buildFileTree(allFilesList)
+})
+
+/**
+ * 将树形结构展平为可渲染的列表（带层级信息）
+ * @param nodes 树形节点数组
+ * @returns 展平的节点列表
+ */
+const flattenTree = (nodes: TreeNode[]): TreeNode[] => {
+  const result: TreeNode[] = []
+
+  const traverse = (nodeList: TreeNode[]) => {
+    nodeList.forEach(node => {
+      result.push(node)
+
+      // 如果是目录且已展开，递归处理子节点
+      if (node.type === 'folder' && node.children && isFolderExpanded(node.path)) {
+        traverse(node.children)
+      }
+    })
+  }
+
+  traverse(nodes)
+  return result
+}
+
+// 计算属性：展平的文件树（用于渲染）
+const flatFileTree = computed(() => {
+  return flattenTree(fileTree.value)
+})
 
 // 复制代码
 const copyCode = async (code: string) => {
@@ -3728,7 +3863,7 @@ watch(
   width: 50%;
   height: 100%;
   min-width: 480px;
-  background: #1E1E1E;
+  background: #FFFFFF;
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
   overflow: hidden;
   transition: width 0.1s ease;
@@ -4556,8 +4691,8 @@ watch(
 .file-explorer {
   display: flex;
   flex-direction: column;
-  background: #252526;
-  border-right: 1px solid #3E3E42;
+  background: #F6F8FA;
+  border-right: 1px solid #E1E4E8;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -4568,8 +4703,8 @@ watch(
   justify-content: space-between;
   height: 35px;
   padding: 0 12px;
-  background: #252526;
-  border-bottom: 1px solid #3E3E42;
+  background: #F6F8FA;
+  border-bottom: 1px solid #E1E4E8;
 }
 
 .header-title {
@@ -4579,7 +4714,7 @@ watch(
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #CCCCCC;
+  color: #586069;
   letter-spacing: 0.5px;
 }
 
@@ -4604,13 +4739,13 @@ watch(
   margin-bottom: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: #CCCCCC;
+  color: #24292E;
   cursor: pointer;
   user-select: none;
 }
 
 .project-root:hover {
-  background: #2A2D2E;
+  background: #E1E4E8;
 }
 
 .root-icon {
@@ -4630,9 +4765,9 @@ watch(
 .file-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   height: 28px;
-  padding: 0 12px 0 28px;
+  padding: 0 12px 0 8px; /* 左侧padding由动态style控制 */
   cursor: pointer;
   transition: background 0.15s ease;
   user-select: none;
@@ -4640,34 +4775,53 @@ watch(
 }
 
 .file-item:hover {
-  background: #2A2D2E;
+  background: #E1E4E8;
 }
 
 .file-item.active {
   background: linear-gradient(90deg,
-    rgba(255, 107, 53, 0.15) 0%,
-    rgba(255, 140, 66, 0.08) 100%);
-  color: #FFFFFF;
+    rgba(255, 107, 53, 0.08) 0%,
+    rgba(255, 140, 66, 0.04) 100%);
+  color: #24292E;
+}
+
+/* 目录样式 */
+.file-item.is-folder {
+  font-weight: 500;
+}
+
+/* 展开/收起箭头 */
+.folder-arrow {
+  font-size: 12px;
+  color: #586069;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
 .file-icon {
   font-size: 16px;
-  color: #CCCCCC;
+  color: #586069;
   flex-shrink: 0;
+}
+
+/* 文件图标额外缩进（与有箭头的目录对齐）*/
+.file-icon-indent {
+  margin-left: 18px;
 }
 
 .file-name {
   flex: 1;
   font-size: 13px;
   font-family: 'Consolas', 'Courier New', monospace;
-  color: #CCCCCC;
+  color: #24292E;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .file-item.active .file-name {
-  color: #FFFFFF;
+  color: #24292E;
+  font-weight: 500;
 }
 
 .file-badge {
@@ -4696,7 +4850,7 @@ watch(
 
 .empty-text-small {
   font-size: 12px;
-  color: #858585;
+  color: var(--code-comment);
   margin: 0;
 }
 
@@ -4730,7 +4884,7 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #1E1E1E;
+  background: #FFFFFF;
 }
 
 /* 文件标签栏 */
@@ -4738,8 +4892,8 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #252526;
-  border-bottom: 1px solid #3E3E42;
+  background: #F6F8FA;
+  border-bottom: 1px solid #E1E4E8;
   overflow-x: auto;
   overflow-y: hidden;
   height: 35px;
@@ -4753,9 +4907,9 @@ watch(
   gap: 8px;
   height: 35px;
   padding: 0 12px;
-  background: #2D2D30;
-  color: #969696;
-  border-right: 1px solid #3E3E42;
+  background: #FFFFFF;
+  color: #586069;
+  border-right: 1px solid #E1E4E8;
   font-size: 13px;
   font-family: 'Consolas', 'Courier New', monospace;
   cursor: pointer;
@@ -4766,13 +4920,13 @@ watch(
 }
 
 .file-tab:hover {
-  background: #1E1E1E;
-  color: #FFFFFF;
+  background: #F6F8FA;
+  color: #24292E;
 }
 
 .file-tab.active {
-  background: #1E1E1E;
-  color: #FFFFFF;
+  background: var(--code-bg);
+  color: var(--code-text);
   border-bottom: 2px solid var(--color-primary);
 }
 
@@ -4793,7 +4947,7 @@ watch(
   width: 32px;
   height: 32px;
   background: transparent;
-  color: #858585;
+  color: var(--code-comment);
   border: none;
   border-radius: 4px;
   font-size: 16px;
@@ -4803,7 +4957,7 @@ watch(
 }
 
 .copy-btn-icon:hover {
-  background: #2D2D30;
+  background: var(--code-bg-highlight);
   color: var(--color-primary);
 }
 
@@ -4828,8 +4982,8 @@ watch(
   justify-content: space-between;
   height: 32px;
   padding: 0 16px;
-  background: #252526;
-  border-bottom: 1px solid #3E3E42;
+  background: var(--code-bg-highlight);
+  border-bottom: 1px solid #E1E4E8;
   flex-shrink: 0;
 }
 
@@ -4842,12 +4996,12 @@ watch(
 .file-path {
   font-size: 12px;
   font-family: 'Consolas', 'Courier New', monospace;
-  color: #CCCCCC;
+  color: var(--code-comment);
 }
 
 .file-stats {
   font-size: 11px;
-  color: #858585;
+  color: var(--code-comment);
   font-family: 'Consolas', 'Courier New', monospace;
 }
 
@@ -4857,8 +5011,8 @@ watch(
   gap: 6px;
   padding: 4px 12px;
   background: transparent;
-  color: #858585;
-  border: 1px solid #3E3E42;
+  color: var(--code-comment);
+  border: 1px solid #E1E4E8;
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -4866,7 +5020,7 @@ watch(
 }
 
 .copy-btn:hover {
-  background: #2D2D30;
+  background: var(--code-bg-highlight);
   color: var(--color-primary);
   border-color: var(--color-primary);
 }
@@ -4874,7 +5028,7 @@ watch(
 .code-content {
   flex: 1;
   overflow: visible;
-  background: #1E1E1E;
+  background: var(--code-bg);
   position: relative;
   min-width: max-content;
 }
@@ -4930,12 +5084,12 @@ watch(
   font-size: 16px;
   font-weight: 500;
   margin-bottom: 8px;
-  color: #858585;
+  color: var(--code-comment);
 }
 
 .empty-hint {
   font-size: 14px;
-  color: #6A6A6A;
+  color: var(--code-comment);
 }
 
 /* 滚动条样式 */
@@ -4949,20 +5103,20 @@ watch(
 .explorer-content::-webkit-scrollbar-track,
 .file-tabs::-webkit-scrollbar-track,
 .editor-main::-webkit-scrollbar-track {
-  background: #1E1E1E;
+  background: var(--code-bg);
 }
 
 .explorer-content::-webkit-scrollbar-thumb,
 .file-tabs::-webkit-scrollbar-thumb,
 .editor-main::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: #C8C8C8;
   border-radius: 5px;
 }
 
 .explorer-content::-webkit-scrollbar-thumb:hover,
 .file-tabs::-webkit-scrollbar-thumb:hover,
 .editor-main::-webkit-scrollbar-thumb:hover {
-  background: #4E4E4E;
+  background: #A8A8A8;
 }
 
 /* 预览容器：生成完成后填满右侧面板 */
