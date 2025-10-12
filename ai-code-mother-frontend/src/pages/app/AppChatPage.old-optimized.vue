@@ -90,10 +90,15 @@
                 <!-- 根据项目类型显示内容 -->
                 <div v-if="message.loading && !message.content" class="loading-indicator">
                   <a-spin size="small" />
-                  <span>AI 正在思考...</span>
+                  <span>Thinking</span>
                 </div>
-                <MarkdownRenderer v-else-if="message.content" :content="message.content" />
-                <div v-else class="empty-message">
+                <!-- 思考完成标签（显示在消息内容上方） -->
+                <div v-else-if="message.thinkingDuration && message.content" class="thinking-complete">
+                  <img src="@/assets/thinking.png" alt="Thinking" class="thinking-icon" />
+                  <span class="thinking-duration">Thought for {{ message.thinkingDuration }} seconds</span>
+                </div>
+                <MarkdownRenderer v-if="message.content" :content="message.content" />
+                <div v-else-if="!message.loading" class="empty-message">
                   等待AI响应...
                 </div>
               </div>
@@ -389,13 +394,17 @@
         <!-- 预览视图 -->
         <div v-else class="preview-view-container">
           <div class="preview-container">
+            <!-- 加载中状态 -->
+            <PreviewLoading v-if="appGenerationStore.isGenerating && !previewUrl" />
+            <!-- 预览iframe -->
             <iframe
-              v-if="previewUrl"
+              v-else-if="previewUrl"
               :src="previewUrl"
               class="preview-iframe"
               frameborder="0"
               @load="onIframeLoad"
             />
+            <!-- 空状态 -->
             <div v-else class="preview-placeholder">
               <a-empty description="暂无预览，请先生成或部署" />
             </div>
@@ -547,12 +556,14 @@ import { listAppChatHistory } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import { initMessageCollapse } from '@/utils/messageCollapse'
 import request from '@/request'
+import { useCodeGeneration } from './composables/useCodeGeneration'
 
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import CodeHighlight from '@/components/CodeHighlight.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import AiModelSelector from '@/components/AiModelSelector.vue'
+import PreviewLoading from '@/components/PreviewLoading.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 
 // 导入模型SVG图标
@@ -593,6 +604,11 @@ const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const appGenerationStore = useAppGenerationStore()
+const {
+  parseGeneratedContent: parseGeneratedContentOnce,
+  simpleCodeFile: parsedSimpleCodeFile,
+  multiFiles: parsedMultiFiles,
+} = useCodeGeneration()
 
 // 应用信息
 const appInfo = ref<API.AppVO>()
@@ -602,8 +618,11 @@ const appId = ref<any>()
 interface Message {
   type: 'user' | 'ai'
   content: string
+  rawContent?: string // AI消息的原始完整内容（包含代码块，用于刷新后恢复）
   loading?: boolean
   createTime?: string
+  thinkingStartTime?: number // 思考开始时间戳
+  thinkingDuration?: number // 思考持续时间（秒）
 }
 
 // 工具步骤相关
@@ -649,6 +668,7 @@ const lastStoppedAt = ref<number>(0)
 // SSE micro-batching buffers and timer (to reduce per-chunk overhead)
 let ssePendingChunks: string[] = []
 let sseFullContent = ''
+let sseStructuredMessages: any[] = []
 const sseFlushTimer = ref<any>(null)
 
 const clearSseTimerAndBuffers = () => {
@@ -658,6 +678,7 @@ const clearSseTimerAndBuffers = () => {
   }
   ssePendingChunks = []
   sseFullContent = ''
+  sseStructuredMessages = []
 }
 
 // 轻量级性能指标
@@ -758,7 +779,16 @@ const visualEditor = new VisualEditor({
 })
 
 // UI 视图控制（新布局需要）
-const currentView = ref<'preview' | 'code'>('preview')
+// ✅ 从localStorage恢复上次的视图状态
+const CURRENT_VIEW_STORAGE_KEY = 'appChatPage_currentView'
+const savedView = localStorage.getItem(CURRENT_VIEW_STORAGE_KEY) as 'preview' | 'code' | null
+const currentView = ref<'preview' | 'code'>(savedView || 'preview')
+
+// ✅ 监听视图变化，自动保存到localStorage
+watch(currentView, (newView) => {
+  localStorage.setItem(CURRENT_VIEW_STORAGE_KEY, newView)
+  console.log('[视图状态] 保存currentView到localStorage:', newView)
+})
 
 // ========== VSCode 风格文件树状态 ==========
 // 代码编辑器左侧文件树宽度
@@ -1253,20 +1283,22 @@ const loadChatHistory = async (isLoadMore = false) => {
         // 将对话历史转换为消息格式，并按时间正序排列（老消息在前）
         const historyMessages: Message[] = chatHistories
           .map((chat) => {
-            let content = chat.message || ''
-            // 如果是AI消息，根据项目类型过滤掉代码相关信息
+            const rawContent = chat.message || ''
+            let content = rawContent
+            // 如果是AI消息，根据项目类型过滤掉代码相关信息（仅用于显示）
             if (chat.messageType === 'ai') {
               if (appInfo.value?.codeGenType === CodeGenTypeEnum.HTML) {
-                content = filterHtmlContent(content)
+                content = filterHtmlContent(rawContent)
               } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.MULTI_FILE) {
-                content = filterOutCodeBlocks(content)
+                content = filterOutCodeBlocks(rawContent)
               } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
-                content = formatVueProjectContent(content)
+                content = formatVueProjectContent(rawContent)
               }
             }
             return {
               type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
               content: content,
+              rawContent: chat.messageType === 'ai' ? rawContent : undefined, // AI消息保存原始内容
               createTime: chat.createTime,
             }
           })
@@ -1318,6 +1350,41 @@ const fetchAppInfo = async () => {
 
       // 先加载对话历史
       await loadChatHistory()
+
+      // ✅ 刷新后恢复代码文件：从最后一条AI消息的rawContent解析代码
+      if (messages.value.length > 0 && !isGenerating.value) {
+        const lastAiMessage = [...messages.value].reverse().find(msg => msg.type === 'ai' && msg.rawContent)
+        if (lastAiMessage && lastAiMessage.rawContent) {
+          console.log('[代码恢复] 从历史消息恢复代码文件')
+          try {
+            // 使用useCodeGeneration的解析方法
+            await parseGeneratedContentOnce(lastAiMessage.rawContent, appInfo.value?.codeGenType)
+
+            // 将解析结果复制到组件的文件变量（补充必需字段）
+            if (parsedSimpleCodeFile.value) {
+              simpleCodeFile.value = {
+                ...parsedSimpleCodeFile.value,
+                path: parsedSimpleCodeFile.value.path || parsedSimpleCodeFile.value.name,
+                completed: true,
+                generatedAt: new Date().toISOString()
+              }
+              console.log('[代码恢复] 恢复HTML文件:', simpleCodeFile.value?.name)
+            }
+            if (parsedMultiFiles.value.length > 0) {
+              multiFiles.value = parsedMultiFiles.value.map(f => ({
+                ...f,
+                path: f.path || f.name,
+                completed: true,
+                generatedAt: new Date().toISOString()
+              }))
+              console.log('[代码恢复] 恢复多文件项目:', multiFiles.value.length, '个文件')
+            }
+          } catch (error) {
+            console.error('[代码恢复] 解析历史代码失败:', error)
+          }
+        }
+      }
+
       // 如果有至少2条对话记录，展示对应的网站
       if (messages.value.length >= 2) {
         updatePreview()
@@ -1361,6 +1428,7 @@ const sendInitialMessage = async (prompt: string) => {
     type: 'ai',
     content: '',
     loading: true,
+    thinkingStartTime: Date.now(), // 记录开始时间
   })
 
   await nextTick()
@@ -1411,6 +1479,7 @@ const sendMessage = async () => {
     type: 'ai',
     content: '',
     loading: true,
+    thinkingStartTime: Date.now(), // 记录开始时间
   })
 
   await nextTick()
@@ -1432,6 +1501,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   stoppedByUser.value = false
   // 重置 SSE 批处理缓冲
   clearSseTimerAndBuffers()
+  // 清空上一轮的文件状态，确保重新解析完整代码
+  clearAllFiles()
   // 初始化性能指标
   sseMetrics = {
     runId: null,
@@ -1514,15 +1585,26 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         }
 
         // 确保至少有一些内容显示
-        const displayContent = textForLeft || fullContent.substring(0, 200) || 'AI 正在生成，右侧代码实时输出中…'
-        messages.value[aiMessageIndex].content = displayContent
-        // 只有在有实际内容时才关闭loading状态
-        if (displayContent && displayContent !== 'AI 正在生成，右侧代码实时输出中…') {
+        const displayContent = textForLeft || fullContent.substring(0, 200) || ''
+
+        // 只有当有实际内容时才更新消息并关闭loading状态
+        if (displayContent) {
+          messages.value[aiMessageIndex].content = displayContent
           messages.value[aiMessageIndex].loading = false
+
+          // 计算思考持续时间
+          if (messages.value[aiMessageIndex].thinkingStartTime) {
+            const endTime = Date.now()
+            const startTime = messages.value[aiMessageIndex].thinkingStartTime!
+            const durationMs = endTime - startTime
+            messages.value[aiMessageIndex].thinkingDuration = Math.round(durationMs / 1000)
+          }
         }
+        // 如果还没有内容，保持loading状态，继续显示"Thinking"动画
 
         // 解析流式内容并更新右侧代码区（传入本次批次与完整内容）
-        parseStreamingContent(batch, fullContent)
+        // 暂停右侧流式解析，避免分片截断
+        // parseStreamingContent(batch, fullContent)
         scrollToBottom()
         sseMetrics.flushCount += 1
       } catch (e) {
@@ -1543,6 +1625,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
           // 首个消息到达时间
           if (!sseMetrics.t2) sseMetrics.t2 = performance.now()
           ssePendingChunks.push(content)
+          captureStructuredSseMessage(content)
           sseMetrics.totalBytes += (typeof content === 'string' ? content.length : 0)
           if (!sseFlushTimer.value) {
             sseFlushTimer.value = setTimeout(() => {
@@ -1558,12 +1641,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理done事件
-    newEventSource.addEventListener('done', function () {
+    newEventSource.addEventListener('done', async function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted || !isGenerating.value) return
 
       // 先刷新剩余内容
       flushToUi()
+
+      await refreshCodeFilesFromFullContent(sseFullContent)
 
       // 确保loading状态被关闭
       if (messages.value[aiMessageIndex]) {
@@ -1613,11 +1698,12 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     })
 
     // 处理interrupted事件（手动停止）
-    newEventSource.addEventListener('interrupted', function () {
+    newEventSource.addEventListener('interrupted', async function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted) return
       // 先刷新剩余内容
       flushToUi()
+      await refreshCodeFilesFromFullContent(sseFullContent)
       streamCompleted = true
       isGenerating.value = false
       appGenerationStore.stopGeneration()
@@ -1672,13 +1758,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
 
     // 处理错误
-    newEventSource.onerror = function () {
+    newEventSource.onerror = async function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
       if (appGenerationStore.eventSource?.readyState === EventSource.CONNECTING) {
         // 先刷新剩余内容
         flushToUi()
+        await refreshCodeFilesFromFullContent(sseFullContent)
         streamCompleted = true
         isGenerating.value = false
         appGenerationStore.stopGeneration()
@@ -2100,6 +2187,16 @@ const clearAllFiles = () => {
   currentMultiFile.value = null
   multiFileContents.value = {}
   isMultiFileGenerating.value = false
+  // 清空HTML单文件状态
+  simpleCodeFile.value = null
+  simpleCodeContent.value = ''
+  isSimpleCodeGenerating.value = false
+  inSimpleCodeBlock.value = false
+  // 重置步骤信息
+  generationSteps.value = []
+  currentStep.value = null
+  // 清空当前选中的文件
+  selectedFileId.value = null
 }
 
 const extractFileName = (filePath: string): string => {
@@ -2122,6 +2219,240 @@ const detectLanguage = (filePath: string): string => {
     'java': 'java'
   }
   return languageMap[ext || ''] || 'text'
+}
+
+const captureStructuredSseMessage = (rawChunk: string) => {
+  if (!rawChunk || typeof rawChunk !== 'string') return
+  const trimmed = rawChunk.trim()
+  if (!trimmed || trimmed.length < 2) return
+
+  const candidates = splitPotentialJsonPayloads(trimmed)
+  for (const candidate of candidates) {
+    if (!candidate || !candidate.startsWith('{') || !candidate.endsWith('}')) continue
+    try {
+      const parsed = JSON.parse(candidate)
+      if (parsed && typeof parsed === 'object') {
+        sseStructuredMessages.push(parsed)
+      }
+    } catch (error) {
+      // 非 JSON 片段直接忽略
+    }
+  }
+}
+
+const splitPotentialJsonPayloads = (payload: string): string[] => {
+  // SSE片段通常是单个JSON字符串；极端情况可能拼接多个，按换行或】【简单拆分
+  if (!payload.includes('}{')) {
+    return [payload]
+  }
+  const segments: string[] = []
+  let buffer = ''
+  let depth = 0
+  for (const char of payload) {
+    if (char === '{') {
+      if (depth === 0 && buffer) {
+        buffer = ''
+      }
+      depth += 1
+    }
+    if (char === '}') {
+      depth = Math.max(0, depth - 1)
+    }
+    buffer += char
+    if (depth === 0 && buffer.trim()) {
+      segments.push(buffer.trim())
+      buffer = ''
+    }
+  }
+  if (buffer.trim()) {
+    segments.push(buffer.trim())
+  }
+  return segments.length ? segments : [payload]
+}
+
+const normalizeCodeGenType = (type?: string): CodeGenTypeEnum => {
+  if (!type) return CodeGenTypeEnum.HTML
+  const lower = type.toLowerCase()
+  if (lower === 'html' || lower === CodeGenTypeEnum.HTML) return CodeGenTypeEnum.HTML
+  if (lower === 'multi_file' || lower === 'multi-file' || lower === CodeGenTypeEnum.MULTI_FILE) {
+    return CodeGenTypeEnum.MULTI_FILE
+  }
+  if (
+    lower === 'vue' ||
+    lower === 'vue_project' ||
+    lower === 'vue-project' ||
+    lower === CodeGenTypeEnum.VUE_PROJECT
+  ) {
+    return CodeGenTypeEnum.VUE_PROJECT
+  }
+  return CodeGenTypeEnum.HTML
+}
+
+const buildFilesFromToolExecutions = (generatedAt: string): GeneratedFile[] => {
+  if (!sseStructuredMessages.length) return []
+
+  const fileMap = new Map<string, GeneratedFile>()
+  let counter = 0
+
+  for (const message of sseStructuredMessages) {
+    if (!message || typeof message !== 'object') continue
+    const type = (message.type || message.messageType || '').toString()
+    if (type !== 'tool_executed' && type !== 'toolExecuted') continue
+
+    let args: any = {}
+    if (typeof message.arguments === 'string') {
+      try {
+        args = JSON.parse(message.arguments)
+      } catch (error) {
+        args = {}
+      }
+    } else if (message.arguments && typeof message.arguments === 'object') {
+      args = message.arguments
+    }
+
+    let relativePath: string = (args?.relativeFilePath || args?.filePath || args?.path || '').toString().trim()
+    let content: string = ''
+
+    if (typeof args?.content === 'string') {
+      content = args.content
+    } else if (typeof args?.newContent === 'string') {
+      content = args.newContent
+    } else if (Array.isArray(args?.lines)) {
+      content = args.lines.join('\n')
+    }
+
+    if ((!relativePath || !content) && typeof message.result === 'string') {
+      const parsed = parseToolResultSnippet(message.result)
+      if (parsed) {
+        if (!relativePath) relativePath = parsed.path
+        if (!content) content = parsed.content
+      }
+    }
+
+    if (!relativePath || !content) continue
+
+    const name = extractFileName(relativePath)
+    const fileId = `${relativePath}-${counter++}-${Date.now()}`
+    const generatedFile: GeneratedFile = {
+      id: fileId,
+      name,
+      path: relativePath,
+      content,
+      language: detectLanguage(relativePath),
+      completed: true,
+      generatedAt,
+      lastUpdated: generatedAt,
+    }
+
+    fileMap.set(relativePath, generatedFile)
+  }
+
+  return Array.from(fileMap.values())
+}
+
+const parseToolResultSnippet = (result: string): { path: string; content: string } | null => {
+  if (!result) return null
+  const cleaned = result.replace(/\r/g, '')
+  const match = cleaned.match(/\[工具调用\]\s+[^\s]+\s+([^\s]+)\s*```([\w-]*)?\n([\s\S]*?)```/)
+  if (!match) return null
+  const [, filePath, _lang, code] = match
+  return {
+    path: filePath.trim(),
+    content: code,
+  }
+}
+
+const mapParsedFilesToGeneratedFiles = (sourceFiles: any[], generatedAt: string): GeneratedFile[] => {
+  return (sourceFiles || [])
+    .filter((file) => file && typeof file.content === 'string' && file.content.trim() !== '')
+    .map((file, index) => {
+      const path = file.path || file.name || `file-${index}`
+      const id = file.id || `${path}-${index}-${Date.now()}`
+      return {
+        id,
+        name: file.name || extractFileName(path),
+        path,
+        content: file.content,
+        language: file.language || detectLanguage(path),
+        completed: true,
+        generatedAt,
+        lastUpdated: generatedAt,
+      } as GeneratedFile
+    })
+}
+
+const applyGeneratedFiles = (files: GeneratedFile[], normalizedType: CodeGenTypeEnum, singleFile?: GeneratedFile | null) => {
+  clearAllFiles()
+
+  if (singleFile) {
+    simpleCodeFile.value = singleFile
+    simpleCodeContent.value = singleFile.content
+  }
+
+  if (normalizedType === CodeGenTypeEnum.MULTI_FILE) {
+    multiFiles.value = files
+    multiFileContents.value = files.reduce<Record<string, string>>((acc, file) => {
+      acc[file.name] = file.content
+      return acc
+    }, {})
+    activeFileKeys.value = files.length ? [files[0].id] : []
+  } else if (normalizedType === CodeGenTypeEnum.VUE_PROJECT) {
+    completedFiles.value = files
+    activeFileKeys.value = files.length ? [files[0].id] : []
+  }
+
+  const firstFileId =
+    singleFile?.id ||
+    multiFiles.value[0]?.id ||
+    completedFiles.value[0]?.id ||
+    null
+
+  selectedFileId.value = firstFileId
+  syncUIStateToStore()
+}
+
+const refreshCodeFilesFromFullContent = async (fullContent: string) => {
+  const normalizedType = normalizeCodeGenType(appInfo.value?.codeGenType)
+  const generatedAt = new Date().toISOString()
+
+  if (normalizedType === CodeGenTypeEnum.VUE_PROJECT) {
+    const toolFiles = buildFilesFromToolExecutions(generatedAt)
+    if (toolFiles.length > 0) {
+      applyGeneratedFiles(toolFiles, normalizedType)
+      return
+    }
+  }
+
+  if (!fullContent) {
+    applyGeneratedFiles([], normalizedType)
+    return
+  }
+
+  try {
+    await parseGeneratedContentOnce(fullContent, normalizedType)
+  } catch (error) {
+    console.error('解析完整代码失败:', error)
+    return
+  }
+
+  if (normalizedType === CodeGenTypeEnum.HTML && parsedSimpleCodeFile.value) {
+    const parsedFile = parsedSimpleCodeFile.value
+    const finalFile: GeneratedFile = {
+      id: parsedFile.id || `html-${Date.now()}`,
+      name: parsedFile.name || 'index.html',
+      path: parsedFile.path || parsedFile.name || 'index.html',
+      content: parsedFile.content,
+      language: parsedFile.language || 'html',
+      completed: true,
+      generatedAt,
+      lastUpdated: generatedAt,
+    }
+    applyGeneratedFiles([], normalizedType, finalFile)
+    return
+  }
+
+  const parsedFiles = mapParsedFilesToGeneratedFiles(parsedMultiFiles.value || [], generatedAt)
+  applyGeneratedFiles(parsedFiles, normalizedType)
 }
 
 // HTML模式专用：完全移除代码片段，只保留AI的文本描述
@@ -2338,8 +2669,8 @@ const initDiffCollapse = () => {
 // —— 生成上下对比 HTML（替换前在上，替换后在下）——
 const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): string => {
   const ops = diffLines(oldCnt, newCnt)
-  let beforeRows: string[] = []
-  let afterRows: string[] = []
+  const beforeRows: string[] = []
+  const afterRows: string[] = []
   let beforeLineNo = 1
   let afterLineNo = 1
 
@@ -2441,6 +2772,7 @@ const formatVueProjectContent = (content: string): string => {
 
 
 // 流式内容解析器
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const parseStreamingContent = (chunk: string, fullContent: string) => {
   try {
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
@@ -2884,7 +3216,7 @@ const startMultiFile = (fileName: string) => {
   else if (fileName.endsWith('.js')) language = 'javascript'
 
   // 检查文件是否已存在
-  let existingFile = multiFiles.value.find(file => file.name === fileName)
+  const existingFile = multiFiles.value.find(file => file.name === fileName)
 
   if (!existingFile) {
     // 创建新文件
@@ -2918,7 +3250,7 @@ const updateMultiFileContent = (fileName: string, content: string) => {
   if (!fileName || !multiFileContents.value.hasOwnProperty(fileName)) return
 
   // 清理内容中的标记符号，保留原始格式
-  let cleanContent = content
+  const cleanContent = content
     .replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
     .replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
     .replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
@@ -3557,6 +3889,51 @@ watch(
   align-items: center;
   gap: 8px;
   color: #666;
+}
+
+/* 思考完成标签 - 米色雾化风格 */
+.thinking-complete {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba(250, 235, 215, 0.6) 0%, rgba(255, 248, 220, 0.5) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(222, 184, 135, 0.3);
+  border-radius: 20px;
+  margin-bottom: 12px;
+  box-shadow:
+    0 4px 16px rgba(222, 184, 135, 0.15),
+    0 2px 8px rgba(255, 255, 255, 0.5) inset;
+  animation: thinkingFadeIn 0.4s ease;
+}
+
+@keyframes thinkingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.thinking-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(139, 90, 43, 0.3));
+  opacity: 0.85;
+}
+
+.thinking-duration {
+  color: #8B5A2B;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .empty-message {
