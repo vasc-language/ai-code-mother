@@ -42,19 +42,26 @@ export const filterHtmlContent = (content: string): string => {
 export const filterOutCodeBlocks = (content: string): string => {
   if (!content) return ''
 
-  // 移除完整代码块（```language code ```）及其前后内容
-  let filteredContent = content.replace(/(\n\s*)?```[\w-]*\n[\s\S]*?```(\n\s*)?/g, '')
-
-  // 移除不完整的代码块（```开头但没有结束的）及其后面的所有内容
-  filteredContent = filteredContent.replace(/(\n\s*)?```[\w-]*\n[\s\S]*$/g, '')
-
-  // 移除所有MULTI_FILE相关标记及其周围的内容
-  filteredContent = filteredContent.replace(/\[MULTI_FILE_START:[^\]]+\][\s\S]*?(?=\n\n|$)/g, '')
-  filteredContent = filteredContent.replace(
-    /\[MULTI_FILE_CONTENT:[^\]]+\][\s\S]*?(?=\n\n|$)/g,
+  // ✅ 移除完整的 MULTI_FILE 块（从 START 到 END，包括中间的所有代码）
+  let filteredContent = content.replace(
+    /\[MULTI_FILE_START:[^\]]+\][\s\S]*?\[MULTI_FILE_END:[^\]]+\]/g,
     ''
   )
-  filteredContent = filteredContent.replace(/\[MULTI_FILE_END:[^\]]+\][\s\S]*?(?=\n\n|$)/g, '')
+
+  // ✅ 移除独立的 MULTI_FILE_CONTENT 块（可能没有配对的 START/END）
+  filteredContent = filteredContent.replace(
+    /\[MULTI_FILE_CONTENT:[^\]]+\][\s\S]*?(?=\[MULTI_FILE_|$)/g,
+    ''
+  )
+
+  // 移除工具调用块（包括代码）
+  filteredContent = filteredContent.replace(/\[工具调用\][^\n]*\n```[\w-]*\n[\s\S]*?```/g, '')
+
+  // 移除完整代码块（```language code ```）
+  filteredContent = filteredContent.replace(/```[\w-]*\n[\s\S]*?```/g, '')
+
+  // 移除不完整的代码块（```开头但没有结束的）
+  filteredContent = filteredContent.replace(/```[\w-]*\n[\s\S]*$/g, '')
 
   // 移除特殊标记及其周围内容
   filteredContent = filteredContent.replace(
@@ -65,19 +72,16 @@ export const filterOutCodeBlocks = (content: string): string => {
   // 移除内联代码标记
   filteredContent = filteredContent.replace(/`[^`\n]*`/g, '')
 
-  // 移除工具调用信息（完全移除，不显示在左边框）
-  filteredContent = filteredContent.replace(/\[选择工具\][\s\S]*?(?=\n\n|$)/g, '')
-  filteredContent = filteredContent.replace(/\[工具调用\][\s\S]*?(?=\n\n|$)/g, '')
+  // 移除工具调用标记行
+  filteredContent = filteredContent.replace(/\[选择工具\][^\n]*/g, '')
+  filteredContent = filteredContent.replace(/\[工具调用\][^\n]*/g, '')
 
   // 移除步骤信息
-  filteredContent = filteredContent.replace(/STEP\s+\d+:[\s\S]*?(?=\n\n|$)/g, '')
+  filteredContent = filteredContent.replace(/STEP\s+\d+:[^\n]*/g, '')
 
-  // 移除任何包含代码标记的行
-  filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
-  filteredContent = filteredContent.replace(/^.*`.*$/gm, '')
+  // 移除任何残留的标记行
   filteredContent = filteredContent.replace(/^.*\[MULTI_FILE_.*$/gm, '')
-  filteredContent = filteredContent.replace(/^.*\[工具调用\].*$/gm, '')
-  filteredContent = filteredContent.replace(/^.*\[选择工具\].*$/gm, '')
+  filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
 
   // 清理多余的空行
   filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
@@ -89,45 +93,61 @@ export const filterOutCodeBlocks = (content: string): string => {
 
 /**
  * VUE_PROJECT模式专用：格式化工具调用信息并移除代码块
- * 简化版本 - 暂不包含 diff 对比功能
+ * 只保留AI的文字描述，移除所有代码内容
  */
 export const formatVueProjectContent = (content: string): string => {
   if (!content) return ''
 
   let formattedContent = content
 
-  // 移除完整/不完整代码块
+  // ✅ 移除完整的 MULTI_FILE 块（从 START 到 END，包括中间的所有代码）
+  formattedContent = formattedContent.replace(
+    /\[MULTI_FILE_START:[^\]]+\][\s\S]*?\[MULTI_FILE_END:[^\]]+\]/g,
+    ''
+  )
+
+  // ✅ 移除独立的 MULTI_FILE_CONTENT 块
+  formattedContent = formattedContent.replace(
+    /\[MULTI_FILE_CONTENT:[^\]]+\][\s\S]*?(?=\[MULTI_FILE_|$)/g,
+    ''
+  )
+
+  // 移除工具调用块（包括代码）
+  formattedContent = formattedContent.replace(/\[工具调用\][^\n]*\n```[\w-]*\n[\s\S]*?```/g, '')
+
+  // 移除完整代码块
   formattedContent = formattedContent.replace(/```[\w-]*\n[\s\S]*?```/g, '')
+
+  // 移除不完整的代码块
   formattedContent = formattedContent.replace(/```[\w-]*\n[\s\S]*$/g, '')
 
-  // 移除特殊标记与 MULTI_FILE 标记
+  // 移除特殊标记
   formattedContent = formattedContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\]/g, '')
-  formattedContent = formattedContent.replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
-  formattedContent = formattedContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
-  formattedContent = formattedContent.replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
 
   // 移除步骤信息
-  formattedContent = formattedContent.replace(/STEP\s+\d+:[\s\S]*?(?=\n\n|$)/g, '')
+  formattedContent = formattedContent.replace(/STEP\s+\d+:[^\n]*/g, '')
 
   // 移除单行代码反引号
-  formattedContent = formattedContent.replace(/`([^`\n]+)`/g, '$1')
+  formattedContent = formattedContent.replace(/`[^`\n]*`/g, '')
 
-  // 清理特定残留行
-  formattedContent = formattedContent.replace(/^.*\[MULTI_FILE_CONTENT:.*$/gm, '')
+  // 移除残留的标记行
+  formattedContent = formattedContent.replace(/^.*\[MULTI_FILE_.*$/gm, '')
+  formattedContent = formattedContent.replace(/^.*```.*$/gm, '')
 
-  // 工具标记格式化
-  formattedContent = formattedContent.replace(/(\[选择工具\])/g, '\n$1')
-  formattedContent = formattedContent.replace(/(\[工具调用\])/g, '\n$1')
-  formattedContent = formattedContent.replace(/\[选择工具\]\s*([^\[\n\r]*)/g, (match, toolName) => {
-    return `**[选择工具]** ${toolName.trim()}\n\n`
+  // ✅ 工具标记格式化（保留工具调用信息，但移除代码）
+  formattedContent = formattedContent.replace(/\[选择工具\]\s*([^\[\n]*)/g, (match, toolName) => {
+    const name = toolName.trim()
+    return name ? `**[选择工具]** ${name}\n\n` : ''
   })
-  formattedContent = formattedContent.replace(/\[工具调用\]\s*([^\[\n\r]*)/g, (match, info) => {
-    return `**[工具调用]** ${info.trim()}\n\n`
+  formattedContent = formattedContent.replace(/\[工具调用\]\s*([^\[\n]*)/g, (match, info) => {
+    const infoText = info.trim()
+    return infoText ? `**[工具调用]** ${infoText}\n\n` : ''
   })
 
   // 清理多余空行
   formattedContent = formattedContent.replace(/\n\s*\n\s*\n/g, '\n\n')
   formattedContent = formattedContent.replace(/^\n+/, '')
+  formattedContent = formattedContent.replace(/\n\s*$/, '')
 
   return formattedContent.trim()
 }

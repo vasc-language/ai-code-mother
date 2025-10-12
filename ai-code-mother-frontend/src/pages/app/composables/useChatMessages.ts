@@ -9,6 +9,8 @@ export interface Message {
   content: string
   loading?: boolean
   createTime?: string
+  thinkingStartTime?: number // 思考开始时间戳
+  thinkingDuration?: number // 思考持续时间（秒）
 }
 
 /**
@@ -137,6 +139,7 @@ export function useChatMessages() {
       type: 'ai',
       content: '',
       loading: true,
+      thinkingStartTime: Date.now(), // 记录开始时间
     })
     scrollToBottom()
     return aiMessageIndex
@@ -149,6 +152,14 @@ export function useChatMessages() {
     if (messages.value[index]) {
       messages.value[index].content = content
       messages.value[index].loading = loading
+
+      // 如果思考结束（loading变为false），计算思考持续时间
+      if (!loading && messages.value[index].thinkingStartTime) {
+        const endTime = Date.now()
+        const startTime = messages.value[index].thinkingStartTime!
+        const durationMs = endTime - startTime
+        messages.value[index].thinkingDuration = Math.round(durationMs / 1000) // 转换为秒并四舍五入
+      }
     }
   }
 

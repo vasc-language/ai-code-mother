@@ -36,14 +36,19 @@
                     <span class="dot"></span>
                     <span class="dot"></span>
                   </div>
-                  <span class="loading-text">AI 正在思考...</span>
+                  <span class="loading-text">Thinking</span>
+                </div>
+                <!-- 思考完成标签（显示在消息内容上方） -->
+                <div v-else-if="message.thinkingDuration && message.content" class="thinking-complete">
+                  <img src="@/assets/thinking.png" alt="Thinking" class="thinking-icon" />
+                  <span class="thinking-duration">Thought for {{ message.thinkingDuration }} seconds</span>
                 </div>
                 <!-- Markdown 内容 -->
-                <div v-else-if="message.content" class="message-markdown">
+                <div v-if="message.content" class="message-markdown">
                   <MarkdownRenderer :content="message.content" />
                 </div>
                 <!-- 空消息 -->
-                <div v-else class="message-empty">等待 AI 响应...</div>
+                <div v-else-if="!message.loading" class="message-empty">等待 AI 响应...</div>
               </div>
             </div>
           </div>
@@ -158,6 +163,7 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AiModelSelector from '@/components/AiModelSelector.vue'
+import { initMessageCollapse } from '@/utils/messageCollapse'
 
 // 导入模型SVG图标
 import deepseekIcon from '@/assets/deepseek-color.svg'
@@ -169,6 +175,8 @@ interface Message {
   type: 'user' | 'ai'
   content: string
   loading?: boolean
+  thinkingStartTime?: number
+  thinkingDuration?: number
 }
 
 interface Props {
@@ -339,6 +347,10 @@ watch(() => props.messages.length, () => {
 onMounted(() => {
   scrollToBottom()
   document.addEventListener('click', handleClickOutside)
+
+  // ✅ 初始化消息折叠功能
+  // 参数：容器选择器, 自动收缩=true, 只处理已完成的消息=true
+  initMessageCollapse('.messages-wrapper', true, true)
 })
 
 onUnmounted(() => {
@@ -557,6 +569,46 @@ defineExpose({
 .loading-text {
   color: var(--text-tertiary);
   font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* 思考完成标签 */
+.thinking-complete {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-radius: 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  animation: thinkingFadeIn 0.4s ease;
+}
+
+@keyframes thinkingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.thinking-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(59, 130, 246, 0.3));
+}
+
+.thinking-duration {
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .message-markdown {

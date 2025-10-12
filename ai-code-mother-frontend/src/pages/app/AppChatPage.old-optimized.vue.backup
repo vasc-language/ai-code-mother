@@ -81,6 +81,9 @@
           <div v-for="(message, index) in messages" :key="index" class="message-item">
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content">{{ message.content }}</div>
+              <div class="message-avatar">
+                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+              </div>
             </div>
             <div v-else class="ai-message">
               <div class="message-avatar">
@@ -90,15 +93,10 @@
                 <!-- 根据项目类型显示内容 -->
                 <div v-if="message.loading && !message.content" class="loading-indicator">
                   <a-spin size="small" />
-                  <span>Thinking</span>
+                  <span>AI 正在思考...</span>
                 </div>
-                <!-- 思考完成标签（显示在消息内容上方） -->
-                <div v-else-if="message.thinkingDuration && message.content" class="thinking-complete">
-                  <img src="@/assets/thinking.png" alt="Thinking" class="thinking-icon" />
-                  <span class="thinking-duration">Thought for {{ message.thinkingDuration }} seconds</span>
-                </div>
-                <MarkdownRenderer v-if="message.content" :content="message.content" />
-                <div v-else-if="!message.loading" class="empty-message">
+                <MarkdownRenderer v-else-if="message.content" :content="message.content" />
+                <div v-else class="empty-message">
                   等待AI响应...
                 </div>
               </div>
@@ -147,29 +145,14 @@
 
         <!-- 用户消息输入框 -->
         <div class="input-wrapper">
-          <!-- AI模型选择器弹出层 -->
-          <div
-            class="model-selector-popup"
-            v-if="showModelSelector"
-            @mouseenter="handlePlusButtonHover"
-            @mouseleave="handleSelectorAreaLeave"
-          >
-            <AiModelSelector
-              ref="modelSelectorRef"
-              :disabled="isGenerating"
-              @change="handleModelChange"
-            />
-          </div>
-
           <!-- 主输入框区域 -->
           <a-tooltip v-if="!isOwner" title="无法在别人的作品下对话哦~" placement="top">
             <a-textarea
               v-model:value="userInput"
               :placeholder="getInputPlaceholder()"
-              :rows="2"
+              :rows="4"
               :maxlength="1000"
               @keydown="onInputKeydown"
-              @input="autoResizeTextarea"
               :disabled="isGenerating || !isOwner"
             />
           </a-tooltip>
@@ -177,10 +160,9 @@
             v-else
             v-model:value="userInput"
             :placeholder="getInputPlaceholder()"
-            :rows="2"
+            :rows="4"
             :maxlength="1000"
             @keydown="onInputKeydown"
-            @input="autoResizeTextarea"
             :disabled="isGenerating"
           />
 
@@ -189,21 +171,8 @@
             <!-- 左下角按钮组 -->
             <div class="input-left-actions">
               <!-- 模型列表按钮 -->
-              <button
-                class="action-btn model-btn"
-                @click="toggleModelSelector"
-                @mouseenter="handlePlusButtonHover"
-                @mouseleave="handlePlusButtonLeave"
-                :title="showModelSelector ? '收起模型选择' : '展开模型选择'"
-                :disabled="isGenerating || !isOwner"
-              >
-                <img
-                  v-if="getCurrentModelIcon()"
-                  :src="getCurrentModelIcon()!"
-                  alt="模型图标"
-                  class="model-icon-img"
-                />
-                <img v-else :src="currentAiAvatar" alt="AI模型" class="model-icon-img" />
+              <button class="action-btn model-btn" title="选择AI模型">
+                <img :src="currentAiAvatar" alt="AI模型" class="model-icon-img" />
               </button>
               <!-- 编辑模式按钮 -->
               <button
@@ -246,164 +215,156 @@
         </div>
       </div>
 
-      <!-- 中间：可调节分隔条 -->
-      <div
-        class="resizer"
-        :class="{ 'is-resizing': isResizing }"
-        @mousedown="startResize"
-        @touchstart="startTouchResize"
-      ></div>
-
       <!-- 右侧：代码/预览面板 -->
       <div class="right-panel code-panel-container">
-        <!-- 代码视图 - VSCode风格左右分栏 -->
-        <div v-if="currentView === 'code'" class="code-view-container vscode-layout">
-          <!-- 左侧：文件树 -->
-          <div class="file-explorer" :style="{ width: codeExplorerWidth + 'px' }">
-            <div class="explorer-header">
-              <div class="header-title">
-                <FolderOutlined class="title-icon" />
-                <span>文件资源管理器</span>
+        <!-- 代码视图 -->
+        <div v-if="currentView === 'code'" class="code-view-container">
+          <div class="code-output-container">
+            <!-- Vue项目类型的当前生成文件 -->
+            <div v-if="currentGeneratingFile && !isSimpleCodeGenerating" class="current-file">
+              <div class="file-header">
+                <div class="file-tab">
+                  <FileOutlined class="file-icon" />
+                  <span class="file-name">{{ currentGeneratingFile.name }}</span>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="minimizeCurrentFile"
+                    v-if="currentGeneratingFile.completed"
+                  >
+                    <MinusOutlined />
+                  </a-button>
+                </div>
+              </div>
+              <div class="code-content">
+                <CodeHighlight
+                  :code="currentGeneratingFile.content"
+                  :language="currentGeneratingFile.language"
+                  :fileName="currentGeneratingFile.name"
+                  theme="github"
+                />
+                <div class="typing-cursor" v-if="!currentGeneratingFile.completed">|</div>
               </div>
             </div>
 
-            <div class="explorer-content">
-              <!-- 项目根目录 -->
-              <div v-if="hasAnyFiles" class="project-root">
-                <FolderOpenOutlined class="root-icon" />
-                <span class="root-name">{{ projectName }}</span>
+            <!-- HTML类型的简单代码文件 -->
+            <div v-if="simpleCodeFile" class="current-file">
+              <div class="file-header">
+                <div class="file-tab">
+                  <FileOutlined class="file-icon" />
+                  <span class="file-name">{{ simpleCodeFile.name }}</span>
+                  <a-tag color="blue" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
+                </div>
+              </div>
+              <div class="code-content">
+                <CodeHighlight
+                  :code="simpleCodeFile.content"
+                  :language="simpleCodeFile.language"
+                  :fileName="simpleCodeFile.name"
+                  theme="github"
+                />
+                <div class="typing-cursor" v-if="!simpleCodeFile.completed">|</div>
+              </div>
+            </div>
+
+            <!-- MULTI_FILE类型的多文件显示 - 改为和Vue项目一样的样式 -->
+            <div v-if="multiFiles.length > 0">
+              <!-- 当前正在生成的文件 -->
+              <div v-if="currentMultiFile && isMultiFileGenerating" class="current-file">
+                <div class="file-header">
+                  <div class="file-tab">
+                    <FileOutlined class="file-icon" />
+                    <span class="file-name">{{ currentMultiFile }}</span>
+                    <a-tag color="green" size="small">{{ formatCodeGenType(appInfo?.codeGenType) }}</a-tag>
+                  </div>
+                </div>
+                <div class="code-content">
+                  <CodeHighlight
+                    :code="getCurrentMultiFileContent()"
+                    :language="getCurrentMultiFileLanguage()"
+                    :fileName="currentMultiFile"
+                    theme="github"
+                  />
+                  <div class="typing-cursor" v-if="isMultiFileGenerating">|</div>
+                </div>
               </div>
 
-              <!-- 文件列表 -->
-              <div class="file-list">
-                <!-- 文件树节点 -->
-                <div
-                  v-for="node in flatFileTree"
-                  :key="node.path"
-                  class="file-item"
-                  :class="{
-                    active: node.type === 'file' && selectedFileId === node.file?.id,
-                    'is-folder': node.type === 'folder'
-                  }"
-                  :style="{ paddingLeft: `${node.level * 16 + 8}px` }"
-                  @click="node.type === 'folder' ? toggleFolder(node.path) : selectFile(node.file!.id)"
+              <!-- 已完成的多文件列表 -->
+              <div class="completed-files">
+                <a-collapse v-model:activeKey="activeFileKeys" v-if="multiFiles.length > 0">
+                  <a-collapse-panel
+                    v-for="file in multiFiles"
+                    :key="file.id"
+                  >
+                    <template #header>
+                      <div class="file-panel-header">
+                        <FileOutlined class="file-icon" />
+                        <span class="file-name">{{ file.name }}</span>
+                        <span class="file-path">{{ file.path }}</span>
+                      </div>
+                    </template>
+                    <div class="file-content-wrapper">
+                      <CodeHighlight
+                        :code="file.content"
+                        :language="file.language"
+                        :fileName="file.name"
+                        theme="github"
+                      />
+                    </div>
+                  </a-collapse-panel>
+                </a-collapse>
+              </div>
+            </div>
+
+            <!-- 已完成文件列表 -->
+            <div class="completed-files">
+              <a-collapse v-model:activeKey="activeFileKeys" v-if="completedFiles.length > 0">
+                <a-collapse-panel
+                  v-for="file in completedFiles"
+                  :key="file.id"
                 >
-                  <!-- 目录节点 -->
-                  <template v-if="node.type === 'folder'">
-                    <RightOutlined v-if="!isFolderExpanded(node.path)" class="folder-arrow" />
-                    <DownOutlined v-else class="folder-arrow" />
-                    <FolderOutlined v-if="!isFolderExpanded(node.path)" class="file-icon" />
-                    <FolderOpenOutlined v-else class="file-icon" />
-                    <span class="file-name">{{ node.name }}</span>
+                  <template #header>
+                    <div class="file-panel-header">
+                      <FileOutlined class="file-icon" />
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-path">{{ file.path }}</span>
+                    </div>
                   </template>
-
-                  <!-- 文件节点 -->
-                  <template v-else>
-                    <FileTextOutlined class="file-icon file-icon-indent" />
-                    <span class="file-name">{{ node.name }}</span>
-                    <span
-                      v-if="node.file && !node.file.completed"
-                      class="file-badge"
-                    >生成中</span>
-                  </template>
-                </div>
-
-                <!-- 空状态 -->
-                <div v-if="!hasAnyFiles && !isGenerating" class="explorer-empty">
-                  <CodeOutlined class="empty-icon-small" />
-                  <p class="empty-text-small">等待文件生成</p>
-                </div>
-
-                <div v-if="!hasAnyFiles && isGenerating" class="explorer-empty">
-                  <a-spin size="small" />
-                  <p class="empty-text-small">正在生成中...</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 竖向分隔条 -->
-          <div
-            class="vertical-resizer"
-            @mousedown="startCodeResize"
-            @dblclick="resetCodeSize"
-          >
-            <div class="resizer-handle"></div>
-          </div>
-
-          <!-- 右侧：代码编辑器区域 -->
-          <div class="code-editor-area">
-              <!-- 文件标签栏 -->
-              <div v-if="selectedFile" class="file-tabs">
-                <div class="file-tab active">
-                  <FileTextOutlined class="tab-icon" />
-                  <span class="tab-name">{{ selectedFile.name }}</span>
-                </div>
-                <!-- 历史版本按钮 -->
-                <button v-if="isOwner" class="history-btn-icon" @click="showVersionHistory" title="查看历史版本">
-                  <img :src="versionHistoryIcon" alt="历史版本" class="version-history-icon" />
-                </button>
-                <!-- 复制按钮 -->
-                <button class="copy-btn-icon" @click="copyCode(selectedFile.content)" title="复制代码">
-                  <CopyOutlined />
-                </button>
-              </div>
-
-              <!-- 代码编辑器主体 -->
-              <div class="editor-main">
-                <div v-if="selectedFile" class="editor-container">
-                  <!-- 代码内容 -->
-                  <div class="code-content">
+                  <div class="file-content-wrapper">
                     <CodeHighlight
-                      :code="selectedFile.content"
-                      :language="selectedFile.language"
-                      :fileName="selectedFile.name"
+                      :code="file.content"
+                      :language="file.language"
+                      :fileName="file.name"
+                      theme="github"
                     />
-                    <div class="typing-cursor" v-if="isFileGenerating(selectedFile)">|</div>
                   </div>
-                </div>
-
-                <!-- 空状态 -->
-                <div v-else class="empty-state">
-                  <div class="empty-icon">
-                    <CodeOutlined />
-                  </div>
-                  <p class="empty-text">{{ isGenerating ? '正在生成代码...' : '等待代码生成' }}</p>
-                  <p class="empty-hint">AI 生成的代码文件将在这里实时显示</p>
-                </div>
-              </div>
-
-              <!-- 状态栏 -->
-              <div v-if="selectedFile" class="status-bar">
-                <div class="status-left">
-                  <span class="status-item">
-                    <span class="status-icon">⚡</span>
-                    {{ formatCodeGenType(appInfo?.codeGenType) }}
-                  </span>
-                </div>
-                <div class="status-right">
-                  <span class="status-item">LF</span>
-                  <span class="status-item">{{ selectedFile.language || 'plaintext' }}</span>
-                  <span class="status-item">UTF-8</span>
-                </div>
-              </div>
+                </a-collapse-panel>
+              </a-collapse>
             </div>
+
+            <!-- 占位符 -->
+            <div v-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && !isGenerating" class="code-placeholder">
+              <div class="placeholder-icon">📄</div>
+              <p>AI 生成的代码文件将在这里实时显示</p>
+            </div>
+
+            <div v-else-if="!currentGeneratingFile && !simpleCodeFile && multiFiles.length === 0 && completedFiles.length === 0 && isGenerating" class="code-loading">
+              <a-spin size="large" />
+              <p>正在分析需求，准备生成代码...</p>
+            </div>
+          </div>
         </div>
 
         <!-- 预览视图 -->
         <div v-else class="preview-view-container">
           <div class="preview-container">
-            <!-- 加载中状态 -->
-            <PreviewLoading v-if="appGenerationStore.isGenerating && !previewUrl" />
-            <!-- 预览iframe -->
             <iframe
-              v-else-if="previewUrl"
+              v-if="previewUrl"
               :src="previewUrl"
               class="preview-iframe"
               frameborder="0"
               @load="onIframeLoad"
             />
-            <!-- 空状态 -->
             <div v-else class="preview-placeholder">
               <a-empty description="暂无预览，请先生成或部署" />
             </div>
@@ -553,16 +514,12 @@ import {
 } from '@/api/appVersionController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
-import { initMessageCollapse } from '@/utils/messageCollapse'
 import request from '@/request'
-import { useCodeGeneration } from './composables/useCodeGeneration'
 
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import CodeHighlight from '@/components/CodeHighlight.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
-import AiModelSelector from '@/components/AiModelSelector.vue'
-import PreviewLoading from '@/components/PreviewLoading.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 
 // 导入模型SVG图标
@@ -570,8 +527,6 @@ import deepseekIcon from '@/assets/deepseek-color.svg'
 import qwenIcon from '@/assets/qwen-color.svg'
 import openaiIcon from '@/assets/openai.svg'
 import kimiIcon from '@/assets/kimi-color.svg'
-// 导入历史版本图标
-import versionHistoryIcon from '@/assets/Version  history.svg'
 
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
@@ -591,12 +546,6 @@ import {
   EyeOutlined,
   CodeOutlined,
   EditOutlined,
-  FolderOutlined,
-  FolderOpenOutlined,
-  FileTextOutlined,
-  CopyOutlined,
-  RightOutlined,
-  DownOutlined,
 } from '@ant-design/icons-vue'
 
 defineOptions({
@@ -607,11 +556,6 @@ const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const appGenerationStore = useAppGenerationStore()
-const {
-  parseGeneratedContent: parseGeneratedContentOnce,
-  simpleCodeFile: parsedSimpleCodeFile,
-  multiFiles: parsedMultiFiles,
-} = useCodeGeneration()
 
 // 应用信息
 const appInfo = ref<API.AppVO>()
@@ -621,11 +565,8 @@ const appId = ref<any>()
 interface Message {
   type: 'user' | 'ai'
   content: string
-  rawContent?: string // AI消息的原始完整内容（包含代码块，用于刷新后恢复）
   loading?: boolean
   createTime?: string
-  thinkingStartTime?: number // 思考开始时间戳
-  thinkingDuration?: number // 思考持续时间（秒）
 }
 
 // 工具步骤相关
@@ -652,12 +593,6 @@ interface ToolCall {
 const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
-
-// AI模型选择相关
-const modelSelectorRef = ref()
-const selectedModelKey = ref('codex-mini-latest')
-const showModelSelector = ref(false)
-let hoverTimeout: number | null = null
 const messagesContainer = ref<HTMLElement>()
 
 // Streaming control state - 使用全局 store 管理 EventSource，避免页面切换时中断
@@ -671,7 +606,6 @@ const lastStoppedAt = ref<number>(0)
 // SSE micro-batching buffers and timer (to reduce per-chunk overhead)
 let ssePendingChunks: string[] = []
 let sseFullContent = ''
-let sseStructuredMessages: any[] = []
 const sseFlushTimer = ref<any>(null)
 
 const clearSseTimerAndBuffers = () => {
@@ -681,7 +615,6 @@ const clearSseTimerAndBuffers = () => {
   }
   ssePendingChunks = []
   sseFullContent = ''
-  sseStructuredMessages = []
 }
 
 // 轻量级性能指标
@@ -718,16 +651,6 @@ interface GeneratedFile {
   completed: boolean
   generatedAt: string
   lastUpdated?: string
-}
-
-// 文件树节点接口
-interface TreeNode {
-  name: string // 节点名称（文件名或目录名）
-  path: string // 完整路径
-  type: 'file' | 'folder' // 节点类型
-  children?: TreeNode[] // 子节点（仅目录有）
-  file?: GeneratedFile // 文件数据（仅文件有）
-  level: number // 层级（用于缩进）
 }
 
 const currentGeneratingFile = ref<GeneratedFile | null>(null)
@@ -792,265 +715,7 @@ const visualEditor = new VisualEditor({
 })
 
 // UI 视图控制（新布局需要）
-// ✅ 从localStorage恢复上次的视图状态
-const CURRENT_VIEW_STORAGE_KEY = 'appChatPage_currentView'
-const savedView = localStorage.getItem(CURRENT_VIEW_STORAGE_KEY) as 'preview' | 'code' | null
-const currentView = ref<'preview' | 'code'>(savedView || 'preview')
-
-// ✅ 监听视图变化，自动保存到localStorage
-watch(currentView, (newView) => {
-  localStorage.setItem(CURRENT_VIEW_STORAGE_KEY, newView)
-  console.log('[视图状态] 保存currentView到localStorage:', newView)
-})
-
-// ========== VSCode 风格文件树状态 ==========
-// 代码编辑器左侧文件树宽度
-const codeExplorerWidth = ref(248)
-
-// 当前选中的文件ID
-const selectedFileId = ref<string | null>(null)
-
-// 文件树展开状态（记录哪些目录是展开的）
-const expandedFolders = ref<Set<string>>(new Set())
-
-// 计算属性：获取所有文件
-const allFiles = computed(() => {
-  const files = []
-  if (simpleCodeFile.value) {
-    files.push(simpleCodeFile.value)
-  }
-  files.push(...multiFiles.value)
-  files.push(...completedFiles.value)
-  return files
-})
-
-// 计算属性：是否有任何文件
-const hasAnyFiles = computed(() => {
-  return allFiles.value.length > 0
-})
-
-// 计算属性：项目名称
-const projectName = computed(() => {
-  if (appInfo.value?.codeGenType === 'HTML') return 'html-project'
-  if (appInfo.value?.codeGenType === 'MULTI_FILE') return 'multi-file-project'
-  if (appInfo.value?.codeGenType === 'VUE') return 'vue-project'
-  return 'project'
-})
-
-// 计算属性：当前选中的文件对象
-const selectedFile = computed(() => {
-  if (!selectedFileId.value) return null
-  return allFiles.value.find(f => f.id === selectedFileId.value) || null
-})
-
-// 选择文件
-const selectFile = (fileId: string) => {
-  selectedFileId.value = fileId
-}
-
-// 判断文件是否正在生成
-const isFileGenerating = (file: any) => {
-  if (!file) return false
-
-  // HTML 单文件
-  if (file.id === simpleCodeFile.value?.id) {
-    return !simpleCodeFile.value?.completed
-  }
-
-  // 多文件项目
-  if (multiFiles.value.some(f => f.id === file.id)) {
-    return currentMultiFile.value === file.name && isMultiFileGenerating.value
-  }
-
-  // Vue项目
-  if (file.id === currentGeneratingFile.value?.id) {
-    return !currentGeneratingFile.value?.completed
-  }
-
-  return false
-}
-
-// 获取文件行数
-const getLineCount = (content: string) => {
-  if (!content) return 0
-  return content.split('\n').length
-}
-
-// 获取文件大小
-const getFileSize = (content: string) => {
-  if (!content) return '0 B'
-  const bytes = new Blob([content]).size
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-// ========== 文件树转换函数 ==========
-/**
- * 将扁平的文件列表转换为树形结构
- * @param files 文件数组
- * @returns 树形节点数组
- */
-const buildFileTree = (files: GeneratedFile[]): TreeNode[] => {
-  if (!files || files.length === 0) return []
-
-  const root: TreeNode[] = []
-  const folderMap = new Map<string, TreeNode>()
-
-  // 遍历所有文件
-  files.forEach(file => {
-    // 解析文件路径，分割成路径段
-    const pathSegments = file.path.split('/').filter(seg => seg.length > 0)
-
-    let currentLevel = root
-    let currentPath = ''
-
-    // 遍历路径段，构建目录结构
-    pathSegments.forEach((segment, index) => {
-      currentPath = currentPath ? `${currentPath}/${segment}` : segment
-      const isLastSegment = index === pathSegments.length - 1
-
-      if (isLastSegment) {
-        // 最后一段是文件
-        const fileNode: TreeNode = {
-          name: segment,
-          path: currentPath,
-          type: 'file',
-          file: file,
-          level: index
-        }
-        currentLevel.push(fileNode)
-      } else {
-        // 中间段是目录
-        let folderNode = folderMap.get(currentPath)
-
-        if (!folderNode) {
-          // 创建新目录节点
-          folderNode = {
-            name: segment,
-            path: currentPath,
-            type: 'folder',
-            children: [],
-            level: index
-          }
-          folderMap.set(currentPath, folderNode)
-          currentLevel.push(folderNode)
-        }
-
-        // 移动到下一层
-        currentLevel = folderNode.children!
-      }
-    })
-  })
-
-  return root
-}
-
-/**
- * 切换目录的展开/收起状态
- * @param folderPath 目录路径
- */
-const toggleFolder = (folderPath: string) => {
-  if (expandedFolders.value.has(folderPath)) {
-    expandedFolders.value.delete(folderPath)
-  } else {
-    expandedFolders.value.add(folderPath)
-  }
-}
-
-/**
- * 判断目录是否展开
- * @param folderPath 目录路径
- */
-const isFolderExpanded = (folderPath: string): boolean => {
-  return expandedFolders.value.has(folderPath)
-}
-
-// 计算属性：文件树结构
-const fileTree = computed(() => {
-  // 合并所有文件（HTML单文件 + 多文件项目 + Vue项目文件）
-  const allFilesList: GeneratedFile[] = []
-
-  if (simpleCodeFile.value) {
-    allFilesList.push(simpleCodeFile.value)
-  }
-
-  allFilesList.push(...multiFiles.value)
-  allFilesList.push(...completedFiles.value)
-
-  // 转换为树形结构
-  return buildFileTree(allFilesList)
-})
-
-/**
- * 将树形结构展平为可渲染的列表（带层级信息）
- * @param nodes 树形节点数组
- * @returns 展平的节点列表
- */
-const flattenTree = (nodes: TreeNode[]): TreeNode[] => {
-  const result: TreeNode[] = []
-
-  const traverse = (nodeList: TreeNode[]) => {
-    nodeList.forEach(node => {
-      result.push(node)
-
-      // 如果是目录且已展开，递归处理子节点
-      if (node.type === 'folder' && node.children && isFolderExpanded(node.path)) {
-        traverse(node.children)
-      }
-    })
-  }
-
-  traverse(nodes)
-  return result
-}
-
-// 计算属性：展平的文件树（用于渲染）
-const flatFileTree = computed(() => {
-  return flattenTree(fileTree.value)
-})
-
-// 复制代码
-const copyCode = async (code: string) => {
-  try {
-    await navigator.clipboard.writeText(code)
-    message.success('代码已复制到剪贴板')
-  } catch (err) {
-    message.error('复制失败')
-  }
-}
-
-// 代码编辑器左侧文件树宽度调节
-const startCodeResize = (e: MouseEvent) => {
-  const startX = e.clientX
-  const startWidth = codeExplorerWidth.value
-
-  const onMouseMove = (e: MouseEvent) => {
-    const delta = e.clientX - startX
-    const newWidth = Math.max(180, Math.min(500, startWidth + delta))
-    codeExplorerWidth.value = newWidth
-  }
-
-  const onMouseUp = () => {
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-  }
-
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
-}
-
-// 重置代码编辑器文件树宽度
-const resetCodeSize = () => {
-  codeExplorerWidth.value = 248
-}
-
-// 监听文件变化，自动选中第一个文件
-watch(allFiles, (newFiles) => {
-  if (newFiles.length > 0 && !selectedFileId.value) {
-    selectedFileId.value = newFiles[0].id
-  }
-}, { immediate: true })
+const currentView = ref<'preview' | 'code'>('preview')
 
 // 权限相关
 const isOwner = computed(() => {
@@ -1108,13 +773,6 @@ const primaryActionTitle = computed(() => {
   }
 })
 
-// 自动调整textarea高度
-const autoResizeTextarea = (e: Event) => {
-  const textarea = e.target as HTMLTextAreaElement
-  textarea.style.height = 'auto'
-  textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px' // 最大高度200px
-}
-
 // 文本框按键：Enter 发送，Shift+Enter 换行
 const onInputKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -1123,8 +781,6 @@ const onInputKeydown = (e: KeyboardEvent) => {
       sendMessage()
     }
   }
-  // 自动调整高度
-  setTimeout(() => autoResizeTextarea(e), 0)
 }
 
 const onPrimaryActionClick = async () => {
@@ -1144,66 +800,6 @@ const onPrimaryActionClick = async () => {
   message.info('请输入提示词')
 }
 
-// ========== AI模型选择器相关方法 ==========
-// 鼠标悬停在+号上,延迟显示模型列表
-const handlePlusButtonHover = () => {
-  if (hoverTimeout) {
-    clearTimeout(hoverTimeout)
-  }
-  hoverTimeout = window.setTimeout(() => {
-    showModelSelector.value = true
-  }, 200) // 200ms延迟,避免误触
-}
-
-// 鼠标离开+号按钮
-const handlePlusButtonLeave = () => {
-  if (hoverTimeout) {
-    clearTimeout(hoverTimeout)
-    hoverTimeout = null
-  }
-}
-
-// 鼠标离开整个模型选择区域
-const handleSelectorAreaLeave = () => {
-  if (hoverTimeout) {
-    clearTimeout(hoverTimeout)
-    hoverTimeout = null
-  }
-  showModelSelector.value = false
-}
-
-// 点击+号按钮切换模型选择器
-const toggleModelSelector = () => {
-  showModelSelector.value = !showModelSelector.value
-}
-
-// 处理模型选择变化
-const handleModelChange = (modelKey: string, model: API.AiModelConfig) => {
-  selectedModelKey.value = modelKey
-  // 选择模型后自动关闭列表
-  showModelSelector.value = false
-  console.log('切换模型:', modelKey, model)
-}
-
-// 获取当前选中模型的图标
-const getCurrentModelIcon = () => {
-  const modelKey = selectedModelKey.value?.toLowerCase() || ''
-
-  // 根据modelKey匹配对应的图标
-  if (modelKey.includes('deepseek')) {
-    return deepseekIcon
-  } else if (modelKey.includes('qwen')) {
-    return qwenIcon
-  } else if (modelKey.includes('gpt') || modelKey.includes('o3') || modelKey.includes('o4')) {
-    return openaiIcon
-  } else if (modelKey.includes('kimi')) {
-    return kimiIcon
-  }
-
-  // 默认返回null,显示AI头像
-  return null
-}
-
 // 应用详情相关
 const appDetailVisible = ref(false)
 
@@ -1220,129 +816,6 @@ const globalKeyHandler = (e: KeyboardEvent) => {
       onToggleStream()
     }
   }
-}
-
-// ========== 分隔条拖动功能 ==========
-const isResizing = ref(false)
-
-const startResize = (e: MouseEvent) => {
-  // 只响应鼠标左键
-  if (e.button !== 0) return
-
-  isResizing.value = true
-  e.preventDefault()
-  e.stopPropagation()
-
-  // 禁用用户选择，防止拖动时选中文本
-  document.body.style.userSelect = 'none'
-  document.body.style.cursor = 'col-resize'
-
-  document.addEventListener('mousemove', doResize, { passive: false })
-  document.addEventListener('mouseup', stopResize)
-}
-
-const doResize = (e: MouseEvent) => {
-  if (!isResizing.value) return
-
-  e.preventDefault()
-  e.stopPropagation()
-
-  const container = document.querySelector('.lovable-main') as HTMLElement
-  if (!container) return
-
-  const containerRect = container.getBoundingClientRect()
-  const leftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100
-
-  // 限制宽度范围：25% - 75%
-  if (leftWidth >= 25 && leftWidth <= 75) {
-    const leftPanel = document.querySelector('.left-panel') as HTMLElement
-    const rightPanel = document.querySelector('.right-panel') as HTMLElement
-    if (leftPanel && rightPanel) {
-      leftPanel.style.width = `${leftWidth}%`
-      rightPanel.style.width = `${100 - leftWidth}%`
-    }
-  }
-}
-
-const stopResize = () => {
-  if (!isResizing.value) return
-
-  isResizing.value = false
-
-  // 恢复用户选择和光标
-  document.body.style.userSelect = ''
-  document.body.style.cursor = ''
-
-  document.removeEventListener('mousemove', doResize)
-  document.removeEventListener('mouseup', stopResize)
-}
-
-// ========== 触摸事件处理（手机端） ==========
-const startTouchResize = (e: TouchEvent) => {
-  e.preventDefault() // 防止页面滚动
-  isResizing.value = true
-
-  // 禁用用户选择，防止拖动时选中文本
-  document.body.style.userSelect = 'none'
-  document.body.style.cursor = 'col-resize'
-
-  document.addEventListener('touchmove', doTouchResize, { passive: false })
-  document.addEventListener('touchend', stopTouchResize)
-}
-
-const doTouchResize = (e: TouchEvent) => {
-  if (!isResizing.value) return
-  e.preventDefault() // 防止页面滚动
-
-  const touch = e.touches[0]
-  const container = document.querySelector('.lovable-main') as HTMLElement
-  if (!container) return
-
-  const containerRect = container.getBoundingClientRect()
-
-  // 判断是横向还是纵向布局
-  const isVerticalLayout = window.innerWidth <= 768
-
-  if (isVerticalLayout) {
-    // 手机端：纵向拖动
-    const topHeight = ((touch.clientY - containerRect.top) / containerRect.height) * 100
-
-    // 限制高度范围：25% - 75%
-    if (topHeight >= 25 && topHeight <= 75) {
-      const leftPanel = document.querySelector('.left-panel') as HTMLElement
-      const rightPanel = document.querySelector('.right-panel') as HTMLElement
-      if (leftPanel && rightPanel) {
-        leftPanel.style.height = `${topHeight}%`
-        rightPanel.style.height = `${100 - topHeight}%`
-      }
-    }
-  } else {
-    // 桌面端：横向拖动
-    const leftWidth = ((touch.clientX - containerRect.left) / containerRect.width) * 100
-
-    // 限制宽度范围：25% - 75%
-    if (leftWidth >= 25 && leftWidth <= 75) {
-      const leftPanel = document.querySelector('.left-panel') as HTMLElement
-      const rightPanel = document.querySelector('.right-panel') as HTMLElement
-      if (leftPanel && rightPanel) {
-        leftPanel.style.width = `${leftWidth}%`
-        rightPanel.style.width = `${100 - leftWidth}%`
-      }
-    }
-  }
-}
-
-const stopTouchResize = () => {
-  if (!isResizing.value) return
-
-  isResizing.value = false
-
-  // 恢复用户选择和光标
-  document.body.style.userSelect = ''
-  document.body.style.cursor = ''
-
-  document.removeEventListener('touchmove', doTouchResize)
-  document.removeEventListener('touchend', stopTouchResize)
 }
 
 onMounted(() => {
@@ -1424,22 +897,20 @@ const loadChatHistory = async (isLoadMore = false) => {
         // 将对话历史转换为消息格式，并按时间正序排列（老消息在前）
         const historyMessages: Message[] = chatHistories
           .map((chat) => {
-            const rawContent = chat.message || ''
-            let content = rawContent
-            // 如果是AI消息，根据项目类型过滤掉代码相关信息（仅用于显示）
+            let content = chat.message || ''
+            // 如果是AI消息，根据项目类型过滤掉代码相关信息
             if (chat.messageType === 'ai') {
               if (appInfo.value?.codeGenType === CodeGenTypeEnum.HTML) {
-                content = filterHtmlContent(rawContent)
+                content = filterHtmlContent(content)
               } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.MULTI_FILE) {
-                content = filterOutCodeBlocks(rawContent)
+                content = filterOutCodeBlocks(content)
               } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
-                content = formatVueProjectContent(rawContent)
+                content = formatVueProjectContent(content)
               }
             }
             return {
               type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
               content: content,
-              rawContent: chat.messageType === 'ai' ? rawContent : undefined, // AI消息保存原始内容
               createTime: chat.createTime,
             }
           })
@@ -1491,41 +962,6 @@ const fetchAppInfo = async () => {
 
       // 先加载对话历史
       await loadChatHistory()
-
-      // ✅ 刷新后恢复代码文件：从最后一条AI消息的rawContent解析代码
-      if (messages.value.length > 0 && !isGenerating.value) {
-        const lastAiMessage = [...messages.value].reverse().find(msg => msg.type === 'ai' && msg.rawContent)
-        if (lastAiMessage && lastAiMessage.rawContent) {
-          console.log('[代码恢复] 从历史消息恢复代码文件')
-          try {
-            // 使用useCodeGeneration的解析方法
-            await parseGeneratedContentOnce(lastAiMessage.rawContent, appInfo.value?.codeGenType)
-
-            // 将解析结果复制到组件的文件变量（补充必需字段）
-            if (parsedSimpleCodeFile.value) {
-              simpleCodeFile.value = {
-                ...parsedSimpleCodeFile.value,
-                path: parsedSimpleCodeFile.value.path || parsedSimpleCodeFile.value.name,
-                completed: true,
-                generatedAt: new Date().toISOString()
-              }
-              console.log('[代码恢复] 恢复HTML文件:', simpleCodeFile.value?.name)
-            }
-            if (parsedMultiFiles.value.length > 0) {
-              multiFiles.value = parsedMultiFiles.value.map(f => ({
-                ...f,
-                path: f.path || f.name,
-                completed: true,
-                generatedAt: new Date().toISOString()
-              }))
-              console.log('[代码恢复] 恢复多文件项目:', multiFiles.value.length, '个文件')
-            }
-          } catch (error) {
-            console.error('[代码恢复] 解析历史代码失败:', error)
-          }
-        }
-      }
-
       // 如果有至少2条对话记录，展示对应的网站
       if (messages.value.length >= 2) {
         updatePreview()
@@ -1569,7 +1005,6 @@ const sendInitialMessage = async (prompt: string) => {
     type: 'ai',
     content: '',
     loading: true,
-    thinkingStartTime: Date.now(), // 记录开始时间
   })
 
   await nextTick()
@@ -1620,7 +1055,6 @@ const sendMessage = async () => {
     type: 'ai',
     content: '',
     loading: true,
-    thinkingStartTime: Date.now(), // 记录开始时间
   })
 
   await nextTick()
@@ -1642,8 +1076,6 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   stoppedByUser.value = false
   // 重置 SSE 批处理缓冲
   clearSseTimerAndBuffers()
-  // 清空上一轮的文件状态，确保重新解析完整代码
-  clearAllFiles()
   // 初始化性能指标
   sseMetrics = {
     runId: null,
@@ -1726,26 +1158,15 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         }
 
         // 确保至少有一些内容显示
-        const displayContent = textForLeft || fullContent.substring(0, 200) || ''
-
-        // 只有当有实际内容时才更新消息并关闭loading状态
-        if (displayContent) {
-          messages.value[aiMessageIndex].content = displayContent
+        const displayContent = textForLeft || fullContent.substring(0, 200) || 'AI 正在生成，右侧代码实时输出中…'
+        messages.value[aiMessageIndex].content = displayContent
+        // 只有在有实际内容时才关闭loading状态
+        if (displayContent && displayContent !== 'AI 正在生成，右侧代码实时输出中…') {
           messages.value[aiMessageIndex].loading = false
-
-          // 计算思考持续时间
-          if (messages.value[aiMessageIndex].thinkingStartTime) {
-            const endTime = Date.now()
-            const startTime = messages.value[aiMessageIndex].thinkingStartTime!
-            const durationMs = endTime - startTime
-            messages.value[aiMessageIndex].thinkingDuration = Math.round(durationMs / 1000)
-          }
         }
-        // 如果还没有内容，保持loading状态，继续显示"Thinking"动画
 
         // 解析流式内容并更新右侧代码区（传入本次批次与完整内容）
-        // 暂停右侧流式解析，避免分片截断
-        // parseStreamingContent(batch, fullContent)
+        parseStreamingContent(batch, fullContent)
         scrollToBottom()
         sseMetrics.flushCount += 1
       } catch (e) {
@@ -1766,7 +1187,6 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
           // 首个消息到达时间
           if (!sseMetrics.t2) sseMetrics.t2 = performance.now()
           ssePendingChunks.push(content)
-          captureStructuredSseMessage(content)
           sseMetrics.totalBytes += (typeof content === 'string' ? content.length : 0)
           if (!sseFlushTimer.value) {
             sseFlushTimer.value = setTimeout(() => {
@@ -1782,14 +1202,12 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理done事件
-    newEventSource.addEventListener('done', async function () {
+    newEventSource.addEventListener('done', function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted || !isGenerating.value) return
 
       // 先刷新剩余内容
       flushToUi()
-
-      await refreshCodeFilesFromFullContent(sseFullContent)
 
       // 确保loading状态被关闭
       if (messages.value[aiMessageIndex]) {
@@ -1839,12 +1257,11 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     })
 
     // 处理interrupted事件（手动停止）
-    newEventSource.addEventListener('interrupted', async function () {
+    newEventSource.addEventListener('interrupted', function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted) return
       // 先刷新剩余内容
       flushToUi()
-      await refreshCodeFilesFromFullContent(sseFullContent)
       streamCompleted = true
       isGenerating.value = false
       appGenerationStore.stopGeneration()
@@ -1899,14 +1316,13 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
 
     // 处理错误
-    newEventSource.onerror = async function () {
+    newEventSource.onerror = function () {
       if (currentRunId.value !== myRunId) return
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
       if (appGenerationStore.eventSource?.readyState === EventSource.CONNECTING) {
         // 先刷新剩余内容
         flushToUi()
-        await refreshCodeFilesFromFullContent(sseFullContent)
         streamCompleted = true
         isGenerating.value = false
         appGenerationStore.stopGeneration()
@@ -2328,16 +1744,6 @@ const clearAllFiles = () => {
   currentMultiFile.value = null
   multiFileContents.value = {}
   isMultiFileGenerating.value = false
-  // 清空HTML单文件状态
-  simpleCodeFile.value = null
-  simpleCodeContent.value = ''
-  isSimpleCodeGenerating.value = false
-  inSimpleCodeBlock.value = false
-  // 重置步骤信息
-  generationSteps.value = []
-  currentStep.value = null
-  // 清空当前选中的文件
-  selectedFileId.value = null
 }
 
 const extractFileName = (filePath: string): string => {
@@ -2360,240 +1766,6 @@ const detectLanguage = (filePath: string): string => {
     'java': 'java'
   }
   return languageMap[ext || ''] || 'text'
-}
-
-const captureStructuredSseMessage = (rawChunk: string) => {
-  if (!rawChunk || typeof rawChunk !== 'string') return
-  const trimmed = rawChunk.trim()
-  if (!trimmed || trimmed.length < 2) return
-
-  const candidates = splitPotentialJsonPayloads(trimmed)
-  for (const candidate of candidates) {
-    if (!candidate || !candidate.startsWith('{') || !candidate.endsWith('}')) continue
-    try {
-      const parsed = JSON.parse(candidate)
-      if (parsed && typeof parsed === 'object') {
-        sseStructuredMessages.push(parsed)
-      }
-    } catch (error) {
-      // 非 JSON 片段直接忽略
-    }
-  }
-}
-
-const splitPotentialJsonPayloads = (payload: string): string[] => {
-  // SSE片段通常是单个JSON字符串；极端情况可能拼接多个，按换行或】【简单拆分
-  if (!payload.includes('}{')) {
-    return [payload]
-  }
-  const segments: string[] = []
-  let buffer = ''
-  let depth = 0
-  for (const char of payload) {
-    if (char === '{') {
-      if (depth === 0 && buffer) {
-        buffer = ''
-      }
-      depth += 1
-    }
-    if (char === '}') {
-      depth = Math.max(0, depth - 1)
-    }
-    buffer += char
-    if (depth === 0 && buffer.trim()) {
-      segments.push(buffer.trim())
-      buffer = ''
-    }
-  }
-  if (buffer.trim()) {
-    segments.push(buffer.trim())
-  }
-  return segments.length ? segments : [payload]
-}
-
-const normalizeCodeGenType = (type?: string): CodeGenTypeEnum => {
-  if (!type) return CodeGenTypeEnum.HTML
-  const lower = type.toLowerCase()
-  if (lower === 'html' || lower === CodeGenTypeEnum.HTML) return CodeGenTypeEnum.HTML
-  if (lower === 'multi_file' || lower === 'multi-file' || lower === CodeGenTypeEnum.MULTI_FILE) {
-    return CodeGenTypeEnum.MULTI_FILE
-  }
-  if (
-    lower === 'vue' ||
-    lower === 'vue_project' ||
-    lower === 'vue-project' ||
-    lower === CodeGenTypeEnum.VUE_PROJECT
-  ) {
-    return CodeGenTypeEnum.VUE_PROJECT
-  }
-  return CodeGenTypeEnum.HTML
-}
-
-const buildFilesFromToolExecutions = (generatedAt: string): GeneratedFile[] => {
-  if (!sseStructuredMessages.length) return []
-
-  const fileMap = new Map<string, GeneratedFile>()
-  let counter = 0
-
-  for (const message of sseStructuredMessages) {
-    if (!message || typeof message !== 'object') continue
-    const type = (message.type || message.messageType || '').toString()
-    if (type !== 'tool_executed' && type !== 'toolExecuted') continue
-
-    let args: any = {}
-    if (typeof message.arguments === 'string') {
-      try {
-        args = JSON.parse(message.arguments)
-      } catch (error) {
-        args = {}
-      }
-    } else if (message.arguments && typeof message.arguments === 'object') {
-      args = message.arguments
-    }
-
-    let relativePath: string = (args?.relativeFilePath || args?.filePath || args?.path || '').toString().trim()
-    let content: string = ''
-
-    if (typeof args?.content === 'string') {
-      content = args.content
-    } else if (typeof args?.newContent === 'string') {
-      content = args.newContent
-    } else if (Array.isArray(args?.lines)) {
-      content = args.lines.join('\n')
-    }
-
-    if ((!relativePath || !content) && typeof message.result === 'string') {
-      const parsed = parseToolResultSnippet(message.result)
-      if (parsed) {
-        if (!relativePath) relativePath = parsed.path
-        if (!content) content = parsed.content
-      }
-    }
-
-    if (!relativePath || !content) continue
-
-    const name = extractFileName(relativePath)
-    const fileId = `${relativePath}-${counter++}-${Date.now()}`
-    const generatedFile: GeneratedFile = {
-      id: fileId,
-      name,
-      path: relativePath,
-      content,
-      language: detectLanguage(relativePath),
-      completed: true,
-      generatedAt,
-      lastUpdated: generatedAt,
-    }
-
-    fileMap.set(relativePath, generatedFile)
-  }
-
-  return Array.from(fileMap.values())
-}
-
-const parseToolResultSnippet = (result: string): { path: string; content: string } | null => {
-  if (!result) return null
-  const cleaned = result.replace(/\r/g, '')
-  const match = cleaned.match(/\[工具调用\]\s+[^\s]+\s+([^\s]+)\s*```([\w-]*)?\n([\s\S]*?)```/)
-  if (!match) return null
-  const [, filePath, _lang, code] = match
-  return {
-    path: filePath.trim(),
-    content: code,
-  }
-}
-
-const mapParsedFilesToGeneratedFiles = (sourceFiles: any[], generatedAt: string): GeneratedFile[] => {
-  return (sourceFiles || [])
-    .filter((file) => file && typeof file.content === 'string' && file.content.trim() !== '')
-    .map((file, index) => {
-      const path = file.path || file.name || `file-${index}`
-      const id = file.id || `${path}-${index}-${Date.now()}`
-      return {
-        id,
-        name: file.name || extractFileName(path),
-        path,
-        content: file.content,
-        language: file.language || detectLanguage(path),
-        completed: true,
-        generatedAt,
-        lastUpdated: generatedAt,
-      } as GeneratedFile
-    })
-}
-
-const applyGeneratedFiles = (files: GeneratedFile[], normalizedType: CodeGenTypeEnum, singleFile?: GeneratedFile | null) => {
-  clearAllFiles()
-
-  if (singleFile) {
-    simpleCodeFile.value = singleFile
-    simpleCodeContent.value = singleFile.content
-  }
-
-  if (normalizedType === CodeGenTypeEnum.MULTI_FILE) {
-    multiFiles.value = files
-    multiFileContents.value = files.reduce<Record<string, string>>((acc, file) => {
-      acc[file.name] = file.content
-      return acc
-    }, {})
-    activeFileKeys.value = files.length ? [files[0].id] : []
-  } else if (normalizedType === CodeGenTypeEnum.VUE_PROJECT) {
-    completedFiles.value = files
-    activeFileKeys.value = files.length ? [files[0].id] : []
-  }
-
-  const firstFileId =
-    singleFile?.id ||
-    multiFiles.value[0]?.id ||
-    completedFiles.value[0]?.id ||
-    null
-
-  selectedFileId.value = firstFileId
-  syncUIStateToStore()
-}
-
-const refreshCodeFilesFromFullContent = async (fullContent: string) => {
-  const normalizedType = normalizeCodeGenType(appInfo.value?.codeGenType)
-  const generatedAt = new Date().toISOString()
-
-  if (normalizedType === CodeGenTypeEnum.VUE_PROJECT) {
-    const toolFiles = buildFilesFromToolExecutions(generatedAt)
-    if (toolFiles.length > 0) {
-      applyGeneratedFiles(toolFiles, normalizedType)
-      return
-    }
-  }
-
-  if (!fullContent) {
-    applyGeneratedFiles([], normalizedType)
-    return
-  }
-
-  try {
-    await parseGeneratedContentOnce(fullContent, normalizedType)
-  } catch (error) {
-    console.error('解析完整代码失败:', error)
-    return
-  }
-
-  if (normalizedType === CodeGenTypeEnum.HTML && parsedSimpleCodeFile.value) {
-    const parsedFile = parsedSimpleCodeFile.value
-    const finalFile: GeneratedFile = {
-      id: parsedFile.id || `html-${Date.now()}`,
-      name: parsedFile.name || 'index.html',
-      path: parsedFile.path || parsedFile.name || 'index.html',
-      content: parsedFile.content,
-      language: parsedFile.language || 'html',
-      completed: true,
-      generatedAt,
-      lastUpdated: generatedAt,
-    }
-    applyGeneratedFiles([], normalizedType, finalFile)
-    return
-  }
-
-  const parsedFiles = mapParsedFilesToGeneratedFiles(parsedMultiFiles.value || [], generatedAt)
-  applyGeneratedFiles(parsedFiles, normalizedType)
 }
 
 // HTML模式专用：完全移除代码片段，只保留AI的文本描述
@@ -2709,109 +1881,11 @@ const diffLines = (oldStr: string, newStr: string): DiffOp[] => {
   return ops
 }
 
-// —— Diff折叠功能初始化 ——
-const initDiffCollapse = () => {
-  // 处理diff容器的函数
-  const processDiffContainers = () => {
-    nextTick(() => {
-      const diffContainers = document.querySelectorAll('.diff-container')
-
-      diffContainers.forEach((container) => {
-        // 检查是否已经初始化过
-        if (container.hasAttribute('data-initialized')) return
-        container.setAttribute('data-initialized', 'true')
-
-        // 获取自动折叠延迟时间
-        const autoCollapseDelay = parseInt(container.getAttribute('data-auto-collapse') || '0')
-
-        // 为每个可折叠标题添加点击事件
-        const collapsibleTitles = container.querySelectorAll('.diff-title.collapsible')
-
-        collapsibleTitles.forEach((title) => {
-          const target = title.getAttribute('data-target')
-          const codeElement = container.querySelector(`.diff-code.${target}-code`) as HTMLElement
-          const icon = title.querySelector('.collapse-icon')
-
-          if (!codeElement || !icon) return
-
-          // 点击切换折叠状态
-          const toggleCollapse = () => {
-            // 判断当前是否折叠：检查类名或maxHeight
-            const isCollapsed = title.classList.contains('collapsed') || codeElement.style.maxHeight === '0px'
-
-            if (isCollapsed) {
-              // 展开
-              codeElement.style.maxHeight = codeElement.scrollHeight + 'px'
-              codeElement.style.opacity = '1'
-              icon.textContent = '▼'
-              title.classList.remove('collapsed')
-
-              // 等待过渡完成后移除maxHeight限制
-              setTimeout(() => {
-                if (!title.classList.contains('collapsed')) {
-                  codeElement.style.maxHeight = 'none'
-                }
-              }, 300)
-            } else {
-              // 折叠
-              codeElement.style.maxHeight = codeElement.scrollHeight + 'px'
-              void codeElement.offsetHeight // 强制重绘
-              codeElement.style.maxHeight = '0px'
-              codeElement.style.opacity = '0'
-              icon.textContent = '▶'
-              title.classList.add('collapsed')
-            }
-          }
-
-          title.addEventListener('click', toggleCollapse)
-        })
-
-        // 自动折叠
-        if (autoCollapseDelay > 0) {
-          setTimeout(() => {
-            collapsibleTitles.forEach((title) => {
-              const target = title.getAttribute('data-target')
-              const codeElement = container.querySelector(`.diff-code.${target}-code`) as HTMLElement
-              const icon = title.querySelector('.collapse-icon')
-
-              if (codeElement && icon) {
-                codeElement.style.maxHeight = codeElement.scrollHeight + 'px'
-                void codeElement.offsetHeight // 强制重绘
-                codeElement.style.maxHeight = '0px'
-                codeElement.style.opacity = '0'
-                icon.textContent = '▶'
-                title.classList.add('collapsed')
-              }
-            })
-          }, autoCollapseDelay)
-        }
-      })
-    })
-  }
-
-  // 使用 MutationObserver 监听DOM变化
-  const observer = new MutationObserver(() => {
-    processDiffContainers()
-  })
-
-  // 监听消息容器的变化
-  const messagesContainer = document.querySelector('.messages-container')
-  if (messagesContainer) {
-    observer.observe(messagesContainer, {
-      childList: true,
-      subtree: true
-    })
-  }
-
-  // 初始化已存在的diff容器
-  processDiffContainers()
-}
-
 // —— 生成上下对比 HTML（替换前在上，替换后在下）——
 const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): string => {
   const ops = diffLines(oldCnt, newCnt)
-  const beforeRows: string[] = []
-  const afterRows: string[] = []
+  let beforeRows: string[] = []
+  let afterRows: string[] = []
   let beforeLineNo = 1
   let afterLineNo = 1
 
@@ -2830,27 +1904,21 @@ const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): 
   }
 
   const safePath = escapeHtml(filePath || '未知文件')
-  const uniqueId = `diff-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
   return (
-    `<div class="diff-container vertical" id="${uniqueId}" data-auto-collapse="5000">
+    `<div class="diff-container vertical">
       <div class="diff-header">
         <span class="tool">修改文件</span>
         <span class="file-path">${safePath}</span>
       </div>
       <div class="diff-section">
-        <div class="diff-title before-title collapsible" data-target="before">
-          <span class="collapse-icon">▼</span>
+        <div class="diff-title before-title">
           <span class="title-text">替换前</span>
-          <span class="line-count">${beforeRows.length} 行</span>
         </div>
         <div class="diff-code before-code">${beforeRows.join('')}</div>
       </div>
       <div class="diff-section">
-        <div class="diff-title after-title collapsible" data-target="after">
-          <span class="collapse-icon">▼</span>
+        <div class="diff-title after-title">
           <span class="title-text">替换后</span>
-          <span class="line-count">${afterRows.length} 行</span>
         </div>
         <div class="diff-code after-code">${afterRows.join('')}</div>
       </div>
@@ -2913,7 +1981,6 @@ const formatVueProjectContent = (content: string): string => {
 
 
 // 流式内容解析器
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const parseStreamingContent = (chunk: string, fullContent: string) => {
   try {
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
@@ -3357,7 +2424,7 @@ const startMultiFile = (fileName: string) => {
   else if (fileName.endsWith('.js')) language = 'javascript'
 
   // 检查文件是否已存在
-  const existingFile = multiFiles.value.find(file => file.name === fileName)
+  let existingFile = multiFiles.value.find(file => file.name === fileName)
 
   if (!existingFile) {
     // 创建新文件
@@ -3391,7 +2458,7 @@ const updateMultiFileContent = (fileName: string, content: string) => {
   if (!fileName || !multiFileContents.value.hasOwnProperty(fileName)) return
 
   // 清理内容中的标记符号，保留原始格式
-  const cleanContent = content
+  let cleanContent = content
     .replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
     .replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
     .replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
@@ -3584,12 +2651,6 @@ onMounted(() => {
     }
   }
   window.addEventListener('beforeunload', handleBeforeUnload)
-
-  // 初始化diff折叠功能
-  initDiffCollapse()
-
-  // 初始化消息摘要折叠功能
-  initMessageCollapse()
 
   // 在组件卸载时移除事件监听
   onUnmounted(() => {
@@ -3869,96 +2930,13 @@ watch(
   width: 50%;
   height: 100%;
   min-width: 480px;
-  background: #FFFFFF;
+  background: var(--code-bg);
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
   overflow: hidden;
   transition: width 0.1s ease;
   box-shadow: var(--shadow-md);
   display: flex;
-  flex-direction: row;
-}
-
-/* ========== 中间分隔条 - Lovable风格 ========== */
-.resizer {
-  width: 12px; /* 增加宽度，更容易抓取 */
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(255, 140, 66, 0.12) 100%);
-  cursor: col-resize;
-  position: relative;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow:
-    0 0 20px rgba(255, 107, 53, 0.06),
-    inset 0 0 10px rgba(255, 107, 53, 0.03);
-  flex-shrink: 0;
-  z-index: 10;
-  user-select: none;
-  /* 触摸设备支持 */
-  touch-action: none;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-}
-
-.resizer:hover {
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.2) 0%, rgba(255, 140, 66, 0.3) 100%);
-  box-shadow:
-    0 0 30px rgba(255, 107, 53, 0.15),
-    inset 0 0 15px rgba(255, 107, 53, 0.1);
-  transform: scaleX(1.4);
-}
-
-/* 拖动中的样式 */
-.resizer.is-resizing {
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.35) 0%, rgba(255, 140, 66, 0.45) 100%);
-  box-shadow:
-    0 0 40px rgba(255, 107, 53, 0.3),
-    inset 0 0 20px rgba(255, 107, 53, 0.2);
-  transform: scaleX(1.6);
-}
-
-.resizer:active {
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.3) 0%, rgba(255, 140, 66, 0.4) 100%);
-  box-shadow:
-    0 0 40px rgba(255, 107, 53, 0.25),
-    inset 0 0 20px rgba(255, 107, 53, 0.15);
-  transform: scaleX(1.6);
-}
-
-/* 中间的拖动把手 */
-.resizer::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 4px;
-  height: 50px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 107, 53, 0.4) 0%,
-    rgba(255, 140, 66, 0.7) 50%,
-    rgba(255, 107, 53, 0.4) 100%
-  );
-  border-radius: 10px;
-  opacity: 0.6;
-  transition: all 0.2s ease;
-}
-
-.resizer:hover::before,
-.resizer.is-resizing::before {
-  opacity: 1;
-  height: 60px;
-  width: 5px;
-}
-
-.resizer:active::before {
-  opacity: 1;
-  width: 5px;
-  height: 60px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 107, 53, 0.6) 0%,
-    rgba(255, 140, 66, 0.9) 50%,
-    rgba(255, 107, 53, 0.6) 100%
-  );
+  flex-direction: column;
 }
 
 /* ========== 左侧聊天面板内容 ========== */
@@ -3989,6 +2967,7 @@ watch(
 }
 
 .message-content {
+  max-width: 70%;
   padding: 12px 16px;
   border-radius: 8px;
   line-height: 1.6;
@@ -3996,18 +2975,12 @@ watch(
 }
 
 .user-message .message-content {
-  max-width: 65%;
-  background: linear-gradient(135deg, #f8f6f0 0%, #faf8f3 100%);
-  color: #2d3748;
-  border-radius: 24px;
-  border-bottom-right-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: #1890ff;
+  color: white;
 }
 
 .ai-message .message-content {
-  max-width: 90%;
-  background: transparent;
+  background: #f7f7f8;
   color: #1a1a1a;
   padding: 12px 16px;
 }
@@ -4030,51 +3003,6 @@ watch(
   align-items: center;
   gap: 8px;
   color: #666;
-}
-
-/* 思考完成标签 - 米色雾化风格 */
-.thinking-complete {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(250, 235, 215, 0.6) 0%, rgba(255, 248, 220, 0.5) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(222, 184, 135, 0.3);
-  border-radius: 20px;
-  margin-bottom: 12px;
-  box-shadow:
-    0 4px 16px rgba(222, 184, 135, 0.15),
-    0 2px 8px rgba(255, 255, 255, 0.5) inset;
-  animation: thinkingFadeIn 0.4s ease;
-}
-
-@keyframes thinkingFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.thinking-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  filter: drop-shadow(0 1px 2px rgba(139, 90, 43, 0.3));
-  opacity: 0.85;
-}
-
-.thinking-duration {
-  color: #8B5A2B;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .empty-message {
@@ -4255,45 +3183,14 @@ watch(
 .input-wrapper {
   position: relative;
   background: var(--white);
-  border-radius: 20px;
-  padding: 10px 14px;
+  border-radius: 24px;
+  padding: 12px 16px;
   margin: 12px;
   box-shadow:
     0 0 0 1px rgba(255, 107, 53, 0.1),
     0 2px 8px rgba(255, 107, 53, 0.08),
     0 8px 24px rgba(255, 140, 66, 0.06);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* AI模型选择器弹出层 - 固定在输入框上方 */
-.model-selector-popup {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: 8px;
-  z-index: 1000;
-  background: white;
-  border-radius: 16px;
-  border: 2px solid rgba(255, 107, 53, 0.15);
-  box-shadow:
-    0 0 0 1px rgba(255, 107, 53, 0.08),
-    0 8px 24px rgba(255, 107, 53, 0.15),
-    0 16px 48px rgba(255, 107, 53, 0.1);
-  overflow: hidden;
-  animation: popupFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  min-width: 360px;
-  max-height: 480px;
-}
-
-@keyframes popupFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.92) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
 }
 
 .input-wrapper:hover {
@@ -4319,16 +3216,12 @@ watch(
   outline: none !important;
   background: transparent;
   font-size: 15px;
-  line-height: 22px;
+  line-height: 24px;
   resize: none;
-  padding: 2px 0;
+  padding: 4px 0;
   color: #1a1a1a;
   width: 100%;
-  margin-bottom: 6px;
-  min-height: 44px;
-  max-height: 200px;
-  overflow-y: auto;
-  transition: height 0.1s ease;
+  margin-bottom: 8px;
 }
 
 .input-wrapper textarea.ant-input::placeholder {
@@ -4342,26 +3235,12 @@ watch(
   outline: none !important;
 }
 
-/* textarea 滚动条样式 */
-.input-wrapper textarea.ant-input::-webkit-scrollbar {
-  width: 4px;
-}
-
-.input-wrapper textarea.ant-input::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 2px;
-}
-
-.input-wrapper textarea.ant-input::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-
 /* 底部按钮行 - 左右对齐 */
 .input-actions-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 /* 左下角按钮组 */
@@ -4687,471 +3566,6 @@ watch(
   overflow: hidden;
 }
 
-/* VSCode 风格布局：横向排列 */
-.code-view-container.vscode-layout {
-  flex-direction: row;
-}
-
-/* ========== VSCode 风格左右分栏布局 ========== */
-/* 左侧：文件树 */
-.file-explorer {
-  display: flex;
-  flex-direction: column;
-  background: #FAF6F0;
-  border-right: 1px solid #E8E4DC;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.explorer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 35px;
-  padding: 0 12px;
-  background: #FAF6F0;
-  border-bottom: 1px solid #E8E4DC;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #586069;
-  letter-spacing: 0.5px;
-}
-
-.title-icon {
-  font-size: 14px;
-  color: var(--color-primary);
-}
-
-.explorer-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 8px 0;
-}
-
-.project-root {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 12px;
-  margin-bottom: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #24292E;
-  cursor: pointer;
-  user-select: none;
-}
-
-.project-root:hover {
-  background: #F0E8DC;
-}
-
-.root-icon {
-  font-size: 16px;
-  color: var(--color-primary);
-}
-
-.root-name {
-  font-family: 'Consolas', 'Courier New', monospace;
-}
-
-.file-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.file-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 12px 0 8px; /* 左侧padding由动态style控制 */
-  cursor: pointer;
-  transition: background 0.15s ease;
-  user-select: none;
-  position: relative;
-}
-
-.file-item:hover {
-  background: #F0E8DC;
-}
-
-.file-item.active {
-  background: linear-gradient(90deg,
-    rgba(255, 107, 53, 0.08) 0%,
-    rgba(255, 140, 66, 0.04) 100%);
-  color: #24292E;
-}
-
-/* 目录样式 */
-.file-item.is-folder {
-  font-weight: 500;
-}
-
-/* 展开/收起箭头 */
-.folder-arrow {
-  font-size: 12px;
-  color: #586069;
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-.file-icon {
-  font-size: 16px;
-  color: #586069;
-  flex-shrink: 0;
-}
-
-/* 文件图标额外缩进（与有箭头的目录对齐）*/
-.file-icon-indent {
-  margin-left: 18px;
-}
-
-.file-name {
-  flex: 1;
-  font-size: 13px;
-  font-family: 'Consolas', 'Courier New', monospace;
-  color: #24292E;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.file-item.active .file-name {
-  color: #24292E;
-  font-weight: 500;
-}
-
-.file-badge {
-  padding: 2px 6px;
-  background: rgba(255, 107, 53, 0.2);
-  color: var(--color-primary);
-  font-size: 10px;
-  border-radius: 3px;
-  font-weight: 500;
-}
-
-.explorer-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  color: #6A6A6A;
-}
-
-.empty-icon-small {
-  font-size: 24px;
-  margin-bottom: 8px;
-  opacity: 0.5;
-}
-
-.empty-text-small {
-  font-size: 12px;
-  color: var(--code-comment);
-  margin: 0;
-}
-
-/* 竖向分隔条 */
-.vertical-resizer {
-  width: 4px;
-  background: #3E3E42;
-  cursor: col-resize;
-  position: relative;
-  transition: background 0.2s ease;
-  flex-shrink: 0;
-}
-
-.vertical-resizer:hover {
-  background: linear-gradient(180deg,
-    rgba(255, 107, 53, 0.3) 0%,
-    rgba(255, 140, 66, 0.3) 100%);
-}
-
-.resizer-handle {
-  position: absolute;
-  top: 0;
-  left: -2px;
-  right: -2px;
-  bottom: 0;
-}
-
-/* 右侧：代码编辑器区域 */
-.code-editor-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #FFFFFF;
-}
-
-/* 文件标签栏 */
-.file-tabs {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #F6F8FA;
-  border-bottom: 1px solid #E1E4E8;
-  overflow-x: auto;
-  overflow-y: hidden;
-  height: 35px;
-  flex-shrink: 0;
-  padding-right: 8px;
-}
-
-.file-tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 35px;
-  padding: 0 12px;
-  background: #FFFFFF;
-  color: #586069;
-  border-right: 1px solid #E1E4E8;
-  font-size: 13px;
-  font-family: 'Consolas', 'Courier New', monospace;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  user-select: none;
-  position: relative;
-}
-
-.file-tab:hover {
-  background: #F6F8FA;
-  color: #24292E;
-}
-
-.file-tab.active {
-  background: var(--code-bg);
-  color: var(--code-text);
-  border-bottom: 2px solid var(--color-primary);
-}
-
-.tab-icon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.tab-name {
-  font-size: 13px;
-}
-
-/* 复制按钮图标 */
-.copy-btn-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: transparent;
-  color: var(--code-comment);
-  border: none;
-  border-radius: 4px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.copy-btn-icon:hover {
-  background: var(--code-bg-highlight);
-  color: var(--color-primary);
-}
-
-/* 历史版本按钮图标 */
-.history-btn-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  margin-left: auto;
-  margin-right: 8px;
-}
-
-.history-btn-icon:hover {
-  background: var(--code-bg-highlight);
-}
-
-.version-history-icon {
-  width: 18px;
-  height: 18px;
-  display: block;
-}
-
-/* 编辑器主体 */
-.editor-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
-}
-
-.editor-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-width: max-content;
-}
-
-.editor-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 32px;
-  padding: 0 16px;
-  background: var(--code-bg-highlight);
-  border-bottom: 1px solid #E1E4E8;
-  flex-shrink: 0;
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.file-path {
-  font-size: 12px;
-  font-family: 'Consolas', 'Courier New', monospace;
-  color: var(--code-comment);
-}
-
-.file-stats {
-  font-size: 11px;
-  color: var(--code-comment);
-  font-family: 'Consolas', 'Courier New', monospace;
-}
-
-.copy-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: transparent;
-  color: var(--code-comment);
-  border: 1px solid #E1E4E8;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.copy-btn:hover {
-  background: var(--code-bg-highlight);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.code-content {
-  flex: 1;
-  overflow: visible;
-  background: var(--code-bg);
-  position: relative;
-  min-width: max-content;
-}
-
-/* 状态栏 */
-.status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 22px;
-  padding: 0 12px;
-  background: #007ACC;
-  font-size: 12px;
-  color: #FFFFFF;
-  flex-shrink: 0;
-}
-
-.status-left,
-.status-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: 'Consolas', 'Courier New', monospace;
-}
-
-.status-icon {
-  font-size: 14px;
-}
-
-/* 空状态 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #6A6A6A;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-text {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: var(--code-comment);
-}
-
-.empty-hint {
-  font-size: 14px;
-  color: var(--code-comment);
-}
-
-/* 滚动条样式 */
-.explorer-content::-webkit-scrollbar,
-.file-tabs::-webkit-scrollbar,
-.editor-main::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.explorer-content::-webkit-scrollbar-track,
-.file-tabs::-webkit-scrollbar-track,
-.editor-main::-webkit-scrollbar-track {
-  background: var(--code-bg);
-}
-
-.explorer-content::-webkit-scrollbar-thumb,
-.file-tabs::-webkit-scrollbar-thumb,
-.editor-main::-webkit-scrollbar-thumb {
-  background: #C8C8C8;
-  border-radius: 5px;
-}
-
-.explorer-content::-webkit-scrollbar-thumb:hover,
-.file-tabs::-webkit-scrollbar-thumb:hover,
-.editor-main::-webkit-scrollbar-thumb:hover {
-  background: #A8A8A8;
-}
-
 /* 预览容器：生成完成后填满右侧面板 */
 .preview-container {
   flex: 1;
@@ -5213,43 +3627,6 @@ watch(
 }
 
 @media (max-width: 768px) {
-  /* 手机端：左右面板改为上下布局 */
-  .lovable-main {
-    flex-direction: column;
-  }
-
-  .left-panel,
-  .right-panel {
-    width: 100% !important;
-    height: 50%;
-    min-width: unset;
-    min-height: 200px;
-  }
-
-  /* 手机端：拖动条改为横向 */
-  .resizer {
-    width: 100%;
-    height: 12px; /* 手机端改为横向拖动条 */
-    cursor: row-resize;
-    /* 纵向拖动 */
-    touch-action: pan-y;
-  }
-
-  .resizer::before {
-    width: 50px;
-    height: 4px;
-    background: linear-gradient(90deg,
-      rgba(255, 107, 53, 0.4) 0%,
-      rgba(255, 140, 66, 0.7) 50%,
-      rgba(255, 107, 53, 0.4) 100%);
-  }
-
-  .resizer:hover::before,
-  .resizer.is-resizing::before {
-    width: 60px;
-    height: 5px;
-  }
-
   .header-bar {
     padding: 12px 16px;
   }
@@ -5383,86 +3760,6 @@ watch(
 
   .version-detail {
     padding: 16px 0;
-  }
-
-  /* —— 消息摘要栏样式（Lovable 风格）—— */
-  :deep(.message-summary-bar) {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 8px 10px 14px;
-    margin: 0 0 16px 0;
-    background: #f5f5f5;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.2s ease;
-  }
-
-  :deep(.message-summary-bar:hover) {
-    background: #ececec;
-    border-color: #d0d0d0;
-  }
-
-  /* SVG图标 */
-  :deep(.message-summary-bar .summary-icon) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    flex-shrink: 0;
-    color: #666;
-  }
-
-  :deep(.message-summary-bar .summary-icon svg) {
-    display: block;
-  }
-
-  /* 统计文本 */
-  :deep(.message-summary-bar .summary-text) {
-    flex: 1;
-    color: #666;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  }
-
-  /* 按钮 - 米色主题，增强层次感 */
-  :deep(.message-content .message-summary-bar .summary-toggle-btn) {
-    padding: 7px 14px !important;
-    background: linear-gradient(135deg, #f8f6f0 0%, #e8e3d8 100%) !important;
-    color: #2d3748 !important;
-    border: 1px solid #d4cfc4 !important;
-    border-radius: 12px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    outline: none !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12),
-                0 1px 3px rgba(0, 0, 0, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
-    letter-spacing: 0.3px !important;
-  }
-
-  :deep(.message-content .message-summary-bar .summary-toggle-btn:hover) {
-    background: linear-gradient(135deg, #e8e3d8 0%, #d4cfc4 100%) !important;
-    border-color: #c9c3b8 !important;
-    color: #1a1a1a !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16),
-                0 2px 6px rgba(0, 0, 0, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
-    transform: translateY(-2px) !important;
-  }
-
-  :deep(.message-content .message-summary-bar .summary-toggle-btn:active) {
-    transform: translateY(0px) scale(0.97) !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-                0 1px 2px rgba(0, 0, 0, 0.08),
-                inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   }
 }
 </style>

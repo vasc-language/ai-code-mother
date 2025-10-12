@@ -467,4 +467,68 @@ const renderedMarkdown = computed(() => {
   transition: max-height 0.3s ease, opacity 0.3s ease;
   overflow: hidden;
 }
+
+/* —— 消息摘要栏样式（Show all/Hide all按钮）—— */
+.markdown-content :deep(.message-summary-bar) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #e8e3d8 0%, #d4cfc4 100%);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.markdown-content :deep(.message-summary-bar):hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #d4cfc4 0%, #c9c3b8 100%);
+}
+
+.markdown-content :deep(.message-summary-bar .summary-icon) {
+  display: flex;
+  align-items: center;
+  color: #2d3748;
+}
+
+.markdown-content :deep(.message-summary-bar .summary-text) {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d3748;
+  letter-spacing: 0.3px;
+}
+
+.markdown-content :deep(.message-summary-bar .summary-toggle-btn) {
+  padding: 6px 14px;
+  background: white;
+  color: #2d3748;
+  border: 2px solid rgba(45, 55, 72, 0.2);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.3px;
+}
+
+.markdown-content :deep(.message-summary-bar .summary-toggle-btn:hover) {
+  background: #2d3748;
+  color: white;
+  border-color: #2d3748;
+  transform: scale(1.05);
+}
+
+.markdown-content :deep(.message-summary-bar.collapsed .summary-toggle-btn) {
+  background: linear-gradient(135deg, #e8e3d8 0%, #d4cfc4 100%);
+  border-color: rgba(45, 55, 72, 0.3);
+}
+
+.markdown-content :deep(.message-summary-bar.collapsed .summary-toggle-btn:hover) {
+  background: #2d3748;
+  color: white;
+}
 </style>

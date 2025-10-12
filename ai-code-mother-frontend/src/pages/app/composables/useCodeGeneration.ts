@@ -2,6 +2,11 @@ import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { CodeGenTypeEnum } from '@/utils/codeGenTypes'
+import {
+  filterHtmlContent,
+  filterOutCodeBlocks,
+  formatVueProjectContent,
+} from '../utils/contentFilters'
 
 // 生成的文件接口
 export interface GeneratedFile {
@@ -31,10 +36,6 @@ export function useCodeGeneration() {
   const previewUrl = ref('')
   const previewReady = ref(false)
 
-  // ✅ 流式解析状态
-  const inCodeBlock = ref(false) // 是否在代码块中
-  const currentMultiFile = ref<string>('') // 当前正在生成的多文件名
-
   // ✅ 性能监控
   interface SSEMetrics {
     runId: string | null
@@ -45,7 +46,7 @@ export function useCodeGeneration() {
     totalBytes: number
     totalChunks: number
   }
-  let sseMetrics: SSEMetrics = {
+  const sseMetrics: SSEMetrics = {
     runId: null,
     codeGenType: '',
     t0: 0,
@@ -63,15 +64,6 @@ export function useCodeGeneration() {
       .replace(/\[CODE_BLOCK_START\]/g, '')
       .replace(/\[CODE_STREAM\]/g, '')
       .replace(/\[CODE_BLOCK_END\]/g, '')
-  }
-
-  /**
-   * 去除流式辅助标记（用于聊天面板展示）
-   */
-  const stripDisplayArtifacts = (content: string): string => {
-    if (!content) return ''
-    return stripCodeMarkers(content)
-      .replace(/\[MULTI_FILE_(?:START|CONTENT|END):[^\]]+\]/g, '')
   }
 
   /**
@@ -119,10 +111,6 @@ export function useCodeGeneration() {
     isGenerating.value = true
     generationFinished.value = false
     previewReady.value = false
-
-    // ✅ 重置流式解析状态
-    inCodeBlock.value = false
-    currentMultiFile.value = ''
 
     // 创建新的AbortController
     abortController.value = new AbortController()
@@ -222,11 +210,20 @@ export function useCodeGeneration() {
 
             accumulatedContent += chunk
 
-            // ✅ 调用流式增量解析（边生成边解析）
-            parseStreamingContent(chunk, accumulatedContent, codeGenType)
+            // ❌ 禁用流式文件解析，避免解析不完整的内容
+            // 只在 done 事件时通过 parseGeneratedContent 一次性解析完整内容
+            // parseStreamingContent(chunk, accumulatedContent, codeGenType)
 
-            // 更新聊天面板（过滤后的内容）
-            onMessageUpdate(stripDisplayArtifacts(accumulatedContent))
+            // ✅ 根据 codeGenType 过滤内容后更新聊天面板（只过滤显示，不解析文件）
+            let filteredContent = accumulatedContent
+            if (codeGenType === CodeGenTypeEnum.HTML) {
+              filteredContent = filterHtmlContent(accumulatedContent)
+            } else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+              filteredContent = filterOutCodeBlocks(accumulatedContent)
+            } else if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+              filteredContent = formatVueProjectContent(accumulatedContent)
+            }
+            onMessageUpdate(filteredContent)
           } catch (error) {
             console.error('[代码生成] 解析SSE消息失败:', error, event.data)
           }
@@ -391,14 +388,23 @@ export function useCodeGeneration() {
 
     if (files.length === 0) {
       // 解析 AI 工具输出格式：[工具调用] 写入文件 xxx ```lang ...```
+      // 使用更robust的解析策略
+      console.log('[调试] 尝试解析工具调用格式')
       const toolBuffers = new Map<string, { chunks: string[]; language?: string }>()
-      const toolRegex = /\[工具调用]\s+[^\s]+\s+([^\s]+)\s*```([\w-]*)?\n([\s\S]*?)```/g
+
+      // 方法1：优先使用标准的工具调用格式
+      const toolRegex = /\[工具调用\]\s+[^\s]+\s+([^\s]+)\s*```([\w-]*)?\n([\s\S]*?)```/g
       let toolMatch: RegExpExecArray | null
+      let matchCount = 0
 
       while ((toolMatch = toolRegex.exec(content)) !== null) {
-        const [, rawFilename, languageHint, rawCode] = toolMatch
+        matchCount++
+        const [fullMatch, rawFilename, languageHint, rawCode] = toolMatch
         const filename = rawFilename.trim()
+        console.log(`[调试] 工具调用匹配${matchCount}: 文件=${filename}, 语言=${languageHint || '无'}, 代码长度=${rawCode.length}`)
+
         if (!filename) {
+          console.warn('[调试] 文件名为空，跳过')
           continue
         }
         if (!toolBuffers.has(filename)) {
@@ -411,17 +417,22 @@ export function useCodeGeneration() {
         }
       }
 
+      console.log(`[调试] 工具调用格式匹配到 ${matchCount} 个文件`)
+
       if (toolBuffers.size > 0) {
         toolBuffers.forEach((value, filename) => {
           const code = value.chunks.join('\n').trim()
-          if (!code) return
-          const language = value.language || getLanguageFromFilename(filename)
+          console.log(`[调试] 合并文件 ${filename}, 最终长度: ${code.length}`)
+          if (!code) {
+            console.warn(`[调试] 文件 ${filename} 内容为空，跳过`)
+            return
+          }
           files.push({
             id: `file-${files.length}`,
             name: filename,
             path: filename,
             content: code,
-            language,
+            language: value.language || getLanguageFromFilename(filename),
           })
         })
       }
@@ -429,11 +440,13 @@ export function useCodeGeneration() {
 
     if (files.length === 0) {
       // 回退到旧格式解析，兼容历史回复
+      console.log('[调试] 尝试旧格式解析（### 文件名）')
       const fallbackFiles = [] as GeneratedFile[]
       const fileRegex = /###\s+([\w\/.]+)\s*\n```(\w+)?\n([\s\S]*?)```/g
       let fallbackMatch
       while ((fallbackMatch = fileRegex.exec(content)) !== null) {
         const [, filename, language, code] = fallbackMatch
+        console.log(`[调试] 旧格式匹配: 文件=${filename}, 语言=${language || '无'}, 代码长度=${code.length}`)
         fallbackFiles.push({
           id: `file-${fallbackFiles.length}`,
           name: filename.trim(),
@@ -442,6 +455,40 @@ export function useCodeGeneration() {
           path: filename.trim(),
         })
       }
+
+      if (fallbackFiles.length > 0) {
+        console.log(`[调试] 旧格式解析成功，找到 ${fallbackFiles.length} 个文件`)
+        return fallbackFiles
+      }
+
+      // 最后的兜底方案：提取所有代码块
+      console.warn('[调试] 所有格式解析失败，尝试提取所有代码块')
+      const emergencyFiles = [] as GeneratedFile[]
+      const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
+      let blockMatch
+      let blockIndex = 0
+      while ((blockMatch = codeBlockRegex.exec(content)) !== null) {
+        blockIndex++
+        const [, language, code] = blockMatch
+        if (code.trim()) {
+          const filename = `file_${blockIndex}.${language || 'txt'}`
+          console.log(`[调试] 提取代码块${blockIndex}: 文件=${filename}, 代码长度=${code.length}`)
+          emergencyFiles.push({
+            id: `emergency-${blockIndex}`,
+            name: filename,
+            content: code.trim(),
+            language: language || 'plaintext',
+            path: filename,
+          })
+        }
+      }
+
+      if (emergencyFiles.length > 0) {
+        console.warn(`[调试] 兜底方案提取了 ${emergencyFiles.length} 个代码块`)
+        return emergencyFiles
+      }
+
+      console.error('[调试] 无法解析任何文件！原始内容长度:', content.length)
       return fallbackFiles
     }
 
@@ -483,159 +530,6 @@ export function useCodeGeneration() {
       previewReady.value = true
     } catch (error) {
       console.error('创建预览URL失败:', error)
-    }
-  }
-
-  /**
-   * ✅ 流式增量解析 - HTML类型
-   * 边生成边提取HTML代码并更新预览
-   */
-  const parseHtmlStreaming = (chunk: string, fullContent: string) => {
-    try {
-      const START = '[CODE_BLOCK_START]'
-      const END = '[CODE_BLOCK_END]'
-
-      // 检查是否进入代码块
-      if (!inCodeBlock.value && chunk.includes(START)) {
-        inCodeBlock.value = true
-        // 初始化 simpleCodeFile
-        if (!simpleCodeFile.value) {
-          simpleCodeFile.value = {
-            id: 'html-file',
-            name: 'index.html',
-            content: '',
-            language: 'html',
-          }
-        }
-      }
-
-      // 如果在代码块中，提取并累积内容
-      if (inCodeBlock.value) {
-        // 提取HTML代码（移除标记）
-        const htmlContent = extractHtmlFromStream(fullContent)
-        if (htmlContent && simpleCodeFile.value) {
-          simpleCodeFile.value.content = htmlContent
-          // ✅ 实时更新预览
-          createPreviewUrl(htmlContent)
-        }
-      }
-
-      // 检查是否结束代码块
-      if (chunk.includes(END)) {
-        inCodeBlock.value = false
-      }
-    } catch (error) {
-      console.error('[流式解析] HTML解析失败:', error)
-    }
-  }
-
-  /**
-   * ✅ 流式增量解析 - 多文件类型
-   * 边生成边解析多文件标记
-   */
-  const parseMultiFileStreaming = (chunk: string, fullContent: string) => {
-    try {
-      // 检查文件开始标记
-      if (chunk.includes('[MULTI_FILE_START:')) {
-        const match = chunk.match(/\[MULTI_FILE_START:([^\]]+)\]/)
-        if (match) {
-          const fileName = match[1].trim()
-          currentMultiFile.value = fileName
-
-          // 检查文件是否已存在
-          let existingFile = multiFiles.value.find((f) => f.name === fileName)
-          if (!existingFile) {
-            // 创建新文件
-            const newFile: GeneratedFile = {
-              id: `file-${multiFiles.value.length}`,
-              name: fileName,
-              path: fileName,
-              content: '',
-              language: getLanguageFromFilename(fileName),
-            }
-            multiFiles.value.push(newFile)
-
-            // 如果是第一个文件，设为活动
-            if (multiFiles.value.length === 1) {
-              activeMultiFileKey.value = newFile.id
-            }
-          }
-        }
-      }
-
-      // 检查文件内容标记（累积更新）
-      if (chunk.includes('[MULTI_FILE_CONTENT:')) {
-        if (currentMultiFile.value) {
-          const file = multiFiles.value.find((f) => f.name === currentMultiFile.value)
-          if (file) {
-            // 从完整内容中提取该文件的所有内容
-            const fileContent = extractMultiFileContent(fullContent, currentMultiFile.value)
-            file.content = fileContent
-          }
-        }
-      }
-
-      // 检查文件结束标记
-      if (chunk.includes('[MULTI_FILE_END:')) {
-        const match = chunk.match(/\[MULTI_FILE_END:([^\]]+)\]/)
-        if (match) {
-          const fileName = match[1].trim()
-          // 文件完成，可以做最终处理
-          const file = multiFiles.value.find((f) => f.name === fileName)
-          if (file) {
-            console.log(`[流式解析] 文件完成: ${fileName}`)
-
-            // 如果是index.html，创建预览
-            if (fileName === 'index.html') {
-              createPreviewUrl(file.content)
-            }
-          }
-          currentMultiFile.value = ''
-        }
-      }
-    } catch (error) {
-      console.error('[流式解析] 多文件解析失败:', error)
-    }
-  }
-
-  /**
-   * ✅ 从完整内容中提取指定文件的内容
-   */
-  const extractMultiFileContent = (fullContent: string, fileName: string): string => {
-    const fileRegex = new RegExp(
-      `\\[MULTI_FILE_(?:START|CONTENT):${fileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]([\\s\\S]*?)(?=\\[MULTI_FILE_(?:END|START|CONTENT):|$)`,
-      'g'
-    )
-
-    const matches: string[] = []
-    let match
-    while ((match = fileRegex.exec(fullContent)) !== null) {
-      if (match[1]) {
-        matches.push(match[1])
-      }
-    }
-
-    return cleanupCodeChunk(matches.join(''))
-  }
-
-  /**
-   * ✅ 主流式解析入口
-   * 根据代码类型调用不同的解析器
-   */
-  const parseStreamingContent = (chunk: string, fullContent: string, codeGenType?: string) => {
-    if (!codeGenType) return
-
-    try {
-      if (codeGenType === CodeGenTypeEnum.HTML) {
-        parseHtmlStreaming(chunk, fullContent)
-      } else if (
-        codeGenType === CodeGenTypeEnum.MULTI_FILE ||
-        codeGenType === CodeGenTypeEnum.VUE_PROJECT
-      ) {
-        parseMultiFileStreaming(chunk, fullContent)
-      }
-    } catch (error) {
-      console.error('[流式解析] 解析失败:', error)
     }
   }
 
@@ -685,10 +579,6 @@ export function useCodeGeneration() {
     activeMultiFileKey.value = ''
     generationFinished.value = false
     previewReady.value = false
-
-    // ✅ 重置流式解析状态
-    inCodeBlock.value = false
-    currentMultiFile.value = ''
   }
 
   return {

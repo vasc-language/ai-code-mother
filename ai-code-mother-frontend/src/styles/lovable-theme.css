@@ -196,3 +196,13 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ========== Ant Design 组件样式覆盖 ========== */
+/* 确保 message 组件显示在最顶层,不被其他元素遮挡 */
+.ant-message {
+  z-index: 2000 !important;
+}
+
+.ant-message-notice {
+  z-index: 2000 !important;
+}

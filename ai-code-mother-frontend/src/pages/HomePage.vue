@@ -46,7 +46,7 @@ const calculatePopupPosition = () => {
   const spaceAbove = rect.top
   const spaceBelow = viewportHeight - rect.bottom
 
-  let style: any = {
+  const style: any = {
     position: 'fixed',
     left: `${rect.left}px`,
     minWidth: `${popupWidth}px`,
@@ -759,13 +759,11 @@ onMounted(() => {
 .input-wrapper {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
   background: white;
   border-radius: 32px;
   padding: 14px 20px;
-  max-height: 220px;
-  overflow-y: auto;
   border: 3px solid rgba(255, 107, 53, 0.15);
   box-shadow:
     0 0 0 1px rgba(255, 107, 53, 0.08),
@@ -805,8 +803,8 @@ onMounted(() => {
   line-height: 26px;
   min-height: 26px;
   height: auto;
-  max-height: none;
-  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
   padding: 6px 0;
   display: block;
 }
@@ -837,7 +835,6 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: transparent;
-  align-self: flex-end;
 }
 
 /* +号按钮 - Lovable 风格 */

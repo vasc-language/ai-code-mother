@@ -38,15 +38,15 @@
       <div class="model-meta">
         <!-- 能力图标组 -->
         <div class="capability-icons">
-          <span
-            v-for="(icon, index) in getCapabilityIcons(model)"
+          <img
+            v-for="(iconData, index) in getCapabilityIcons(model)"
             :key="index"
-            class="capability-badge"
-            :class="icon.type"
-            :title="icon.title"
-          >
-            {{ icon.emoji }}
-          </span>
+            :src="iconData.icon"
+            :alt="iconData.title"
+            :title="iconData.title"
+            class="capability-icon"
+            :class="iconData.type"
+          />
         </div>
 
         <!-- Token数量 -->
@@ -68,6 +68,12 @@ import deepseekIcon from '@/assets/deepseek-color.svg'
 import qwenIcon from '@/assets/qwen-color.svg'
 import openaiIcon from '@/assets/openai.svg'
 import kimiIcon from '@/assets/kimi-color.svg'
+
+// 导入功能SVG图标
+import viewIcon from '@/assets/view.svg'
+import onlineSearchIcon from '@/assets/Online search.svg'
+import thinkingIcon from '@/assets/thinking.svg'
+import toolsCallIcon from '@/assets/ToolsCall.svg'
 
 // Props
 interface Props {
@@ -215,10 +221,10 @@ const getModelDisplayName = (model: API.AiModelConfig) => {
 
 // 获取能力图标组（返回图标数组）
 const getCapabilityIcons = (model: API.AiModelConfig) => {
-  const icons: Array<{ emoji: string; type: string; title: string }> = []
+  const icons: Array<{ icon: string; type: string; title: string }> = []
   const modelKey = model.modelKey?.toLowerCase() || ''
 
-  // GPT-5系列 - 全能型(👁️ 🌐 ❄️ 🔧)
+  // GPT-5系列 - 全能型(view 🌐 ❄️ 🔧)
   const isGpt5 = modelKey.includes('gpt-5') || modelKey.includes('codex-mini') ||
                  modelKey.includes('o3') || modelKey.includes('o4')
 
@@ -234,20 +240,20 @@ const getCapabilityIcons = (model: API.AiModelConfig) => {
 
   if (isGpt5) {
     // 全能型模型
-    icons.push({ emoji: '👁️', type: 'vision', title: '视觉 - 支持图像识别和处理' })
-    icons.push({ emoji: '🌐', type: 'web', title: '联网 - 支持实时网络搜索' })
-    icons.push({ emoji: '❄️', type: 'reasoning', title: '推理 - 支持复杂推理能力' })
-    icons.push({ emoji: '🔧', type: 'tool', title: '工具 - 支持函数调用和工具使用' })
+    icons.push({ icon: viewIcon, type: 'vision', title: '视觉 - 支持图像识别和处理' })
+    icons.push({ icon: onlineSearchIcon, type: 'web', title: '联网 - 支持实时网络搜索' })
+    icons.push({ icon: thinkingIcon, type: 'reasoning', title: '推理 - 支持复杂推理能力' })
+    icons.push({ icon: toolsCallIcon, type: 'tool', title: '工具 - 支持函数调用和工具使用' })
   } else if (isDeepSeek || isQwen235b) {
     // 推理+工具型
-    icons.push({ emoji: '❄️', type: 'reasoning', title: '推理 - 支持复杂推理能力' })
-    icons.push({ emoji: '🔧', type: 'tool', title: '工具 - 支持函数调用和工具使用' })
+    icons.push({ icon: thinkingIcon, type: 'reasoning', title: '推理 - 支持复杂推理能力' })
+    icons.push({ icon: toolsCallIcon, type: 'tool', title: '工具 - 支持函数调用和工具使用' })
   } else if (isToolOnly) {
     // 工具专精型
-    icons.push({ emoji: '🔧', type: 'tool', title: '工具 - 支持函数调用和工具使用' })
+    icons.push({ icon: toolsCallIcon, type: 'tool', title: '工具 - 支持函数调用和工具使用' })
   } else {
     // 未分类模型,默认显示工具能力
-    icons.push({ emoji: '🔧', type: 'tool', title: '工具 - 支持函数调用和工具使用' })
+    icons.push({ icon: toolsCallIcon, type: 'tool', title: '工具 - 支持函数调用和工具使用' })
   }
 
   return icons
@@ -405,61 +411,43 @@ defineExpose({
 .capability-icons {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
-.capability-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  font-size: 14px;
+.capability-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 4px;
+  padding: 2px;
   background: rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease;
   cursor: help;
 }
 
-.capability-badge:hover {
+.capability-icon:hover {
   background: rgba(0, 0, 0, 0.08);
   transform: scale(1.15);
 }
 
 /* 视觉能力 - 绿色 */
-.capability-badge.vision {
+.capability-icon.vision {
   background: rgba(16, 185, 129, 0.1);
 }
 
 /* 联网 - 青色 */
-.capability-badge.web {
+.capability-icon.web {
   background: rgba(6, 182, 212, 0.1);
 }
 
 /* 推理能力 - 蓝色 */
-.capability-badge.reasoning {
+.capability-icon.reasoning {
   background: rgba(59, 130, 246, 0.1);
 }
 
 /* 工具能力 - 紫色 */
-.capability-badge.tool {
+.capability-icon.tool {
   background: rgba(168, 85, 247, 0.1);
-}
-
-/* 上下文 - 蓝色 (保留兼容性) */
-.capability-badge.context {
-  background: rgba(59, 130, 246, 0.1);
-}
-
-/* 代码能力 - 紫色 (保留兼容性) */
-.capability-badge.code {
-  background: rgba(168, 85, 247, 0.1);
-}
-
-/* 无联网 - 红色淡化 (保留兼容性) */
-.capability-badge.no-web {
-  background: rgba(239, 68, 68, 0.08);
-  opacity: 0.5;
 }
 
 /* ========== Token数量 ========== */
@@ -518,10 +506,9 @@ defineExpose({
     font-size: 13px;
   }
 
-  .capability-badge {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
+  .capability-icon {
+    width: 18px;
+    height: 18px;
   }
 
   .token-count {

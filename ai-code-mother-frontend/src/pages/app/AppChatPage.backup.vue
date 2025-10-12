@@ -1881,8 +1881,8 @@ const diffLines = (oldStr: string, newStr: string): DiffOp[] => {
 // —— 生成上下对比 HTML（替换前在上，替换后在下）——
 const buildModifyDiffHtml = (filePath: string, oldCnt: string, newCnt: string): string => {
   const ops = diffLines(oldCnt, newCnt)
-  let beforeRows: string[] = []
-  let afterRows: string[] = []
+  const beforeRows: string[] = []
+  const afterRows: string[] = []
   let beforeLineNo = 1
   let afterLineNo = 1
 
@@ -2421,7 +2421,7 @@ const startMultiFile = (fileName: string) => {
   else if (fileName.endsWith('.js')) language = 'javascript'
 
   // 检查文件是否已存在
-  let existingFile = multiFiles.value.find(file => file.name === fileName)
+  const existingFile = multiFiles.value.find(file => file.name === fileName)
 
   if (!existingFile) {
     // 创建新文件
@@ -2455,7 +2455,7 @@ const updateMultiFileContent = (fileName: string, content: string) => {
   if (!fileName || !multiFileContents.value.hasOwnProperty(fileName)) return
 
   // 清理内容中的标记符号，保留原始格式
-  let cleanContent = content
+  const cleanContent = content
     .replace(/\[MULTI_FILE_CONTENT:[^\]]+\]/g, '')
     .replace(/\[MULTI_FILE_START:[^\]]+\]/g, '')
     .replace(/\[MULTI_FILE_END:[^\]]+\]/g, '')
