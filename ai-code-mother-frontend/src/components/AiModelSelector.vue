@@ -106,15 +106,25 @@ const getModelIcon = (model: API.AiModelConfig) => {
   const provider = model.provider?.toLowerCase() || ''
   const modelKey = model.modelKey?.toLowerCase() || ''
 
-  // 根据provider或modelKey匹配图标
-  if (provider.includes('deepseek') || modelKey.includes('deepseek')) {
+  // 根据modelKey匹配图标（优先级更高）
+  if (modelKey.includes('deepseek')) {
     return deepseekIcon
-  } else if (provider.includes('dashscope') || modelKey.includes('qwen')) {
+  } else if (modelKey.includes('qwen') || modelKey.includes('coder')) {
     return qwenIcon
-  } else if (provider.includes('openai') || modelKey.includes('gpt') || modelKey.includes('o3') || modelKey.includes('o4')) {
+  } else if (modelKey.includes('gpt') || modelKey.includes('codex') || modelKey.includes('o3') || modelKey.includes('o4')) {
     return openaiIcon
-  } else if (provider.includes('moonshot') || modelKey.includes('kimi')) {
+  } else if (modelKey.includes('kimi')) {
     return kimiIcon
+  }
+
+  // 根据provider匹配图标
+  if (provider === 'openai' || provider === 'openrouter') {
+    return openaiIcon
+  } else if (provider === 'iflow') {
+    // iflow提供多种模型，需要根据modelKey判断
+    if (modelKey.includes('qwen')) return qwenIcon
+    if (modelKey.includes('kimi')) return kimiIcon
+    if (modelKey.includes('deepseek')) return deepseekIcon
   }
 
   // 默认返回OpenAI图标
@@ -187,15 +197,24 @@ const getBrandClass = (model: API.AiModelConfig) => {
   const provider = model.provider?.toLowerCase() || ''
   const modelKey = model.modelKey?.toLowerCase() || ''
 
-  if (provider.includes('deepseek') || modelKey.includes('deepseek')) {
+  // 优先根据modelKey判断
+  if (modelKey.includes('deepseek')) {
     return 'deepseek'
-  } else if (provider.includes('dashscope') || modelKey.includes('qwen')) {
+  } else if (modelKey.includes('qwen') || modelKey.includes('coder')) {
     return 'qwen'
-  } else if (provider.includes('openai') || modelKey.includes('gpt') || modelKey.includes('o3') || modelKey.includes('o4')) {
+  } else if (modelKey.includes('gpt') || modelKey.includes('codex') || modelKey.includes('o3') || modelKey.includes('o4')) {
     return 'openai'
-  } else if (provider.includes('moonshot') || modelKey.includes('kimi')) {
+  } else if (modelKey.includes('kimi')) {
     return 'kimi'
   }
+
+  // 根据provider判断
+  if (provider === 'openai' || provider === 'openrouter') {
+    return 'openai'
+  } else if (provider === 'iflow') {
+    return 'default'
+  }
+
   return 'default'
 }
 
@@ -224,32 +243,28 @@ const getCapabilityIcons = (model: API.AiModelConfig) => {
   const icons: Array<{ icon: string; type: string; title: string }> = []
   const modelKey = model.modelKey?.toLowerCase() || ''
 
-  // GPT-5系列 - 全能型(view 🌐 ❄️ 🔧)
-  const isGpt5 = modelKey.includes('gpt-5') || modelKey.includes('codex-mini') ||
-                 modelKey.includes('o3') || modelKey.includes('o4')
+  // GPT-5系列和Codex系列 - 全能型(view 🌐 ❄️ 🔧)
+  const isGpt5 = modelKey.includes('gpt-5') || modelKey.includes('codex')
 
   // DeepSeek系列 - 推理+工具型(❄️ 🔧)
   const isDeepSeek = modelKey.includes('deepseek')
 
-  // Qwen3高端系列(235B) - 推理+工具型(❄️ 🔧)
-  const isQwen235b = modelKey.includes('qwen3-235b')
-
   // Qwen3 Coder和Kimi系列 - 工具专精型(🔧)
-  const isToolOnly = modelKey.includes('qwen3-coder') || modelKey.includes('qwen3-max') ||
+  const isToolOnly = modelKey.includes('qwen3-coder') || modelKey.includes('qwen') ||
                      modelKey.includes('kimi')
 
   if (isGpt5) {
-    // 全能型模型
+    // 全能型模型 - GPT-5和Codex系列
     icons.push({ icon: viewIcon, type: 'vision', title: '视觉 - 支持图像识别和处理' })
     icons.push({ icon: onlineSearchIcon, type: 'web', title: '联网 - 支持实时网络搜索' })
     icons.push({ icon: thinkingIcon, type: 'reasoning', title: '推理 - 支持复杂推理能力' })
     icons.push({ icon: toolsCallIcon, type: 'tool', title: '工具 - 支持函数调用和工具使用' })
-  } else if (isDeepSeek || isQwen235b) {
-    // 推理+工具型
+  } else if (isDeepSeek) {
+    // 推理+工具型 - DeepSeek V3.1/V3.2
     icons.push({ icon: thinkingIcon, type: 'reasoning', title: '推理 - 支持复杂推理能力' })
     icons.push({ icon: toolsCallIcon, type: 'tool', title: '工具 - 支持函数调用和工具使用' })
   } else if (isToolOnly) {
-    // 工具专精型
+    // 工具专精型 - Qwen3 Coder和Kimi K2系列
     icons.push({ icon: toolsCallIcon, type: 'tool', title: '工具 - 支持函数调用和工具使用' })
   } else {
     // 未分类模型,默认显示工具能力

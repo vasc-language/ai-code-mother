@@ -978,8 +978,17 @@ const fileTree = computed(() => {
   allFilesList.push(...multiFiles.value)
   allFilesList.push(...completedFiles.value)
 
+  // 使用 Map 进行去重，以文件路径作为唯一标识
+  const fileMap = new Map<string, GeneratedFile>()
+  allFilesList.forEach(file => {
+    fileMap.set(file.path, file)
+  })
+
+  // 将去重后的文件转换为数组
+  const uniqueFilesList = Array.from(fileMap.values())
+
   // 转换为树形结构
-  return buildFileTree(allFilesList)
+  return buildFileTree(uniqueFilesList)
 })
 
 /**
@@ -1638,7 +1647,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   let streamCompleted = false
   // 新一轮生成开始，标记为未完成，右侧保持代码展示
   generationFinished.value = false
-  // 新一轮生成前，重置“手动停止”标志，防止误判
+  // 清空预览URL，确保显示加载动画
+  previewUrl.value = ''
+  previewReady.value = false
+  // 新一轮生成前，重置"手动停止"标志，防止误判
   stoppedByUser.value = false
   // 重置 SSE 批处理缓冲
   clearSseTimerAndBuffers()

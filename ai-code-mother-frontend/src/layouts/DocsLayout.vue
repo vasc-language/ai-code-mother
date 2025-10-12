@@ -16,7 +16,7 @@
           <div class="logo-container" @click="goHome">
             <img v-if="!collapsed" class="logo-img" src="@/assets/logo.png" alt="Logo" />
             <BookOutlined v-else class="docs-icon" />
-            <span v-if="!collapsed" class="docs-title">AI Code Mother</span>
+            <span v-if="!collapsed" class="docs-title">AICodeHub</span>
           </div>
           <a-button
             v-if="!collapsed"

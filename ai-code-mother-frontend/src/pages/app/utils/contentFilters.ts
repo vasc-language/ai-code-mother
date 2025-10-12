@@ -28,6 +28,22 @@ export const filterHtmlContent = (content: string): string => {
   filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
   filteredContent = filteredContent.replace(/^.*`.*$/gm, '')
 
+  // ✅ 格式化工具标记（显示为卡片样式）
+  filteredContent = filteredContent.replace(/\[选择工具\]\s*([^\[\n]*)/g, (match, toolName) => {
+    const name = toolName.trim()
+    return name ? `**[选择工具]** ${name}\n\n` : ''
+  })
+  filteredContent = filteredContent.replace(/\[工具调用\]\s*([^\[\n]*)/g, (match, info) => {
+    const infoText = info.trim()
+    return infoText ? `**[工具调用]** ${infoText}\n\n` : ''
+  })
+  // ✅ 执行结束标记格式化（显示为卡片样式）
+  filteredContent = filteredContent.replace(/\[执行结束\]/g, '**[执行结束]**\n\n')
+
+  // ✅ 关键标题加粗（让"实现的功能："和"What's next?"更显眼）
+  filteredContent = filteredContent.replace(/^(实现的功能：)/gm, '**$1**')
+  filteredContent = filteredContent.replace(/^(What's next\?)/gm, '**$1**')
+
   // 清理多余的空行
   filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
   filteredContent = filteredContent.replace(/^\n+/, '') // 移除开头的空行
@@ -72,16 +88,28 @@ export const filterOutCodeBlocks = (content: string): string => {
   // 移除内联代码标记
   filteredContent = filteredContent.replace(/`[^`\n]*`/g, '')
 
-  // 移除工具调用标记行
-  filteredContent = filteredContent.replace(/\[选择工具\][^\n]*/g, '')
-  filteredContent = filteredContent.replace(/\[工具调用\][^\n]*/g, '')
-
   // 移除步骤信息
   filteredContent = filteredContent.replace(/STEP\s+\d+:[^\n]*/g, '')
 
   // 移除任何残留的标记行
   filteredContent = filteredContent.replace(/^.*\[MULTI_FILE_.*$/gm, '')
   filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
+
+  // ✅ 格式化工具标记（显示为卡片样式）
+  filteredContent = filteredContent.replace(/\[选择工具\]\s*([^\[\n]*)/g, (match, toolName) => {
+    const name = toolName.trim()
+    return name ? `**[选择工具]** ${name}\n\n` : ''
+  })
+  filteredContent = filteredContent.replace(/\[工具调用\]\s*([^\[\n]*)/g, (match, info) => {
+    const infoText = info.trim()
+    return infoText ? `**[工具调用]** ${infoText}\n\n` : ''
+  })
+  // ✅ 执行结束标记格式化（显示为卡片样式）
+  filteredContent = filteredContent.replace(/\[执行结束\]/g, '**[执行结束]**\n\n')
+
+  // ✅ 关键标题加粗（让"实现的功能："和"What's next?"更显眼）
+  filteredContent = filteredContent.replace(/^(实现的功能：)/gm, '**$1**')
+  filteredContent = filteredContent.replace(/^(What's next\?)/gm, '**$1**')
 
   // 清理多余的空行
   filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
@@ -143,6 +171,12 @@ export const formatVueProjectContent = (content: string): string => {
     const infoText = info.trim()
     return infoText ? `**[工具调用]** ${infoText}\n\n` : ''
   })
+  // ✅ 执行结束标记格式化（显示为卡片样式）
+  formattedContent = formattedContent.replace(/\[执行结束\]/g, '**[执行结束]**\n\n')
+
+  // ✅ 关键标题加粗（让"实现的功能："和"What's next?"更显眼）
+  formattedContent = formattedContent.replace(/^(实现的功能：)/gm, '**$1**')
+  formattedContent = formattedContent.replace(/^(What's next\?)/gm, '**$1**')
 
   // 清理多余空行
   formattedContent = formattedContent.replace(/\n\s*\n\s*\n/g, '\n\n')

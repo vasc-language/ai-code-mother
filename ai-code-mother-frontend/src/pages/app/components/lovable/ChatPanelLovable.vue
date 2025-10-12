@@ -280,9 +280,9 @@ const getCurrentModelIcon = () => {
   // 根据modelKey匹配对应的图标
   if (modelKey.includes('deepseek')) {
     return deepseekIcon
-  } else if (modelKey.includes('qwen')) {
+  } else if (modelKey.includes('qwen') || modelKey.includes('coder')) {
     return qwenIcon
-  } else if (modelKey.includes('gpt') || modelKey.includes('o3') || modelKey.includes('o4')) {
+  } else if (modelKey.includes('gpt') || modelKey.includes('codex') || modelKey.includes('o3') || modelKey.includes('o4')) {
     return openaiIcon
   } else if (modelKey.includes('kimi')) {
     return kimiIcon
