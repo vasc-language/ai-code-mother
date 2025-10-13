@@ -424,7 +424,11 @@ onMounted(() => {
     <div class="container">
       <!-- 网站标题和描述 -->
       <div class="hero-section">
-        <h1 class="hero-title">Your Majestic AI Creation Concierge</h1>
+        <h1 class="hero-title">
+          Build something
+          <img src="/favicon.ico" alt="icon" class="hero-icon" />
+          AICodeHub
+        </h1>
         <p class="hero-description">Create apps and websites by chatting with AI</p>
       </div>
 
@@ -736,6 +740,26 @@ onMounted(() => {
   }
   50% {
     background-position: 100% 50%;
+  }
+}
+
+.hero-icon {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+  margin: 0 0.3em;
+  animation: iconBounce 2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(0, 56, 255, 0.3));
+}
+
+@keyframes iconBounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.1);
   }
 }
 
