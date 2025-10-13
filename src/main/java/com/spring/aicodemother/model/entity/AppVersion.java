@@ -55,9 +55,17 @@ public class AppVersion implements Serializable {
 
     /**
      * 代码内容（JSON格式，包含所有文件）
+     * @deprecated 已废弃，大文件请使用 codeStorageUrl
      */
+    @Deprecated
     @Column("codeContent")
     private String codeContent;
+
+    /**
+     * 代码内容存储URL（COS对象存储）
+     */
+    @Column("codeStorageUrl")
+    private String codeStorageUrl;
 
     /**
      * 部署标识

@@ -19,6 +19,7 @@ import com.spring.aicodemother.mapper.AppVersionMapper;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.model.vo.AppVersionVO;
 import com.spring.aicodemother.model.vo.UserVO;
+import com.spring.aicodemother.manager.CosManager;
 import com.spring.aicodemother.service.AppVersionService;
 import com.spring.aicodemother.service.UserService;
 import jakarta.annotation.Resource;
@@ -29,6 +30,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +44,9 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private CosManager cosManager;
 
     @Override
     public Long saveVersion(App app, String deployUrl, User loginUser) {
@@ -65,6 +70,37 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
         // 2. 读取代码目录中的所有文件，打包成JSON
         String codeContent = packCodeToJson(codeDir);
 
+        // 2.5 将代码内容上传到COS
+        String codeStorageUrl = null;
+        File tempJsonFile = null;
+        try {
+            // 创建临时JSON文件
+            tempJsonFile = new File(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "temp_" + UUID.randomUUID() + ".json");
+            FileUtil.writeString(codeContent, tempJsonFile, StandardCharsets.UTF_8);
+            
+            // 上传到COS
+            String cosKey = String.format("app-versions/%d/%s_v%s.json", 
+                appId, 
+                codeGenType, 
+                System.currentTimeMillis());
+            codeStorageUrl = cosManager.uploadFile(cosKey, tempJsonFile);
+            
+            if (codeStorageUrl != null) {
+                log.info("代码内容已上传到COS: {}", codeStorageUrl);
+                // 清空codeContent，避免存储到数据库
+                codeContent = null;
+            } else {
+                log.warn("代码内容上传COS失败，将存储到数据库（可能因为文件过大而失败）");
+            }
+        } catch (Exception e) {
+            log.error("上传代码内容到COS时出错: {}", e.getMessage(), e);
+        } finally {
+            // 删除临时文件
+            if (tempJsonFile != null && tempJsonFile.exists()) {
+                FileUtil.del(tempJsonFile);
+            }
+        }
+
         // 3. 查询当前应用的最大版本号
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq(AppVersion::getAppId, appId)
@@ -79,7 +115,8 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
                 .appId(appId)
                 .versionNum(nextVersionNum)
                 .versionTag(versionTag)
-                .codeContent(codeContent)
+                .codeContent(codeContent)  // 如果上传COS成功则为null
+                .codeStorageUrl(codeStorageUrl)  // COS存储URL
                 .deployKey(app.getDeployKey())
                 .deployUrl(deployUrl)
                 .deployedTime(LocalDateTime.now())
@@ -145,8 +182,36 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
         ThrowUtils.throwIf(targetVersion == null, ErrorCode.NOT_FOUND_ERROR, "版本不存在");
         ThrowUtils.throwIf(!targetVersion.getAppId().equals(appId), ErrorCode.PARAMS_ERROR, "版本与应用不匹配");
 
-        // 2. 解析JSON获取文件列表
-        String codeContent = targetVersion.getCodeContent();
+        // 2. 获取代码内容（优先从COS获取）
+        String codeContent = null;
+        String codeStorageUrl = targetVersion.getCodeStorageUrl();
+        
+        if (cn.hutool.core.util.StrUtil.isNotBlank(codeStorageUrl)) {
+            // 从COS下载代码内容
+            try {
+                String cosKey = cosManager.extractKeyFromUrl(codeStorageUrl);
+                if (cosKey != null) {
+                    String tempFilePath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "temp_rollback_" + UUID.randomUUID() + ".json";
+                    boolean downloadSuccess = cosManager.downloadFile(cosKey, tempFilePath);
+                    
+                    if (downloadSuccess) {
+                        codeContent = FileUtil.readString(new File(tempFilePath), StandardCharsets.UTF_8);
+                        FileUtil.del(tempFilePath);  // 删除临时文件
+                        log.info("从COS下载代码内容成功：{}", codeStorageUrl);
+                    } else {
+                        log.warn("从COS下载代码内容失败：{}", codeStorageUrl);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("从COS下载代码内容时出错：{}", codeStorageUrl, e);
+            }
+        }
+        
+        // 如果COS下载失败，尝试从数据库获取（兼容旧版本）
+        if (cn.hutool.core.util.StrUtil.isBlank(codeContent)) {
+            codeContent = targetVersion.getCodeContent();
+        }
+        
         ThrowUtils.throwIf(cn.hutool.core.util.StrUtil.isBlank(codeContent), ErrorCode.OPERATION_ERROR, "版本代码内容为空");
 
         // 3. 将文件写回到代码生成目录

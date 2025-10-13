@@ -1,6 +1,7 @@
 package com.spring.aicodemother.manager;
 
 import com.qcloud.cos.COSClient;
+import com.qcloud.cos.model.GetObjectRequest;
 import com.qcloud.cos.model.PutObjectRequest;
 import com.qcloud.cos.model.PutObjectResult;
 import com.spring.aicodemother.config.CosClientConfig;
@@ -64,5 +65,49 @@ public class CosManager {
             return null;
         }
     }
-}
 
+    /**
+     * 从 COS 下载文件到本地
+     *
+     * @param key             COS对象键
+     * @param localFilePath   本地文件路径
+     * @return 是否下载成功
+     */
+    public boolean downloadFile(String key, String localFilePath) {
+        if (cosClient == null) {
+            log.warn("COSClient 未配置，无法下载文件: {}", key);
+            return false;
+        }
+        try {
+            File localFile = new File(localFilePath);
+            // 确保父目录存在
+            if (localFile.getParentFile() != null && !localFile.getParentFile().exists()) {
+                localFile.getParentFile().mkdirs();
+            }
+            GetObjectRequest getObjectRequest = new GetObjectRequest(cosClientConfig.getBucket(), key);
+            cosClient.getObject(getObjectRequest, localFile);
+            log.info("文件从COS下载成功: {} -> {}", key, localFilePath);
+            return true;
+        } catch (Exception e) {
+            log.error("文件从COS下载失败: {}", key, e);
+            return false;
+        }
+    }
+
+    /**
+     * 从URL提取COS对象键
+     *
+     * @param url COS文件URL
+     * @return COS对象键，如果URL无效返回null
+     */
+    public String extractKeyFromUrl(String url) {
+        if (url == null || cosClientConfig == null) {
+            return null;
+        }
+        String host = cosClientConfig.getHost();
+        if (url.startsWith(host)) {
+            return url.substring(host.length());
+        }
+        return null;
+    }
+}
