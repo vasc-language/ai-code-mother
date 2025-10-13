@@ -93,13 +93,13 @@ router.afterEach((to, from, next) => {
 const originItems = [
   {
     key: '/',
-    icon: () => h(HomeOutlined),
+    icon: () => h('img', { src: '/src/assets/home.svg', style: 'width: 18px; height: 18px;' }),
     label: '主页',
     title: '主页',
   },
   {
     key: '/docs',
-    icon: () => h(BookOutlined),
+    icon: () => h('img', { src: '/src/assets/document.svg', style: 'width: 18px; height: 18px;' }),
     label: '使用文档',
     title: '使用文档',
   },
@@ -206,11 +206,10 @@ const doLogout = async () => {
 
 <style scoped>
 .header {
-  background: var(--glass-gradient);
-  backdrop-filter: var(--glass-backdrop);
-  border: var(--glass-border);
-  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-  box-shadow: var(--shadow-lg);
+  /* 去掉外层装饰，让 header-content 成为唯一的视觉容器 */
+  background: transparent;
+  border: none;
+  box-shadow: none;
   margin: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
   padding: 0 var(--spacing-xl);
   transition: var(--transition-normal);
@@ -219,16 +218,33 @@ const doLogout = async () => {
   z-index: 1000;
 }
 
-.header:hover {
-  box-shadow: var(--shadow-xl);
-}
-
 .header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   height: 64px;
+  /* 米色温暖背景 - 参考主页输入框风格 */
+  background: linear-gradient(135deg, #FFFAF5 0%, #FFF8F0 100%);
+  border-radius: 32px;
+  padding: 0 24px;
+  /* 橙色调边框 - 与主页输入框一致 */
+  border: 3px solid rgba(255, 107, 53, 0.15);
+  /* 多层阴影，营造层次感 */
+  box-shadow:
+    0 0 0 1px rgba(255, 107, 53, 0.08),
+    0 4px 16px rgba(255, 107, 53, 0.12),
+    0 12px 32px rgba(255, 107, 53, 0.08);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.header-content:hover {
+  border-color: rgba(255, 107, 53, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(255, 107, 53, 0.12),
+    0 6px 20px rgba(255, 107, 53, 0.15),
+    0 16px 40px rgba(255, 107, 53, 0.1);
+  transform: translateY(-1px);
 }
 
 .header-left {

@@ -14,7 +14,7 @@
         <!-- Logo和标题区域 -->
         <div class="docs-sider-header">
           <div class="logo-container" @click="goHome">
-            <img v-if="!collapsed" class="logo-img" src="/favicon.ico" alt="Logo" />
+            <img v-if="!collapsed" class="logo-img" src="/src/assets/document.svg" alt="Logo" />
             <BookOutlined v-else class="docs-icon" />
             <span v-if="!collapsed" class="docs-title">AICodeHub</span>
           </div>

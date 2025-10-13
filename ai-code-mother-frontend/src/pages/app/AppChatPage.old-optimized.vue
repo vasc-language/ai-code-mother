@@ -1072,7 +1072,8 @@ const isAdmin = computed(() => {
 
 // 根据应用的modelKey动态获取AI头像
 const currentAiAvatar = computed(() => {
-  const modelKey = appInfo.value?.modelKey?.toLowerCase() || ''
+  // 使用用户当前选择的模型，而不是应用创建时的模型
+  const modelKey = selectedModelKey.value?.toLowerCase() || ''
 
   // 根据modelKey匹配对应的图标
   if (modelKey.includes('deepseek')) {
@@ -1498,6 +1499,11 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
+      // 初始化选中的模型为应用创建时使用的模型
+      if (appInfo.value.modelKey) {
+        selectedModelKey.value = appInfo.value.modelKey
+      }
+
       // 先加载对话历史
       await loadChatHistory()
 
@@ -1677,7 +1683,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       runId: (currentRunId.value = (crypto as any)?.randomUUID?.() || `run_${Date.now()}_${Math.random()
         .toString(36)
         .slice(2)}`),
-      modelKey: appInfo.value?.modelKey || '',
+      modelKey: selectedModelKey.value || appInfo.value?.modelKey || '',
     })
 
     const url = `${baseURL}/app/chat/gen/code?${params}`

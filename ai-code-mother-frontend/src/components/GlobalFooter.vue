@@ -3,7 +3,7 @@
     <div class="footer-content">
       <div class="footer-main">
         <div class="footer-brand">
-          <h3 class="brand-title">AI Code Mother</h3>
+          <h3 class="brand-title">AICodeHub</h3>
           <p class="brand-desc">让 AI 为你生成专业代码</p>
         </div>
 
@@ -37,7 +37,7 @@
 
       <div class="footer-bottom">
         <div class="copyright">
-          © 2025 AI Code Mother. All rights reserved.
+          © 2025 AICodeHub. All rights reserved.
         </div>
         <div class="author">
           Made with ❤️ by
