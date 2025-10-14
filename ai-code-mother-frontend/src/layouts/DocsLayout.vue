@@ -18,15 +18,6 @@
             <BookOutlined v-else class="docs-icon" />
             <span v-if="!collapsed" class="docs-title">AICodeHub</span>
           </div>
-          <a-button
-            v-if="!collapsed"
-            class="back-btn"
-            size="small"
-            @click="goHome"
-          >
-            <template #icon><HomeOutlined /></template>
-            返回首页
-          </a-button>
         </div>
 
         <a-menu
