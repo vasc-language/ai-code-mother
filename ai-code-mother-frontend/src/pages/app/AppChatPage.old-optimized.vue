@@ -426,6 +426,9 @@
       @delete="deleteApp"
     />
 
+    <!-- 部署中弹窗 -->
+    <DeployingModal v-model:open="deployingModalVisible" />
+
     <!-- 部署成功弹窗 -->
     <DeploySuccessModal
       v-model:open="deployModalVisible"
@@ -566,6 +569,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import CodeHighlight from '@/components/CodeHighlight.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
+import DeployingModal from '@/components/DeployingModal.vue'
 import AiModelSelector from '@/components/AiModelSelector.vue'
 import PreviewLoading from '@/components/PreviewLoading.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
@@ -773,6 +777,7 @@ const generationFinished = ref(false)
 
 // 部署相关
 const deploying = ref(false)
+const deployingModalVisible = ref(false)
 const deployModalVisible = ref(false)
 const deployUrl = ref('')
 
@@ -2116,10 +2121,14 @@ const deployApp = async () => {
   }
 
   deploying.value = true
+  deployingModalVisible.value = true // 显示部署中弹窗
+  
   try {
     const res = await deployAppApi({
       appId: appId.value as unknown as number,
     })
+
+    deployingModalVisible.value = false // 关闭部署中弹窗
 
     if (res.data.code === 0 && res.data.data) {
       deployUrl.value = res.data.data
@@ -2130,6 +2139,7 @@ const deployApp = async () => {
     }
   } catch (error: any) {
     console.error('部署失败：', error)
+    deployingModalVisible.value = false // 关闭部署中弹窗
     
     // 区分超时和其他错误
     const isTimeout = error?.code === 'ECONNABORTED' || 

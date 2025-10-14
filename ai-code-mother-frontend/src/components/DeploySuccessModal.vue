@@ -5,7 +5,7 @@
         <CheckCircleOutlined style="color: #52c41a; font-size: 48px" />
       </div>
       <h3>网站部署成功！</h3>
-      <p>你的网站已经成功部署，可以通过以下链接访问：</p>
+      <p>Every accomplishment starts with the decision to try.</p>
       <div class="deploy-url">
         <a-input :value="deployUrl" readonly>
           <template #suffix>
