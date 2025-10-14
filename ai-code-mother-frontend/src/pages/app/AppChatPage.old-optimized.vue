@@ -2128,9 +2128,19 @@ const deployApp = async () => {
     } else {
       message.error('部署失败：' + res.data.message)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('部署失败：', error)
-    message.error('部署失败，请重试')
+    
+    // 区分超时和其他错误
+    const isTimeout = error?.code === 'ECONNABORTED' || 
+                     error?.message?.toLowerCase().includes('timeout')
+    
+    if (isTimeout) {
+      message.warning('部署时间较长，正在后台处理中，请稍后刷新页面查看部署结果', 8)
+    } else {
+      const errorMsg = error?.response?.data?.message || error?.message || '请重试'
+      message.error('部署失败：' + errorMsg)
+    }
   } finally {
     deploying.value = false
   }
