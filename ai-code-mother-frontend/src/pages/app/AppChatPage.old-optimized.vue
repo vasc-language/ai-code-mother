@@ -104,7 +104,7 @@
                   <span class="refresh-text">Haste reloads, patience restores.</span>
                 </div>
                 <div v-else-if="!message.loading" class="empty-message">
-                  Even lightning needs a moment to strike.
+                  <span class="empty-message-text">Even lightning needs a moment to strike</span><span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
                 </div>
               </div>
             </div>
@@ -4233,6 +4233,55 @@ watch(
   color: #999;
   font-style: italic;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 文字呼吸效果 */
+.empty-message-text {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* 加载点动画 */
+.loading-dots {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.loading-dots span {
+  animation: dot-fade 1.5s ease-in-out infinite;
+  opacity: 0.4;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes dot-fade {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* 加载更多按钮 */
