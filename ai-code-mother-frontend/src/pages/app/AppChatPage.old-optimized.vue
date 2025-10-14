@@ -1658,6 +1658,68 @@ const sendMessage = async () => {
   await generateCode(message, aiMessageIndex)
 }
 
+// 实时过滤函数：判断chunk是否应该显示在左边框
+const shouldShowInLeftPanel = (chunk: string): boolean => {
+  if (!chunk || typeof chunk !== 'string') return false
+  
+  const trimmed = chunk.trim()
+  if (!trimmed) return false
+  
+  // ✅ VUE模式：完全不过滤，保持原始行为（使用formatVueProjectContent后处理）
+  const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+  if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+    return true  // VUE模式全部通过，保持原逻辑
+  }
+  
+  // ❌ HTML/MULTI_FILE模式：严格过滤代码片段
+  
+  // 1. 检测代码块标记
+  if (trimmed.includes('```')) return false
+  
+  // 2. 检测特殊标记（代码流式输出、多文件标记等）
+  if (trimmed.includes('[CODE_BLOCK_START]')) return false
+  if (trimmed.includes('[CODE_BLOCK_END]')) return false
+  if (trimmed.includes('[CODE_STREAM]')) return false
+  if (trimmed.includes('[MULTI_FILE_START:')) return false
+  if (trimmed.includes('[MULTI_FILE_CONTENT:')) return false
+  if (trimmed.includes('[MULTI_FILE_END:')) return false
+  
+  // 3. 检测工具调用标记（HTML/MULTI_FILE模式不需要工具调用信息）
+  if (trimmed.includes('[选择工具]')) return false
+  if (trimmed.includes('[工具调用]')) return false
+  
+  // 4. 检测HTML标签（单个chunk中含有多个标签就可能是代码）
+  const htmlTagCount = (chunk.match(/<[^>]+>/g) || []).length
+  if (htmlTagCount >= 2) return false
+  
+  // 5. 检测完整的HTML标签行
+  if (/^\s*<[^>]+>\s*$/.test(trimmed)) return false
+  
+  // 6. 检测JavaScript/TypeScript代码特征
+  if (/^\s*(?:function|const|let|var|if|else|for|while|class|return|import|export)\s+/.test(trimmed)) return false
+  
+  // 7. 检测CSS样式代码特征
+  if (/^\s*[a-zA-Z-]+\s*:\s*[^;]+;?\s*$/.test(trimmed)) return false
+  if (/^\s*[.#]?[\w-]+\s*\{/.test(trimmed)) return false
+  
+  // 8. 检测大量特殊符号（可能是代码）
+  const specialCharCount = (chunk.match(/[{}<>()[\];:=+\-*/%&|^~]/g) || []).length
+  if (specialCharCount > 5) return false
+  
+  // 9. 检测JSON对象（可能是结构化消息）
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      JSON.parse(trimmed)
+      return false // 是JSON对象，不显示
+    } catch (e) {
+      // 不是有效的JSON，继续判断
+    }
+  }
+  
+  // 通过所有检查，可以显示在左边框
+  return true
+}
+
 // 生成代码 - 使用 EventSource 处理流式响应
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   let streamCompleted = false
@@ -1727,53 +1789,53 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         if (currentRunId.value !== myRunId) return
         if (streamCompleted || (!isGenerating.value && !stoppedByUser.value)) return
         if (ssePendingChunks.length === 0) return
+        
         const batch = ssePendingChunks.join('')
         ssePendingChunks = []
-        sseFullContent += batch
-        const fullContent = sseFullContent
-
+        
+        // 注意：sseFullContent 已经在 onmessage 中累积了所有原始内容（包括代码）
+        
         const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
-        let textForLeft = ''
-        if (codeGenType === CodeGenTypeEnum.HTML) {
-          textForLeft = filterHtmlContent(fullContent)
-        } else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
-          textForLeft = filterOutCodeBlocks(fullContent)
-        } else if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
-          textForLeft = formatVueProjectContent(fullContent)
+        let displayContent = ''
+        
+        // ✅ VUE模式：需要使用formatVueProjectContent过滤完整内容后再显示
+        if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+          // VUE模式使用完整内容进行过滤（保持原逻辑）
+          displayContent = formatVueProjectContent(sseFullContent).trim()
         } else {
-          textForLeft = fullContent
+          // HTML/MULTI_FILE模式：已经在shouldShowInLeftPanel中实时过滤，直接使用
+          displayContent = batch.trim()
         }
 
         // 添加调试日志
-        console.log('[SSE Debug] 原始内容长度:', fullContent.length)
-        console.log('[SSE Debug] 过滤后内容长度:', textForLeft.length)
         console.log('[SSE Debug] 代码生成类型:', codeGenType)
-        console.log('[SSE Debug] AI消息索引:', aiMessageIndex)
-        if (textForLeft.length < 50) {
-          console.log('[SSE Debug] 过滤后内容预览:', textForLeft)
-        }
+        console.log('[SSE Debug] 批次内容长度:', batch.length)
+        console.log('[SSE Debug] 显示内容长度:', displayContent.length)
+        console.log('[SSE Debug] 完整内容长度:', sseFullContent.length)
 
-        // 确保至少有一些内容显示
-        const displayContent = textForLeft || fullContent.substring(0, 200) || ''
-
-        // 只有当有实际内容时才更新消息并关闭loading状态
+        // 只有当有实际文本内容时才更新消息并关闭loading状态
         if (displayContent) {
-          messages.value[aiMessageIndex].content = displayContent
+          // VUE模式：完全替换（因为每次都是对完整内容过滤）
+          // HTML/MULTI_FILE模式：追加显示（流式效果）
+          if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+            messages.value[aiMessageIndex].content = displayContent
+          } else {
+            const currentContent = messages.value[aiMessageIndex].content || ''
+            messages.value[aiMessageIndex].content = currentContent + batch
+          }
           messages.value[aiMessageIndex].loading = false
 
-          // 计算思考持续时间
-          if (messages.value[aiMessageIndex].thinkingStartTime) {
+          // 计算思考持续时间（只在第一次有内容时计算）
+          const currentContent = messages.value[aiMessageIndex].content || ''
+          if (currentContent && messages.value[aiMessageIndex].thinkingStartTime && !messages.value[aiMessageIndex].thinkingDuration) {
             const endTime = Date.now()
             const startTime = messages.value[aiMessageIndex].thinkingStartTime!
             const durationMs = endTime - startTime
             messages.value[aiMessageIndex].thinkingDuration = Math.round(durationMs / 1000)
           }
         }
-        // 如果还没有内容，保持loading状态，继续显示"Thinking"动画
+        // 如果没有文本内容，保持loading状态，继续显示"Thinking"动画
 
-        // 解析流式内容并更新右侧代码区（传入本次批次与完整内容）
-        // 暂停右侧流式解析，避免分片截断
-        // parseStreamingContent(batch, fullContent)
         scrollToBottom()
         sseMetrics.flushCount += 1
       } catch (e) {
@@ -1793,9 +1855,19 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         if (content !== undefined && content !== null) {
           // 首个消息到达时间
           if (!sseMetrics.t2) sseMetrics.t2 = performance.now()
-          ssePendingChunks.push(content)
+          
+          // ✅ 累积所有原始内容（包括代码），用于右侧代码解析
+          sseFullContent += content
+          
+          // ✅ 实时过滤：只有非代码内容才添加到左边框显示缓冲区
+          if (shouldShowInLeftPanel(content)) {
+            ssePendingChunks.push(content)
+          }
+          
+          // 结构化消息捕获（用于右侧代码解析）
           captureStructuredSseMessage(content)
           sseMetrics.totalBytes += (typeof content === 'string' ? content.length : 0)
+          
           if (!sseFlushTimer.value) {
             sseFlushTimer.value = setTimeout(() => {
               if (!sseMetrics.firstFlushAt) sseMetrics.firstFlushAt = performance.now()
@@ -2643,26 +2715,47 @@ const refreshCodeFilesFromFullContent = async (fullContent: string) => {
 const filterHtmlContent = (content: string): string => {
   if (!content) return ''
 
-  // 移除完整代码块（```language code ```）及其前后内容
-  let filteredContent = content.replace(/(\n\s*)?```[\w-]*\n[\s\S]*?```(\n\s*)?/g, '')
+  let filteredContent = content
 
-  // 移除不完整的代码块（```开头但没有结束的）及其后面的所有内容
-  filteredContent = filteredContent.replace(/(\n\s*)?```[\w-]*\n[\s\S]*$/g, '')
+  // 1. 移除完整的markdown代码块（```language ... ```）
+  filteredContent = filteredContent.replace(/```[\w-]*\n[\s\S]*?```/g, '')
 
-  // 移除HTML代码流式输出的特殊标记及其周围的代码内容
-  filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\][\s\S]*?(?=\n\n|$)/g, '')
+  // 2. 移除不完整的代码块（```开头但没有结束的）及其后面的所有内容
+  filteredContent = filteredContent.replace(/```[\w-]*\n[\s\S]*$/g, '')
 
-  // 移除内联代码标记
+  // 3. 移除HTML代码流式输出的特殊标记及其内容
+  filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\][^\n]*(?:\n|$)/g, '')
+
+  // 4. 移除看起来像HTML代码的连续行（包含大量HTML标签的内容）
+  // 匹配连续的HTML标签行（至少3行以上的HTML标签密集区域）
+  filteredContent = filteredContent.replace(/(?:^|\n)(?:<[^>]+>[\s\S]*?){3,}(?=\n|$)/gm, '')
+
+  // 5. 移除单行HTML标签（整行都是HTML标签的）
+  filteredContent = filteredContent.replace(/^\s*<[^>]+>\s*$/gm, '')
+
+  // 6. 移除包含大量尖括号的行（可能是HTML代码）
+  filteredContent = filteredContent.replace(/^[^<\n]*(?:<[^>]+>){2,}[^>\n]*$/gm, '')
+
+  // 7. 移除JavaScript代码片段（function, const, let, var 等关键字开头的行）
+  filteredContent = filteredContent.replace(/^\s*(?:function|const|let|var|if|for|while|class|return|document|window|console)\s+.*/gm, '')
+
+  // 8. 移除CSS样式代码（包含 { } 和 : 的样式定义）
+  filteredContent = filteredContent.replace(/^\s*[a-zA-Z-]+\s*:\s*[^;]+;?\s*$/gm, '')
+  filteredContent = filteredContent.replace(/^\s*[.#]?[\w-]+\s*\{[\s\S]*?\}/gm, '')
+
+  // 9. 移除内联代码标记（`code`）
   filteredContent = filteredContent.replace(/`[^`\n]*`/g, '')
 
-  // 移除任何包含代码标记的行
-  filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
-  filteredContent = filteredContent.replace(/^.*`.*$/gm, '')
+  // 10. 移除工具调用信息
+  filteredContent = filteredContent.replace(/\[选择工具\][\s\S]*?(?=\n\n|$)/g, '')
+  filteredContent = filteredContent.replace(/\[工具调用\][\s\S]*?(?=\n\n|$)/g, '')
 
-  // 清理多余的空行
-  filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
-  filteredContent = filteredContent.replace(/^\n+/, '') // 移除开头的空行
-  filteredContent = filteredContent.replace(/\n\s*$/, '') // 移除结尾的空行
+  // 11. 清理多余的空行（保留最多1个空行）
+  filteredContent = filteredContent.replace(/\n\s*\n\s*\n+/g, '\n\n')
+
+  // 12. 移除开头和结尾的空行
+  filteredContent = filteredContent.replace(/^\n+/, '')
+  filteredContent = filteredContent.replace(/\n\s*$/, '')
 
   return filteredContent.trim()
 }
@@ -2671,40 +2764,56 @@ const filterHtmlContent = (content: string): string => {
 const filterOutCodeBlocks = (content: string): string => {
   if (!content) return ''
 
-  // 移除完整代码块（```language code ```）及其前后内容
-  let filteredContent = content.replace(/(\n\s*)?```[\w-]*\n[\s\S]*?```(\n\s*)?/g, '')
+  let filteredContent = content
 
-  // 移除不完整的代码块（```开头但没有结束的）及其后面的所有内容
-  filteredContent = filteredContent.replace(/(\n\s*)?```[\w-]*\n[\s\S]*$/g, '')
+  // 1. 移除完整的markdown代码块（```language ... ```）
+  filteredContent = filteredContent.replace(/```[\w-]*\n[\s\S]*?```/g, '')
 
-  // 移除所有MULTI_FILE相关标记及其周围的内容
-  filteredContent = filteredContent.replace(/\[MULTI_FILE_START:[^\]]+\][\s\S]*?(?=\n\n|$)/g, '')
-  filteredContent = filteredContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\][\s\S]*?(?=\n\n|$)/g, '')
-  filteredContent = filteredContent.replace(/\[MULTI_FILE_END:[^\]]+\][\s\S]*?(?=\n\n|$)/g, '')
+  // 2. 移除不完整的代码块（```开头但没有结束的）及其后面的所有内容
+  filteredContent = filteredContent.replace(/```[\w-]*\n[\s\S]*$/g, '')
 
-  // 移除特殊标记及其周围内容
-  filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\][\s\S]*?(?=\n\n|$)/g, '')
+  // 3. 移除所有MULTI_FILE相关标记及其内容
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_START:[^\]]+\][^\n]*(?:\n|$)/g, '')
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_CONTENT:[^\]]+\][^\n]*(?:\n|$)/g, '')
+  filteredContent = filteredContent.replace(/\[MULTI_FILE_END:[^\]]+\][^\n]*(?:\n|$)/g, '')
 
-  // 移除内联代码标记
-  filteredContent = filteredContent.replace(/`[^`\n]*`/g, '')
+  // 4. 移除特殊标记及其内容
+  filteredContent = filteredContent.replace(/\[(CODE_BLOCK_START|CODE_STREAM|CODE_BLOCK_END)\][^\n]*(?:\n|$)/g, '')
 
-  // 移除工具调用信息（完全移除，不显示在左边框）
+  // 5. 移除工具调用信息（完全移除，不显示在左边框）
   filteredContent = filteredContent.replace(/\[选择工具\][\s\S]*?(?=\n\n|$)/g, '')
   filteredContent = filteredContent.replace(/\[工具调用\][\s\S]*?(?=\n\n|$)/g, '')
 
-  // 移除步骤信息
+  // 6. 移除步骤信息
   filteredContent = filteredContent.replace(/STEP\s+\d+:[\s\S]*?(?=\n\n|$)/g, '')
 
-  // 移除任何包含代码标记的行
-  filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
-  filteredContent = filteredContent.replace(/^.*`.*$/gm, '')
+  // 7. 移除看起来像代码的连续行（包含大量特殊符号的内容）
+  filteredContent = filteredContent.replace(/(?:^|\n)(?:[^a-zA-Z\u4e00-\u9fa5\n]*[{}<>()[\];:=+\-*/%&|^~]{2,}[^\n]*\n){3,}/gm, '')
+
+  // 8. 移除单行代码标签
+  filteredContent = filteredContent.replace(/^\s*<[^>]+>\s*$/gm, '')
+
+  // 9. 移除JavaScript/TypeScript代码片段
+  filteredContent = filteredContent.replace(/^\s*(?:function|const|let|var|if|else|for|while|class|return|import|export|from|default)\s+.*/gm, '')
+
+  // 10. 移除CSS样式代码
+  filteredContent = filteredContent.replace(/^\s*[a-zA-Z-]+\s*:\s*[^;]+;?\s*$/gm, '')
+  filteredContent = filteredContent.replace(/^\s*[.#]?[\w-]+\s*\{[\s\S]*?\}/gm, '')
+
+  // 11. 移除内联代码标记（`code`）
+  filteredContent = filteredContent.replace(/`[^`\n]*`/g, '')
+
+  // 12. 移除包含特殊标记的行
   filteredContent = filteredContent.replace(/^.*\[MULTI_FILE_.*$/gm, '')
   filteredContent = filteredContent.replace(/^.*\[CODE_.*$/gm, '')
+  filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
 
-  // 清理多余的空行
-  filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
-  filteredContent = filteredContent.replace(/^\n+/, '') // 移除开头的空行
-  filteredContent = filteredContent.replace(/\n\s*$/, '') // 移除结尾的空行
+  // 13. 清理多余的空行（保留最多1个空行）
+  filteredContent = filteredContent.replace(/\n\s*\n\s*\n+/g, '\n\n')
+
+  // 14. 移除开头和结尾的空行
+  filteredContent = filteredContent.replace(/^\n+/, '')
+  filteredContent = filteredContent.replace(/\n\s*$/, '')
 
   return filteredContent.trim()
 }
