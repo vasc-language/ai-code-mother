@@ -502,10 +502,10 @@ onMounted(() => {
           type="default"
           @click="
             setPrompt(
-              '创建一个简洁优雅的个人介绍博客，使用原生多文件模式，包含响应式设计和基本交互功能。使用语义化HTML结构，和现代CSS Grid和Flexbox布局，添加平滑滚动和主题切换功能。',
+              '生成 Vue3 音乐播放器 Demo： - 播放/暂停、上一首/下一首、进度条、音量控制。 - Pinia 保存当前歌曲与播放状态。 - 动画：专辑封面旋转、播放按钮波纹。 - 深浅色主题切换。 - 目录：App.vue、components/Player.vue、ProgressBar.vue、store/player.js。',
             )
           "
-          >个人博客网站</a-button
+          >音乐播放器</a-button
         >
         <a-button
           type="default"

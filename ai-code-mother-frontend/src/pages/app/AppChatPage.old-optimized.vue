@@ -101,10 +101,10 @@
                 <!-- 刷新提示 - 仅在生成流程彻底完成时显示 -->
                 <div v-if="message.content && index === messages.length - 1 && generationFinished" class="refresh-reminder">
                   <img src="@/assets/refresh.svg" alt="Refresh" class="refresh-icon" />
-                  <span class="refresh-text">Refresh, and fortune follows.</span>
+                  <span class="refresh-text">Haste reloads, patience restores.</span>
                 </div>
                 <div v-else-if="!message.loading" class="empty-message">
-                  等待AI响应...
+                  Even lightning needs a moment to strike.
                 </div>
               </div>
             </div>
@@ -2122,7 +2122,7 @@ const deployApp = async () => {
 
   deploying.value = true
   deployingModalVisible.value = true // 显示部署中弹窗
-  
+
   try {
     const res = await deployAppApi({
       appId: appId.value as unknown as number,
@@ -2140,11 +2140,11 @@ const deployApp = async () => {
   } catch (error: any) {
     console.error('部署失败：', error)
     deployingModalVisible.value = false // 关闭部署中弹窗
-    
+
     // 区分超时和其他错误
-    const isTimeout = error?.code === 'ECONNABORTED' || 
+    const isTimeout = error?.code === 'ECONNABORTED' ||
                      error?.message?.toLowerCase().includes('timeout')
-    
+
     if (isTimeout) {
       message.warning('部署时间较长，正在后台处理中，请稍后刷新页面查看部署结果', 8)
     } else {
@@ -2654,11 +2654,11 @@ const filterHtmlContent = (content: string): string => {
 
   // 移除内联代码标记
   filteredContent = filteredContent.replace(/`[^`\n]*`/g, '')
-  
+
   // 移除任何包含代码标记的行
   filteredContent = filteredContent.replace(/^.*```.*$/gm, '')
   filteredContent = filteredContent.replace(/^.*`.*$/gm, '')
-  
+
   // 清理多余的空行
   filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n')
   filteredContent = filteredContent.replace(/^\n+/, '') // 移除开头的空行
