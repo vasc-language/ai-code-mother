@@ -98,6 +98,11 @@
                   <span class="thinking-duration">Thought for {{ message.thinkingDuration }} seconds</span>
                 </div>
                 <MarkdownRenderer v-if="message.content" :content="message.content" />
+                <!-- 刷新提示 - 仅在生成流程彻底完成时显示 -->
+                <div v-if="message.content && index === messages.length - 1 && generationFinished" class="refresh-reminder">
+                  <img src="@/assets/refresh.svg" alt="Refresh" class="refresh-icon" />
+                  <span class="refresh-text">Refresh, and fortune follows.</span>
+                </div>
                 <div v-else-if="!message.loading" class="empty-message">
                   等待AI响应...
                 </div>
@@ -5481,6 +5486,62 @@ watch(
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
                 0 1px 2px rgba(0, 0, 0, 0.08),
                 inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+/* 刷新提示样式 - 米色主题，与背景一体化 */
+.refresh-reminder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8f6f0 0%, #e8e3d8 100%);
+  border: 2px solid #d4cfc4;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+  animation: gentle-pulse 2s ease-in-out infinite;
+}
+
+.refresh-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  animation: rotate-refresh 3s linear infinite;
+}
+
+.refresh-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #5d4e37;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+}
+
+/* 脉冲动画 */
+@keyframes gentle-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15), 0 3px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* 旋转动画 */
+@keyframes rotate-refresh {
+  0% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>
