@@ -213,7 +213,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         generationValidationService.recordGeneration(loginUser.getId(), message);
 
         // 5.1 若为 Vue 工程模式，尝试命中预置模板并进行首次目录拷贝，同时为当前轮拼接模板说明
+        // [已禁用] VUE模板功能暂时不使用
         String finalMessage = message;
+        /*
         try {
             if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
                 String presetKey = matchPresetTemplate(message);
@@ -229,6 +231,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             // 不阻断主流程，模板机制失败时继续按原逻辑生成
             log.warn("[TEMPLATE-ERROR] appId={}, 处理预置模板时出错：{}", appId, e.getMessage());
         }
+        */
         // 6. 设置监控上下文(包含modelKey)
         MonitorContextHolder.setContext(
                 MonitorContext.builder()
@@ -347,10 +350,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 命中模板：当前仅支持两个精确匹配的中文提示词
+     * [已禁用] 命中模板：当前仅支持两个精确匹配的中文提示词
      * @param userMessage 用户输入
      * @return 预置模板 key：portfolio 或 enterprise，未命中返回 null
      */
+    /*
     private String matchPresetTemplate(String userMessage) {
         if (userMessage == null) return null;
         String trimmed = userMessage.trim();
@@ -378,7 +382,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (portfolioScore > 0) return "portfolio";
         return null;
     }
+    */
 
+    /*
     private int countMatches(String textLower, String[] hints, String original) {
         int c = 0;
         for (String h : hints) {
@@ -392,11 +398,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         return c;
     }
+    */
 
+    /*
     private boolean isAscii(String s) {
         for (int i = 0; i < s.length(); i++) if (s.charAt(i) > 127) return false;
         return true;
     }
+    */
 
     /**
      * 去除流式输出中的标记，返回用于有效性校验的内容
@@ -410,11 +419,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 若命中模板：仅在目标目录不存在或为空时，复制模板到项目根目录
+     * [已禁用] 若命中模板：仅在目标目录不存在或为空时，复制模板到项目根目录
      * @param appId 应用ID
      * @param presetKey 预置模板key
      * @return 是否发生了复制
      */
+    /*
     private boolean ensurePresetCopied(Long appId, String presetKey) {
         String targetDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + (CodeGenTypeEnum.VUE_PROJECT.getValue() + "_" + appId);
         File targetDir = new File(targetDirPath);
@@ -445,7 +455,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         return copied;
     }
+    */
 
+    /*
     private boolean isDirEmpty(File dir) {
         if (dir == null) return true;
         if (!dir.exists()) return true;
@@ -453,7 +465,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         File[] files = dir.listFiles(file -> !".DS_Store".equals(file.getName()));
         return files == null || files.length == 0;
     }
+    */
 
+    /*
     private String getPresetTemplateDirName(String presetKey) {
         if ("portfolio".equals(presetKey)) {
             return "vue_project_323345718267260928";
@@ -463,10 +477,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         return null;
     }
+    */
 
     /**
-     * 从 classpath 的 static 目录复制模板到目标目录
+     * [已禁用] 从 classpath 的 static 目录复制模板到目标目录
      */
+    /*
     private boolean copyPresetFromClasspath(String templateDirName, File targetDir) {
         try {
             PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
@@ -508,10 +524,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             return false;
         }
     }
+    */
 
     /**
-     * 拼接模板使用说明（仅对当前轮的提示词增强，不影响对话历史）
+     * [已禁用] 拼接模板使用说明（仅对当前轮的提示词增强，不影响对话历史）
      */
+    /*
     private String buildTemplateAwareMessage(String original, String presetKey, boolean copied) {
         String presetDesc = "portfolio".equals(presetKey) ? "作品展示网站模板" : ("enterprise".equals(presetKey) ? "企业官网模板" : "预置模板");
         StringBuilder sb = new StringBuilder();
@@ -526,6 +544,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         sb.append(" 请先使用【读取目录】与【读取文件】了解结构，再基于需要进行【文件修改】或【写入文件】的最小变更，避免重复创建已存在的文件。完成后调用【退出工具】结束本轮任务。");
         return sb.toString();
     }
+    */
 
 
     @Override
