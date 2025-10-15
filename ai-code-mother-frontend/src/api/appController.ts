@@ -118,7 +118,6 @@ export async function deployApp(body: API.AppDeployRequest, options?: { [key: st
       'Content-Type': 'application/json',
     },
     data: body,
-    timeout: 300000, // 5分钟超时，适应部署场景
     ...(options || {}),
   })
 }

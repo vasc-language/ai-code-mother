@@ -30,13 +30,14 @@ public class ProjectBuilderNode {
             try {
                 VueProjectBuilder vueBuilder = SpringContextUtil.getBean(VueProjectBuilder.class);
                 // 执行 Vue 项目构建（npm install + npm run build）
-                boolean buildSuccess = vueBuilder.buildProject(generatedCodeDir);
-                if (buildSuccess) {
+                com.spring.aicodemother.core.build.BuildResult buildResult = vueBuilder.buildProject(generatedCodeDir);
+                if (buildResult.isSuccess()) {
                     // 构建成功，返回 dist 目录路径
                     buildResultDir = generatedCodeDir + File.separator + "dist";
                     log.info("Vue 项目构建成功，dist 目录: {}", buildResultDir);
                 } else {
-                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败");
+                    log.error("Vue 项目构建失败: {}", buildResult.getErrorSummary());
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败: " + buildResult.getErrorSummary());
                 }
             } catch (Exception e) {
                 log.error("Vue 项目构建异常: {}", e.getMessage(), e);

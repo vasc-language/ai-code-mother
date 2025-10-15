@@ -1448,13 +1448,15 @@ const loadChatHistory = async (isLoadMore = false) => {
             let content = rawContent
             // 如果是AI消息，根据项目类型过滤掉代码相关信息（仅用于显示）
             if (chat.messageType === 'ai') {
-              if (appInfo.value?.codeGenType === CodeGenTypeEnum.HTML) {
-                content = filterHtmlContent(rawContent)
-              } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.MULTI_FILE) {
-                content = filterOutCodeBlocks(rawContent)
-              } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
-                content = formatVueProjectContent(rawContent)
-              }
+              // if (appInfo.value?.codeGenType === CodeGenTypeEnum.HTML) {  // 已注释：HTML模式
+              //   content = filterHtmlContent(rawContent)
+              // } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.MULTI_FILE) {  // 已注释：多文件模式
+              //   content = filterOutCodeBlocks(rawContent)
+              // } else if (appInfo.value?.codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+              //   content = formatVueProjectContent(rawContent)
+              // }
+              // 新逻辑：固定使用VUE项目模式
+              content = formatVueProjectContent(rawContent)
             }
             return {
               type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
@@ -1666,7 +1668,8 @@ const shouldShowInLeftPanel = (chunk: string): boolean => {
   if (!trimmed) return false
   
   // ✅ VUE模式：完全不过滤，保持原始行为（使用formatVueProjectContent后处理）
-  const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+  // const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML  // 旧逻辑：支持多种类型
+  const codeGenType = CodeGenTypeEnum.VUE_PROJECT  // 新逻辑：固定使用VUE类型
   if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
     return true  // VUE模式全部通过，保持原逻辑
   }
@@ -1737,7 +1740,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   // 初始化性能指标
   sseMetrics = {
     runId: null,
-    codeGenType: (appInfo.value?.codeGenType || CodeGenTypeEnum.HTML) as unknown as string,
+    // codeGenType: (appInfo.value?.codeGenType || CodeGenTypeEnum.HTML) as unknown as string,  // 旧逻辑：支持多种类型
+    codeGenType: CodeGenTypeEnum.VUE_PROJECT as unknown as string,  // 新逻辑：固定使用VUE类型
     afterStop: lastStoppedAt.value > 0 && Date.now() - lastStoppedAt.value < 1000,
     t0: performance.now(),
     totalBytes: 0,
@@ -1795,7 +1799,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         
         // 注意：sseFullContent 已经在 onmessage 中累积了所有原始内容（包括代码）
         
-        const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+        // const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML  // 旧逻辑：支持多种类型
+        const codeGenType = CodeGenTypeEnum.VUE_PROJECT  // 新逻辑：固定使用VUE类型
         let displayContent = ''
         
         // ✅ VUE模式：需要使用formatVueProjectContent过滤完整内容后再显示
@@ -2133,7 +2138,8 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
 // 更新预览
 const updatePreview = () => {
   if (appId.value) {
-    const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+    // const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML  // 旧逻辑：支持多种类型
+    const codeGenType = CodeGenTypeEnum.VUE_PROJECT  // 新逻辑：固定使用VUE类型
     const newPreviewUrl = getStaticPreviewUrl(codeGenType, appId.value)
     previewUrl.value = newPreviewUrl
     previewReady.value = true
@@ -2527,21 +2533,23 @@ const splitPotentialJsonPayloads = (payload: string): string[] => {
 }
 
 const normalizeCodeGenType = (type?: string): CodeGenTypeEnum => {
-  if (!type) return CodeGenTypeEnum.HTML
-  const lower = type.toLowerCase()
-  if (lower === 'html' || lower === CodeGenTypeEnum.HTML) return CodeGenTypeEnum.HTML
-  if (lower === 'multi_file' || lower === 'multi-file' || lower === CodeGenTypeEnum.MULTI_FILE) {
-    return CodeGenTypeEnum.MULTI_FILE
-  }
-  if (
-    lower === 'vue' ||
-    lower === 'vue_project' ||
-    lower === 'vue-project' ||
-    lower === CodeGenTypeEnum.VUE_PROJECT
-  ) {
-    return CodeGenTypeEnum.VUE_PROJECT
-  }
-  return CodeGenTypeEnum.HTML
+  // 已简化：只使用VUE_PROJECT类型
+  // if (!type) return CodeGenTypeEnum.HTML
+  // const lower = type.toLowerCase()
+  // if (lower === 'html' || lower === CodeGenTypeEnum.HTML) return CodeGenTypeEnum.HTML
+  // if (lower === 'multi_file' || lower === 'multi-file' || lower === CodeGenTypeEnum.MULTI_FILE) {
+  //   return CodeGenTypeEnum.MULTI_FILE
+  // }
+  // if (
+  //   lower === 'vue' ||
+  //   lower === 'vue_project' ||
+  //   lower === 'vue-project' ||
+  //   lower === CodeGenTypeEnum.VUE_PROJECT
+  // ) {
+  //   return CodeGenTypeEnum.VUE_PROJECT
+  // }
+  // return CodeGenTypeEnum.HTML
+  return CodeGenTypeEnum.VUE_PROJECT
 }
 
 const buildFilesFromToolExecutions = (generatedAt: string): GeneratedFile[] => {
@@ -2640,22 +2648,26 @@ const mapParsedFilesToGeneratedFiles = (sourceFiles: any[], generatedAt: string)
 const applyGeneratedFiles = (files: GeneratedFile[], normalizedType: CodeGenTypeEnum, singleFile?: GeneratedFile | null) => {
   clearAllFiles()
 
-  if (singleFile) {
-    simpleCodeFile.value = singleFile
-    simpleCodeContent.value = singleFile.content
-  }
+  // if (singleFile) {  // 已注释：HTML单文件模式
+  //   simpleCodeFile.value = singleFile
+  //   simpleCodeContent.value = singleFile.content
+  // }
 
-  if (normalizedType === CodeGenTypeEnum.MULTI_FILE) {
-    multiFiles.value = files
-    multiFileContents.value = files.reduce<Record<string, string>>((acc, file) => {
-      acc[file.name] = file.content
-      return acc
-    }, {})
-    activeFileKeys.value = files.length ? [files[0].id] : []
-  } else if (normalizedType === CodeGenTypeEnum.VUE_PROJECT) {
-    completedFiles.value = files
-    activeFileKeys.value = files.length ? [files[0].id] : []
-  }
+  // if (normalizedType === CodeGenTypeEnum.MULTI_FILE) {  // 已注释：多文件模式
+  //   multiFiles.value = files
+  //   multiFileContents.value = files.reduce<Record<string, string>>((acc, file) => {
+  //     acc[file.name] = file.content
+  //     return acc
+  //   }, {})
+  //   activeFileKeys.value = files.length ? [files[0].id] : []
+  // } else if (normalizedType === CodeGenTypeEnum.VUE_PROJECT) {
+  //   completedFiles.value = files
+  //   activeFileKeys.value = files.length ? [files[0].id] : []
+  // }
+  
+  // 新逻辑：固定使用VUE项目模式
+  completedFiles.value = files
+  activeFileKeys.value = files.length ? [files[0].id] : []
 
   const firstFileId =
     singleFile?.id ||
@@ -2691,22 +2703,23 @@ const refreshCodeFilesFromFullContent = async (fullContent: string) => {
     return
   }
 
-  if (normalizedType === CodeGenTypeEnum.HTML && parsedSimpleCodeFile.value) {
-    const parsedFile = parsedSimpleCodeFile.value
-    const finalFile: GeneratedFile = {
-      id: parsedFile.id || `html-${Date.now()}`,
-      name: parsedFile.name || 'index.html',
-      path: parsedFile.path || parsedFile.name || 'index.html',
-      content: parsedFile.content,
-      language: parsedFile.language || 'html',
-      completed: true,
-      generatedAt,
-      lastUpdated: generatedAt,
-    }
-    applyGeneratedFiles([], normalizedType, finalFile)
-    return
-  }
+  // if (normalizedType === CodeGenTypeEnum.HTML && parsedSimpleCodeFile.value) {  // 已注释：HTML模式
+  //   const parsedFile = parsedSimpleCodeFile.value
+  //   const finalFile: GeneratedFile = {
+  //     id: parsedFile.id || `html-${Date.now()}`,
+  //     name: parsedFile.name || 'index.html',
+  //     path: parsedFile.path || parsedFile.name || 'index.html',
+  //     content: parsedFile.content,
+  //     language: parsedFile.language || 'html',
+  //     completed: true,
+  //     generatedAt,
+  //     lastUpdated: generatedAt,
+  //   }
+  //   applyGeneratedFiles([], normalizedType, finalFile)
+  //   return
+  // }
 
+  // 新逻辑：固定使用VUE项目模式
   const parsedFiles = mapParsedFilesToGeneratedFiles(parsedMultiFiles.value || [], generatedAt)
   applyGeneratedFiles(parsedFiles, normalizedType)
 }
@@ -3068,17 +3081,21 @@ const formatVueProjectContent = (content: string): string => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const parseStreamingContent = (chunk: string, fullContent: string) => {
   try {
-    const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+    // const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML  // 旧逻辑：支持多种类型
+    // const codeGenType = CodeGenTypeEnum.VUE_PROJECT  // 新逻辑：固定使用VUE类型
 
-    // HTML类型使用简单的代码流式输出
-    if (codeGenType === CodeGenTypeEnum.HTML) {
-      parseSimpleCodeStreaming(chunk, fullContent)
-    }
-    // MULTI_FILE类型使用专用的多文件流式输出
-    else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
-      parseMultiFileStreaming(chunk, fullContent)
-    } else {
-      // Vue项目类型的复杂处理逻辑
+    // // HTML类型使用简单的代码流式输出（已注释，仅保留VUE逻辑）
+    // if (codeGenType === CodeGenTypeEnum.HTML) {
+    //   parseSimpleCodeStreaming(chunk, fullContent)
+    // }
+    // // MULTI_FILE类型使用专用的多文件流式输出
+    // else if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
+    //   parseMultiFileStreaming(chunk, fullContent)
+    // } else {
+    //   // Vue项目类型的复杂处理逻辑
+    // }
+    
+    // 新逻辑：固定使用VUE项目类型的复杂处理逻辑
       if (chunk.includes('[工具调用]')) {
         // 通用工具调用解析
         parseToolCall(chunk, fullContent)
@@ -3096,7 +3113,7 @@ const parseStreamingContent = (chunk: string, fullContent: string) => {
       if (chunk.includes('STEP ')) {
         parseStepInfo(chunk)
       }
-    }
+    // }  // 已注释：原 else 分支的闭合
 
     // 同步UI状态到全局store，以便页面切换后恢复
     syncUIStateToStore()
@@ -3394,16 +3411,19 @@ const startSimpleCodeFile = () => {
   simpleCodeContent.value = ''
 
   // 根据应用类型确定文件名和语言
-  const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+  // const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML  // 旧逻辑：支持多种类型
+  // const codeGenType = CodeGenTypeEnum.VUE_PROJECT  // 新逻辑：固定使用VUE类型
   let fileName = 'index'
   let language = 'html'
   let fileExtension = '.html'
 
-  if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {
-    fileName = 'main'
-    language = 'javascript'
-    fileExtension = '.js'
-  }
+  // if (codeGenType === CodeGenTypeEnum.MULTI_FILE) {  // 已注释：多文件模式
+  //   fileName = 'main'
+  //   language = 'javascript'
+  //   fileExtension = '.js'
+  // }
+  
+  // 新逻辑：VUE项目模式默认值（保持index.html）
 
   simpleCodeFile.value = {
     id: Date.now().toString(),

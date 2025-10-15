@@ -223,7 +223,10 @@ public class AiCodeGeneratorFacade {
                             // 同步构造 Vue 项目（同步执行，确保预览时项目已就绪）
                             String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
                             if (control == null || !control.isCancelled()) {
-                                vueProjectBuilder.buildProject(projectPath);
+                                com.spring.aicodemother.core.build.BuildResult buildResult = vueProjectBuilder.buildProject(projectPath);
+                                if (!buildResult.isSuccess()) {
+                                    log.error("Vue 项目构建失败: {}", buildResult.getErrorSummary());
+                                }
                             }
                             sink.complete();
                         })

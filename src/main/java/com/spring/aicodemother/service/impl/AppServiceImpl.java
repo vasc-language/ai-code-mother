@@ -565,18 +565,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         app.setAppName(appName);
 
-        // 使用AI路由判断代码生成类型
-        CodeGenTypeEnum codeGenType;
-        try {
-            AiCodeGenTypeRoutingService routingService =
-                aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
-            codeGenType = routingService.routeCodeGenType(initPrompt);
-            log.info("AI路由判断生成类型成功: {}", codeGenType.getText());
-        } catch (Exception e) {
-            log.warn("AI路由判断失败，使用默认类型: {}", e.getMessage());
-            codeGenType = CodeGenTypeEnum.MULTI_FILE;
-        }
+        // 固定使用VUE项目类型
+        CodeGenTypeEnum codeGenType = CodeGenTypeEnum.VUE_PROJECT;
         app.setCodeGenType(codeGenType.getValue());
+        log.info("使用VUE项目类型");
 
         // 插入数据库
         boolean result = this.save(app);
@@ -625,8 +617,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
         if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
             // Vue 项目需要构建
-            boolean buildSuccess = vueProjectBuilder.buildProject(sourceDirPath);
-            ThrowUtils.throwIf(!buildSuccess, ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败，请检查代码和依赖");
+            com.spring.aicodemother.core.build.BuildResult buildResult = vueProjectBuilder.buildProject(sourceDirPath);
+            if (!buildResult.isSuccess()) {
+                String errorMsg = "Vue 项目构建失败: " + buildResult.getErrorSummary();
+                log.error(errorMsg);
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMsg);
+            }
             // 检查 dist 目录是否存在
             File distDir = new File(sourceDirPath, "dist");
             ThrowUtils.throwIf(!distDir.exists(), ErrorCode.SYSTEM_ERROR, "Vue 项目构建完成但未生成 dist 目录");
