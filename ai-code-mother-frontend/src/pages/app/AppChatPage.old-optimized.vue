@@ -5687,59 +5687,26 @@ watch(
   }
 }
 
-/* 刷新提示样式 - 米色主题，与背景一体化 */
+/* 刷新提示样式 - 简洁无框版本 */
 .refresh-reminder {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #f8f6f0 0%, #e8e3d8 100%);
-  border: 2px solid #d4cfc4;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
-  animation: gentle-pulse 2s ease-in-out infinite;
+  gap: 8px;
+  margin-top: 12px;
+  /* 去掉所有框样式：背景、边框、阴影、动画 */
 }
 
 .refresh-icon {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-  animation: rotate-refresh 3s linear infinite;
+  opacity: 0.7;
 }
 
 .refresh-text {
-  font-size: 16px;
-  font-weight: 700;
-  color: #5d4e37;
-  letter-spacing: 0.5px;
-  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
   line-height: 1.5;
-}
-
-/* 脉冲动画 */
-@keyframes gentle-pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
-  }
-  50% {
-    transform: scale(1.02);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15), 0 3px 8px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* 旋转动画 */
-@keyframes rotate-refresh {
-  0% {
-    transform: rotate(0deg);
-  }
-  10% {
-    transform: rotate(360deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
 }
 </style>
