@@ -560,6 +560,7 @@ import {
   rollbackToVersion as rollbackToVersionApi,
 } from '@/api/appVersionController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
+import { listCodeFiles, getFileContent } from '@/api/codePreviewController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import { initMessageCollapse } from '@/utils/messageCollapse'
 import request from '@/request'
@@ -1495,6 +1496,89 @@ const loadMoreHistory = async () => {
   await loadChatHistory(true)
 }
 
+// 从后端重新获取完整文件列表
+const refreshFilesFromBackend = async () => {
+  const id = appId.value || (route.params.id as string)
+  if (!id) {
+    console.error('[刷新文件] appId 为空')
+    return
+  }
+
+  try {
+    console.log('[刷新文件] 开始从后端获取文件列表, appId:', id)
+    const res = await listCodeFiles({ appId: id as unknown as number })
+    console.log('[刷新文件] API 响应:', res.data)
+    
+    if (res.data.code === 0 && res.data.data) {
+      const responseData = res.data.data as any
+      const fileList = responseData.files as Array<{name: string, path: string, type: string}>
+      
+      console.log('[刷新文件] 文件列表:', fileList)
+      
+      if (!fileList || !Array.isArray(fileList)) {
+        console.error('[刷新文件] 返回数据格式错误, responseData:', responseData)
+        return
+      }
+
+      const generatedAt = new Date().toISOString()
+      const files: GeneratedFile[] = []
+
+      // 遍历文件列表，获取每个文件的内容
+      for (const fileInfo of fileList) {
+        console.log('[刷新文件] 处理文件:', fileInfo)
+        if (fileInfo.type !== 'file') {
+          console.log('[刷新文件] 跳过目录:', fileInfo.path)
+          continue
+        }
+        
+        try {
+          console.log('[刷新文件] 获取文件内容:', fileInfo.path)
+          // 获取文件内容
+          const fileRes = await getFileContent({ 
+            appId: id as unknown as number, 
+            filePath: fileInfo.path 
+          })
+          
+          console.log('[刷新文件] 文件内容响应:', fileInfo.path, fileRes.data)
+          
+          if (fileRes.data.code === 0 && fileRes.data.data) {
+            const fileData = fileRes.data.data as any
+            const contentLength = (fileData.content || '').length
+            console.log(`[刷新文件] 成功获取 ${fileInfo.path}, 内容长度: ${contentLength}`)
+            
+            files.push({
+              id: `${fileInfo.path}-${Date.now()}`,
+              name: fileInfo.name,
+              path: fileInfo.path,
+              content: fileData.content || '',
+              language: detectLanguage(fileInfo.path),
+              completed: true,
+              generatedAt,
+              lastUpdated: generatedAt,
+            })
+          } else {
+            console.error('[刷新文件] API返回失败:', fileInfo.path, fileRes.data)
+          }
+        } catch (err) {
+          console.error(`[刷新文件] 获取文件内容异常: ${fileInfo.path}`, err)
+        }
+      }
+
+      console.log(`[刷新文件] 总共获取到 ${files.length} 个文件`)
+      
+      // 更新文件列表
+      if (files.length > 0) {
+        completedFiles.value = files
+        if (!selectedFileId.value || !files.find(f => f.id === selectedFileId.value)) {
+          selectedFileId.value = files[0].id
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[刷新文件] 获取失败:', error)
+  }
+}
+
 // 获取应用信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
@@ -1939,6 +2023,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       // 延迟更新预览，确保后端已完成处理
       setTimeout(async () => {
         await fetchAppInfo()
+        await refreshFilesFromBackend()  // ✅ 从后端重新获取完整文件列表
         updatePreview()
       }, 1000)
     })
@@ -2553,14 +2638,19 @@ const normalizeCodeGenType = (type?: string): CodeGenTypeEnum => {
 }
 
 const buildFilesFromToolExecutions = (generatedAt: string): GeneratedFile[] => {
-  if (!sseStructuredMessages.length) return []
+  if (!sseStructuredMessages.length) {
+    console.log('[buildFiles] 没有结构化消息')
+    return []
+  }
 
+  console.log(`[buildFiles] 开始处理 ${sseStructuredMessages.length} 条消息`)
   const fileMap = new Map<string, GeneratedFile>()
   let counter = 0
 
   for (const message of sseStructuredMessages) {
     if (!message || typeof message !== 'object') continue
     const type = (message.type || message.messageType || '').toString()
+    console.log(`[buildFiles] 消息类型: ${type}, 工具名: ${message.name || 'unknown'}`)
     if (type !== 'tool_executed' && type !== 'toolExecuted') continue
 
     let args: any = {}
@@ -2579,10 +2669,20 @@ const buildFilesFromToolExecutions = (generatedAt: string): GeneratedFile[] => {
 
     if (typeof args?.content === 'string') {
       content = args.content
+      console.log(`[内容提取] 从 args.content, 长度: ${content.length}`)
     } else if (typeof args?.newContent === 'string') {
+      // ✅ 检测到文件修改工具，跳过（等待done事件统一刷新完整内容）
+      const toolName = (message.name || '').toString().toLowerCase()
+      console.log(`[工具检测] 工具名: ${toolName}, 路径: ${relativePath}, newContent长度: ${args.newContent.length}`)
+      if (toolName.includes('modifyfile') || toolName.includes('修改')) {
+        console.log(`[文件修改] 跳过工具消息，等待完整刷新: ${relativePath}`)
+        continue
+      }
       content = args.newContent
+      console.log(`[内容提取] 从 args.newContent, 长度: ${content.length}`)
     } else if (Array.isArray(args?.lines)) {
       content = args.lines.join('\n')
+      console.log(`[内容提取] 从 args.lines, 长度: ${content.length}`)
     }
 
     if ((!relativePath || !content) && typeof message.result === 'string') {
@@ -2608,10 +2708,13 @@ const buildFilesFromToolExecutions = (generatedAt: string): GeneratedFile[] => {
       lastUpdated: generatedAt,
     }
 
+    console.log(`[文件生成] ${relativePath}, 内容长度: ${content.length}`)
     fileMap.set(relativePath, generatedFile)
   }
 
-  return Array.from(fileMap.values())
+  const result = Array.from(fileMap.values())
+  console.log(`[buildFiles] 最终生成 ${result.length} 个文件`)
+  return result
 }
 
 const parseToolResultSnippet = (result: string): { path: string; content: string } | null => {

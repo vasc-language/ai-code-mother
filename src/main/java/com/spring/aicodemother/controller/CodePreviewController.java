@@ -212,11 +212,30 @@ public class CodePreviewController {
         Files.walkFileTree(currentPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                String fileName = file.getFileName().toString();
+                long fileSize = attrs.size();
+                
+                // 跳过超大文件（超过 5MB），避免前端加载卡顿
+                final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+                if (fileSize > MAX_FILE_SIZE) {
+                    log.debug("跳过大文件: {} ({}MB)", file, fileSize / 1024 / 1024);
+                    return FileVisitResult.CONTINUE;
+                }
+                
+                // 跳过特定文件
+                if (fileName.equals("package-lock.json") ||
+                    fileName.equals("yarn.lock") ||
+                    fileName.equals("pnpm-lock.yaml") ||
+                    fileName.endsWith(".lock")) {
+                    log.debug("跳过锁定文件: {}", fileName);
+                    return FileVisitResult.CONTINUE;
+                }
+                
                 Map<String, Object> fileInfo = new HashMap<>();
                 String relativePath = rootPath.relativize(file).toString().replace("\\", "/");
-                fileInfo.put("name", file.getFileName().toString());
+                fileInfo.put("name", fileName);
                 fileInfo.put("path", relativePath);
-                fileInfo.put("size", attrs.size());
+                fileInfo.put("size", fileSize);
                 fileInfo.put("type", "file");
                 files.add(fileInfo);
                 return FileVisitResult.CONTINUE;
@@ -224,10 +243,33 @@ public class CodePreviewController {
             
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                // 跳过不需要的目录
+                String dirName = dir.getFileName() != null ? dir.getFileName().toString() : "";
+                
+                // 需要跳过的目录列表
+                if (dirName.equals("node_modules") ||      // Node.js 依赖
+                    dirName.equals("dist") ||              // 打包产物
+                    dirName.equals("build") ||             // 编译输出
+                    dirName.equals(".git") ||              // Git 版本控制
+                    dirName.equals(".svn") ||              // SVN 版本控制
+                    dirName.equals("target") ||            // Maven 编译输出
+                    dirName.equals(".idea") ||             // IntelliJ IDEA 配置
+                    dirName.equals(".vscode") ||           // VS Code 配置
+                    dirName.equals(".eclipse") ||          // Eclipse 配置
+                    dirName.equals(".settings") ||         // Eclipse 设置
+                    dirName.equals("coverage") ||          // 测试覆盖率
+                    dirName.equals(".nuxt") ||             // Nuxt.js 缓存
+                    dirName.equals(".next") ||             // Next.js 缓存
+                    dirName.equals(".cache") ||            // 通用缓存
+                    dirName.equals("__pycache__")) {       // Python 缓存
+                    log.debug("跳过目录: {}", dir);
+                    return FileVisitResult.SKIP_SUBTREE;   // 跳过整个子树
+                }
+                
                 if (!dir.equals(rootPath)) {
                     Map<String, Object> dirInfo = new HashMap<>();
                     String relativePath = rootPath.relativize(dir).toString().replace("\\", "/");
-                    dirInfo.put("name", dir.getFileName().toString());
+                    dirInfo.put("name", dirName);
                     dirInfo.put("path", relativePath);
                     dirInfo.put("type", "directory");
                     files.add(dirInfo);
