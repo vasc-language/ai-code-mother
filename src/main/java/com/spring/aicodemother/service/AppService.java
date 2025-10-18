@@ -6,6 +6,7 @@ import com.spring.aicodemother.model.dto.app.AppAddRequest;
 import com.spring.aicodemother.model.dto.app.AppQueryRequest;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.model.vo.AppVO;
+import com.spring.aicodemother.model.vo.DevelopmentPlanVO;
 import com.spring.aicodemother.model.entity.App;
 import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
@@ -38,4 +39,14 @@ public interface AppService extends IService<App> {
     Long createApp(AppAddRequest appAddRequest, User loginUser);
 
     String deployApp(Long appId, User loginUser);
+
+    /**
+     * 生成开发计划（不执行代码生成）
+     *
+     * @param appId       应用ID
+     * @param message     用户需求描述
+     * @param loginUser   登录用户
+     * @return 开发计划
+     */
+    DevelopmentPlanVO generateDevelopmentPlan(Long appId, String message, User loginUser);
 }

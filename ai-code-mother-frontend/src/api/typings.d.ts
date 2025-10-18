@@ -119,6 +119,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseDevelopmentPlanVO = {
+    code?: number
+    data?: DevelopmentPlanVO
+    message?: string
+  }
+
   type BaseResponseListAiModelConfig = {
     code?: number
     data?: AiModelConfig[]
@@ -250,6 +256,21 @@ declare namespace API {
     id?: number
   }
 
+  type DevelopmentPlanVO = {
+    /** 计划ID（用于后续关联） */
+    planId?: string
+    /** 计划内容（Markdown格式） */
+    content?: string
+    /** 预估开发步骤数 */
+    estimatedSteps?: number
+    /** 预估文件数量 */
+    estimatedFiles?: number
+    /** 技术栈列表 */
+    techStack?: string[]
+    /** 生成时间 */
+    createdAt?: string
+  }
+
   type DiagramTask = {
     mermaidCode?: string
     description?: string
@@ -273,6 +294,15 @@ declare namespace API {
 
   type executeWorkflowWithSseParams = {
     prompt: string
+  }
+
+  type generateDevelopmentPlanParams = {
+    appId: number
+  }
+
+  type GeneratePlanRequest = {
+    /** 用户需求描述 */
+    message?: string
   }
 
   type getAppVOByIdByAdminParams = {

@@ -91,7 +91,7 @@ public class DynamicAiModelFactory {
                 .modelName(modelKey)     // 使用modelKey作为模型名称
                 .baseUrl(modelConfig.getBaseUrl())
                 .maxTokens(8192)         // 默认最大token数
-                .temperature(0.7)        // 默认温度
+                .temperature(0.0)        // 降低温度以提升工具调用稳定性
                 .logRequests(true)
                 .logResponses(true)
                 .build();

@@ -223,9 +223,16 @@ public class AiCodeGeneratorFacade {
                             // 同步构造 Vue 项目（同步执行，确保预览时项目已就绪）
                             String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
                             if (control == null || !control.isCancelled()) {
-                                com.spring.aicodemother.core.build.BuildResult buildResult = vueProjectBuilder.buildProject(projectPath);
-                                if (!buildResult.isSuccess()) {
-                                    log.error("Vue 项目构建失败: {}", buildResult.getErrorSummary());
+                                // 先检查项目是否有实际内容，避免AI只输出计划未生成代码就触发构建
+                                if (isValidProjectDirectory(projectPath)) {
+                                    com.spring.aicodemother.core.build.BuildResult buildResult = vueProjectBuilder.buildProject(projectPath);
+                                    if (!buildResult.isSuccess()) {
+                                        log.error("Vue 项目构建失败: {}", buildResult.getErrorSummary());
+                                    }
+                                } else {
+                                    log.warn("项目目录不存在或内容不足，跳过构建: {}", projectPath);
+                                    // 不发送警告消息给用户
+                                    // 如果AI在等待确认，这是正常流程；如果真的失败了，校验会拦截
                                 }
                             }
                             sink.complete();
@@ -267,6 +274,38 @@ public class AiCodeGeneratorFacade {
     }
 
 
+
+    /**
+     * 检查项目目录是否有效（存在且包含必要文件）
+     *
+     * @param projectPath 项目路径
+     * @return 是否有效
+     */
+    private boolean isValidProjectDirectory(String projectPath) {
+        File projectDir = new File(projectPath);
+        if (!projectDir.exists() || !projectDir.isDirectory()) {
+            return false;
+        }
+        
+        // 检查是否至少有package.json文件
+        File packageJson = new File(projectDir, "package.json");
+        if (!packageJson.exists()) {
+            return false;
+        }
+        
+        // 检查目录是否有足够的文件（至少3个文件，避免只有一个空文件的情况）
+        File[] files = projectDir.listFiles();
+        int fileCount = 0;
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile() && !".DS_Store".equals(file.getName())) {
+                    fileCount++;
+                }
+            }
+        }
+        
+        return fileCount >= 3; // 至少需要package.json和其他2个文件
+    }
 
     /**
      * 通用流式代码处理方法

@@ -28,11 +28,22 @@ public interface GenerationValidationService {
     void recordGeneration(Long userId, String message);
 
     /**
-     * 验证生成结果是否有效
+     * 验证生成结果是否有效（旧版本，保留兼容性）
      * @param content 生成的内容
      * @return true表示有效，false表示无效
+     * @deprecated 使用 validateGenerationResult(String content, Long appId, String codeGenType) 替代
      */
+    @Deprecated
     boolean validateGenerationResult(String content);
+
+    /**
+     * 验证生成结果是否有效（检查内容和实际文件）
+     * @param content 生成的内容
+     * @param appId 应用ID
+     * @param codeGenType 代码生成类型
+     * @return true表示有效，false表示无效
+     */
+    boolean validateGenerationResult(String content, Long appId, String codeGenType);
 
     /**
      * 记录警告并惩罚用户（额外扣减10积分）

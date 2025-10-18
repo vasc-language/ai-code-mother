@@ -16,6 +16,7 @@ import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
 import com.spring.aicodemother.model.dto.app.*;
 import com.spring.aicodemother.model.vo.AppVO;
+import com.spring.aicodemother.model.vo.DevelopmentPlanVO;
 import com.spring.aicodemother.model.entity.User;
 import com.spring.aicodemother.ratelimit.annotation.RateLimit;
 import com.spring.aicodemother.ratelimit.enums.RateLimitType;
@@ -234,6 +235,36 @@ public class AppController {
         User loginUser = userService.getLoginUser(request);
         Long appId = appService.createApp(appAddRequest, loginUser);
         return ResultUtils.success(appId);
+    }
+
+    /**
+     * 生成开发计划（不执行代码生成）
+     *
+     * @param appId   应用ID
+     * @param request 请求体（包含用户需求）
+     * @return 开发计划
+     */
+    @PostMapping("/generatePlan/{appId}")
+    @RateLimit(limitType = RateLimitType.USER, rate = 10, rateInterval = 60, message = "生成计划请求过于频繁，请稍后再试")
+    public BaseResponse<DevelopmentPlanVO> generateDevelopmentPlan(
+            @PathVariable("appId") Long appId,
+            @RequestBody GeneratePlanRequest request,
+            HttpServletRequest httpRequest) {
+        log.info("开始生成开发计划，应用ID: {}, 需求: {}", appId, request.getMessage());
+
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        ThrowUtils.throwIf(request == null || StrUtil.isBlank(request.getMessage()),
+                ErrorCode.PARAMS_ERROR, "需求描述不能为空");
+
+        // 获取登录用户
+        User loginUser = userService.getLoginUser(httpRequest);
+
+        // 调用Service生成计划
+        DevelopmentPlanVO plan = appService.generateDevelopmentPlan(appId, request.getMessage(), loginUser);
+
+        log.info("开发计划生成成功，planId: {}", plan.getPlanId());
+        return ResultUtils.success(plan);
     }
 
     /**

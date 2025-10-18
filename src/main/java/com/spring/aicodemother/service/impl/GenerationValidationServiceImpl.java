@@ -75,7 +75,14 @@ public class GenerationValidationServiceImpl implements GenerationValidationServ
     }
 
     @Override
+    @Deprecated
     public boolean validateGenerationResult(String content) {
+        // 旧版本：仅检查内容（保留向后兼容）
+        return validateGenerationResult(content, null, null);
+    }
+
+    @Override
+    public boolean validateGenerationResult(String content, Long appId, String codeGenType) {
         // 检查内容是否为空或过短
         if (StrUtil.isBlank(content)) {
             log.warn("[无效生成] 生成内容为空");
@@ -89,6 +96,20 @@ public class GenerationValidationServiceImpl implements GenerationValidationServ
             return false;
         }
 
+        // 新增：检查是否是"计划确认阶段"（AI在等待用户确认）
+        if (isWaitingForConfirmation(trimmed)) {
+            log.info("[计划阶段] AI正在等待用户确认计划，这是正常流程，允许通过校验");
+            return true;  // 这是两阶段流程的第一阶段，不是失败！
+        }
+
+        // 检查是否生成了实际代码文件（只有在不是计划阶段时才检查）
+        if (appId != null && StrUtil.isNotBlank(codeGenType)) {
+            if (!checkCodeFilesGenerated(appId, codeGenType)) {
+                log.warn("[无效生成] 未生成实际代码文件，appId={}, codeGenType={}", appId, codeGenType);
+                return false;
+            }
+        }
+
         // TODO: 后续可以添加安全过滤（色情、暴力、政治敏感内容检测）
         // if (containsSensitiveContent(content)) {
         //     log.warn("[无效生成] 包含敏感内容");
@@ -96,6 +117,138 @@ public class GenerationValidationServiceImpl implements GenerationValidationServ
         // }
 
         return true;
+    }
+
+    /**
+     * 检查AI是否在等待用户确认计划
+     * 通过识别AI输出中的询问性语句来判断
+     *
+     * @param content AI输出的内容
+     * @return true表示AI在等待确认
+     */
+    private boolean isWaitingForConfirmation(String content) {
+        if (StrUtil.isBlank(content)) {
+            return false;
+        }
+
+        String lowerContent = content.toLowerCase();
+
+        // 1. 确认性询问短语列表
+        String[] confirmationPhrases = {
+            "您觉得这个计划",
+            "你觉得这个计划", 
+            "这个方案",
+            "是否满意",
+            "是否可以",
+            "请确认",
+            "请问是否",
+            "可以开始吗",
+            "是否开始",
+            "合适吗",
+            "同意吗",
+            "没问题吗",
+            // 识别"计划说明后的下一步引导"
+            "what's next",
+            "运行 npm",
+            "实现的功能",
+            "实现功能",
+            "主要功能",
+            "核心功能"
+        };
+
+        // 检查是否包含确认性询问
+        for (String phrase : confirmationPhrases) {
+            if (lowerContent.contains(phrase.toLowerCase())) {
+                log.debug("检测到询问短语: {}", phrase);
+                return true;
+            }
+        }
+
+        // 2. 新增：检测AI是否输出了"假工具调用"
+        // 如果AI输出包含工具调用的文本描述（如"【工具调用】"），但后续验证会发现没有实际文件
+        // 这说明AI在描述计划，而不是真正执行
+        if (lowerContent.contains("【工具调用】") || 
+            lowerContent.contains("[工具调用]") ||
+            lowerContent.contains("tool call") ||
+            lowerContent.contains("calling tool")) {
+            log.debug("检测到工具调用文本描述，可能是计划阶段的说明");
+            // 注意：这里先返回false，让后续的文件检查来判断
+            // 如果没有文件，会被判定为失败；但我们会在失败时检查是否包含这些特征
+        }
+
+        // 3. 新增：检测步骤列表式的计划描述
+        // 如果包含多个步骤标记，很可能是计划
+        int stepMarkers = 0;
+        String[] stepPatterns = {"步骤", "step", "•", "●", "1)", "2)", "3)", "一、", "二、", "三、"};
+        for (String pattern : stepPatterns) {
+            if (lowerContent.contains(pattern.toLowerCase())) {
+                stepMarkers++;
+            }
+        }
+        if (stepMarkers >= 3) {
+            log.debug("检测到多个步骤标记({}个)，可能是计划阶段", stepMarkers);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查是否生成了实际代码文件
+     *
+     * @param appId       应用ID
+     * @param codeGenType 代码生成类型
+     * @return true表示已生成文件
+     */
+    private boolean checkCodeFilesGenerated(Long appId, String codeGenType) {
+        try {
+            // 根据代码生成类型确定输出目录
+            String outputDir;
+            if ("vue_project".equals(codeGenType)) {
+                outputDir = com.spring.aicodemother.constant.AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+            } else if ("multi_file".equals(codeGenType)) {
+                outputDir = com.spring.aicodemother.constant.AppConstant.CODE_OUTPUT_ROOT_DIR + "/multi_file_" + appId;
+            } else if ("html".equals(codeGenType)) {
+                outputDir = com.spring.aicodemother.constant.AppConstant.CODE_OUTPUT_ROOT_DIR + "/html_" + appId;
+            } else {
+                // 未知类型，暂不检查文件
+                log.debug("未知代码生成类型，跳过文件检查: {}", codeGenType);
+                return true;
+            }
+
+            java.io.File projectDir = new java.io.File(outputDir);
+            if (!projectDir.exists() || !projectDir.isDirectory()) {
+                log.debug("项目目录不存在: {}", outputDir);
+                return false;
+            }
+
+            // 检查目录下是否有实际文件（至少3个文件，排除系统文件）
+            java.io.File[] files = projectDir.listFiles();
+            if (files == null || files.length == 0) {
+                log.debug("项目目录为空: {}", outputDir);
+                return false;
+            }
+
+            int validFileCount = 0;
+            for (java.io.File file : files) {
+                // 排除系统文件和目录
+                if (file.isFile() && !".DS_Store".equals(file.getName())) {
+                    validFileCount++;
+                }
+            }
+
+            // 至少需要3个有效文件（例如：package.json + vite.config.js + index.html）
+            boolean hasEnoughFiles = validFileCount >= 3;
+            if (!hasEnoughFiles) {
+                log.debug("项目文件数量不足: {} 个文件，需要至少3个", validFileCount);
+            }
+            return hasEnoughFiles;
+
+        } catch (Exception e) {
+            log.error("检查代码文件生成失败: {}", e.getMessage(), e);
+            // 检查失败时，为了不影响正常流程，返回true
+            return true;
+        }
     }
 
     @Override
