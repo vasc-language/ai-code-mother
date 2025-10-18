@@ -46,11 +46,9 @@ INSERT IGNORE INTO `ai_model_config` (`model_key`, `model_name`, `provider`, `ba
 ('deepseek-r1', 'DeepSeek R1', 'iflow', 'https://204992.xyz/v1', 'HARD', 8, 'DeepSeek R1 推理模型', 1, 304);
 
 -- ======================================================
--- 4. Kimi 系列模型 (MEDIUM-HARD级别)
+-- 4. Kimi 系列模型 (MEDIUM-HARD级别) - 已移除 kimi-k2 和 kimi-k2-0905
 -- ======================================================
 INSERT IGNORE INTO `ai_model_config` (`model_key`, `model_name`, `provider`, `base_url`, `tier`, `points_per_k_token`, `description`, `is_enabled`, `sort_order`) VALUES
-('kimi-k2', 'Kimi K2', 'iflow', 'https://204992.xyz/v1', 'HARD', 8, 'Moonshot Kimi K2 标准版', 1, 400),
-('kimi-k2-0905', 'Kimi K2 0905版', 'iflow', 'https://204992.xyz/v1', 'HARD', 8, 'Kimi K2 0905 特定版本', 1, 401),
 ('kimi-k2-free', 'Kimi K2 免费版', 'openrouter', 'https://204992.xyz/v1', 'MEDIUM', 3, 'Moonshot Kimi K2 免费版', 1, 402);
 
 -- ======================================================
