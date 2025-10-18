@@ -42,15 +42,26 @@ const codeLines = computed(() => {
 const highlightedCode = computed(() => {
   if (!props.code) return ''
 
+  console.log('[CodeHighlight] 接收到的props:', {
+    language: props.language,
+    fileName: props.fileName,
+    codeLength: props.code.length,
+    hasLanguageSupport: props.language ? hljs.getLanguage(props.language) : false
+  })
+
   if (props.language && hljs.getLanguage(props.language)) {
     try {
-      return hljs.highlight(props.code, {
+      const result = hljs.highlight(props.code, {
         language: props.language,
         ignoreIllegals: true
       }).value
+      console.log('[CodeHighlight] 高亮成功，使用语言:', props.language)
+      return result
     } catch (error) {
-      console.warn('代码高亮失败:', error)
+      console.warn('[CodeHighlight] 代码高亮失败:', error)
     }
+  } else {
+    console.warn('[CodeHighlight] 未找到语言或语言不支持:', props.language)
   }
 
   // 如果指定语言失败，尝试自动检测

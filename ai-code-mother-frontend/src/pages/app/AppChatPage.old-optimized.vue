@@ -851,7 +851,16 @@ const projectName = computed(() => {
 // 计算属性：当前选中的文件对象
 const selectedFile = computed(() => {
   if (!selectedFileId.value) return null
-  return allFiles.value.find(f => f.id === selectedFileId.value) || null
+  const file = allFiles.value.find(f => f.id === selectedFileId.value) || null
+  if (file) {
+    console.log('[selectedFile] 当前选中文件:', {
+      name: file.name,
+      path: file.path,
+      language: file.language,
+      contentLength: file.content?.length
+    })
+  }
+  return file
 })
 
 // 选择文件
@@ -1546,16 +1555,21 @@ const refreshFilesFromBackend = async () => {
             const contentLength = (fileData.content || '').length
             console.log(`[刷新文件] 成功获取 ${fileInfo.path}, 内容长度: ${contentLength}`)
             
+            const detectedLanguage = detectLanguage(fileInfo.path)
+            console.log(`[刷新文件] ${fileInfo.path} 检测语言: ${detectedLanguage}`)
+            
             files.push({
               id: `${fileInfo.path}-${Date.now()}`,
               name: fileInfo.name,
               path: fileInfo.path,
               content: fileData.content || '',
-              language: detectLanguage(fileInfo.path),
+              language: detectedLanguage,
               completed: true,
               generatedAt,
               lastUpdated: generatedAt,
             })
+            
+            console.log(`[刷新文件] 文件对象:`, files[files.length - 1])
           } else {
             console.error('[刷新文件] API返回失败:', fileInfo.path, fileRes.data)
           }
@@ -1568,10 +1582,25 @@ const refreshFilesFromBackend = async () => {
       
       // 更新文件列表
       if (files.length > 0) {
+        const currentSelectedPath = selectedFile.value?.path
         completedFiles.value = files
-        if (!selectedFileId.value || !files.find(f => f.id === selectedFileId.value)) {
+        
+        // 如果之前有选中的文件，尝试保持选中同一个文件（根据路径匹配）
+        if (currentSelectedPath) {
+          const matchedFile = files.find(f => f.path === currentSelectedPath)
+          if (matchedFile) {
+            selectedFileId.value = matchedFile.id
+            console.log('[刷新文件] 保持选中文件:', currentSelectedPath)
+          } else {
+            selectedFileId.value = files[0].id
+            console.log('[刷新文件] 未找到匹配文件，选中第一个')
+          }
+        } else if (!selectedFileId.value || !files.find(f => f.id === selectedFileId.value)) {
           selectedFileId.value = files[0].id
+          console.log('[刷新文件] 选中第一个文件')
         }
+        
+        console.log('[刷新文件] 当前选中 ID:', selectedFileId.value)
       }
     }
   } catch (error) {

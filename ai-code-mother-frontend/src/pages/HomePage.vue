@@ -681,20 +681,13 @@ onMounted(() => {
   color: var(--gray-800);
   position: relative;
   overflow: hidden;
+  background: transparent;  /* 透明背景 */
+  border: none;  /* 无边框 */
 }
 
 .hero-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(ellipse 800px 400px at center, rgba(0, 56, 255, 0.12) 0%, transparent 70%),
-    linear-gradient(45deg, transparent 30%, rgba(0, 209, 255, 0.05) 50%, transparent 70%),
-    linear-gradient(-45deg, transparent 30%, rgba(204, 48, 134, 0.04) 50%, transparent 70%);
-  animation: heroGlow 10s ease-in-out infinite alternate;
+  /* 去掉背景光晕效果，避免看起来像框 */
+  content: none;
 }
 
 @keyframes heroGlow {
@@ -718,10 +711,10 @@ onMounted(() => {
 }
 
 .hero-title {
-  font-size: var(--font-size-5xl);
+  font-size: 3rem;  /* 改为 3rem，更大 */
   font-weight: var(--font-weight-bold);
   margin: 0 0 var(--spacing-lg);
-  line-height: var(--line-height-tight);
+  line-height: 1.2;  /* 减小行高，确保在一行 */
   background: var(--button-gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -731,6 +724,14 @@ onMounted(() => {
   z-index: 2;
   animation: titleShimmer 3s ease-in-out infinite;
   background-size: 200% 200%;
+  white-space: nowrap;  /* 强制在一行显示 */
+  margin-top: -40px;  /* 往上移动 */
+  
+  /* 隐藏所有可能的框 */
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0;
 }
 
 @keyframes titleShimmer {
@@ -745,10 +746,10 @@ onMounted(() => {
 
 .hero-icon {
   display: inline-block;
-  width: 1.2em;
-  height: 1.2em;
+  width: 1em;  /* 从 1.2em 改为 1em，更小 */
+  height: 1em;
   vertical-align: middle;
-  margin: 0 0.3em;
+  margin: 0 0.2em;  /* 从 0.3em 改为 0.2em，间距更紧凑 */
   animation: iconBounce 2s ease-in-out infinite;
   filter: drop-shadow(0 4px 8px rgba(0, 56, 255, 0.3));
 }
@@ -1142,7 +1143,8 @@ onMounted(() => {
   }
 
   .hero-title {
-    font-size: var(--font-size-3xl);
+    font-size: 2rem;  /* 移动端也调大 */
+    margin-top: -20px;  /* 移动端往上移动距离减小 */
   }
 
   .hero-description {
