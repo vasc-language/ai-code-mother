@@ -71,6 +71,30 @@ public class AiModelConfig implements Serializable {
     private Integer pointsPerKToken;
 
     /**
+     * 质量评分（0.5-2.0，用于动态调整倍率）
+     */
+    @Column("quality_score")
+    private java.math.BigDecimal qualityScore;
+
+    /**
+     * 生成成功率（%）
+     */
+    @Column("success_rate")
+    private java.math.BigDecimal successRate;
+
+    /**
+     * 平均token消耗
+     */
+    @Column("avg_token_usage")
+    private Integer avgTokenUsage;
+
+    /**
+     * 用户评分（1-5分）
+     */
+    @Column("user_rating")
+    private java.math.BigDecimal userRating;
+
+    /**
      * 模型描述
      */
     @Column("description")

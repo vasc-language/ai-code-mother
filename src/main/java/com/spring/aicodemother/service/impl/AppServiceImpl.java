@@ -170,8 +170,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
 
-        // ========== [临时注释：测试阶段跳过所有防刷检测] ==========
-        /*
         // 4.0 防刷检测
         // 检查用户今日是否被禁止生成
         if (generationValidationService.isUserBannedToday(loginUser.getId())) {
@@ -203,14 +201,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         // 增加今日生成次数
         generationValidationService.incrementGenerationCount(loginUser.getId());
-        */
-        log.info("[测试模式] 跳过所有防刷检测（禁止检查、次数限制、Token限制、重复检测）");
 
         // 4.1 根据生成类型计算所需积分
         int requiredPoints = com.spring.aicodemother.constants.PointsConstants.getPointsByGenType(codeGenTypeEnum.getValue());
 
-        // ========== [临时注释：测试阶段跳过积分检查] ==========
-        /*
         // 4.2 检查用户积分是否充足
         if (!userPointsService.checkPointsSufficient(loginUser.getId(), requiredPoints)) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR,
@@ -228,8 +222,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(!pointsDeducted, ErrorCode.SYSTEM_ERROR, "扣减积分失败");
         log.info("用户 {} 生成应用 {} ({}) 预扣 {} 积分", loginUser.getId(), appId,
             codeGenTypeEnum.getText(), requiredPoints);
-        */
-        log.info("[测试模式] 跳过积分检查和扣除，用户 {} 生成应用 {}", loginUser.getId(), appId);
 
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
@@ -290,8 +282,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                             if (!valid) {
                                 log.warn("用户 {} 生成应用 {} 的结果未通过有效性校验（内容为空或未生成代码文件）", loginUser.getId(), appId);
                                 
-                                // ========== [临时注释：测试阶段跳过惩罚和返还] ==========
-                                /*
                                 pointsMetricsCollector.recordInvalidGeneration(loginUser.getId().toString(), "no_code_files");
                                 generationValidationService.recordWarningAndPunish(loginUser.getId(), "AI只输出计划未生成实际代码");
                                 
@@ -316,13 +306,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                                             refundError.getMessage(),
                                             refundError);
                                 }
-                                */
-                                log.info("[测试模式] 检测到生成无效，跳过惩罚和积分返还");
                                 return;
                             }
 
-                            // ========== [临时注释：测试阶段跳过积分多退少补] ==========
-                            /*
                             long fallbackTokens = (long) preDeductPoints
                                     * com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT;
                             com.spring.aicodemother.monitor.MonitorContext monitorContext = com.spring.aicodemother.monitor.MonitorContextHolder.getContext();
@@ -364,18 +350,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                                     log.error("生成应用返还积分失败，用户:{} 应用:{} 返还:{} 错误:{}", loginUser.getId(), appId, refund, e.getMessage());
                                 }
                             }
-                            */
-                            log.info("[测试模式] 跳过积分多退少补逻辑");
 
-                            // 8.1 记录Token消耗（测试模式：记录一个固定值）
-                            // generationValidationService.recordTokenUsage(loginUser.getId(), tokenToRecord);
-                            log.info("[测试模式] 跳过Token消耗记录");
+                            // 8.1 记录Token消耗
+                            generationValidationService.recordTokenUsage(loginUser.getId(), tokenToRecord);
 
                             // 8.2 检查是否是用户首次生成，发放首次生成奖励
                             checkAndRewardFirstGenerate(loginUser.getId(), appId);
                         } else {
-                            // ========== [临时注释：测试阶段跳过失败返还] ==========
-                            /*
                             // 生成失败或取消，返还预扣的积分
                             try {
                                 userPointsService.addPoints(
@@ -405,8 +386,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                                     log.error("记录返还失败指标时出错: {}", metricsError.getMessage());
                                 }
                             }
-                            */
-                            log.info("[测试模式] 生成失败/取消，跳过积分返还");
                         }
                     } catch (Exception e) {
                         log.error("处理首次生成奖励时出错: {}", e.getMessage(), e);

@@ -274,10 +274,10 @@ const getCapabilityIcons = (model: API.AiModelConfig) => {
   return icons
 }
 
-// 格式化积分显示
+// 格式化倍率显示
 const formatTokenCount = (model: API.AiModelConfig) => {
-  // 直接显示积分数
-  return model.pointsPerKToken ? `${model.pointsPerKToken}积分` : '-'
+  // 显示倍率而不是固定积分，避免用户误解
+  return model.pointsPerKToken ? `×${model.pointsPerKToken}` : '-'
 }
 
 // Watch props changes
@@ -465,15 +465,16 @@ defineExpose({
   background: rgba(168, 85, 247, 0.1);
 }
 
-/* ========== Token数量 ========== */
+/* ========== 倍率显示 ========== */
 .token-count {
-  min-width: 60px;
+  min-width: 45px;
   text-align: right;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: #ff8c42;
   font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
-  letter-spacing: -0.3px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .model-item.selected .token-count {

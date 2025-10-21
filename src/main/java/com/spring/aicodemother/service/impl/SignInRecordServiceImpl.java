@@ -12,6 +12,8 @@ import com.spring.aicodemother.service.SignInRecordService;
 import com.spring.aicodemother.service.UserPointsService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +35,9 @@ public class SignInRecordServiceImpl extends ServiceImpl<SignInRecordMapper, Sig
 
     @Resource
     private UserPointsService userPointsService;
+    
+    @Resource
+    private RedissonClient redissonClient;
 
     // 签到积分配置
     private static final int BASE_SIGN_IN_POINTS = 5; // 基础签到积分
@@ -44,56 +50,78 @@ public class SignInRecordServiceImpl extends ServiceImpl<SignInRecordMapper, Sig
     public Map<String, Object> dailySignIn(Long userId) {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
 
-        // 检查今日是否已签到
-        if (hasSignedInToday(userId)) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "今日已签到，请勿重复签到");
+        // 使用分布式锁防止并发签到
+        String lockKey = "sign_in:lock:" + userId;
+        RLock lock = redissonClient.getLock(lockKey);
+        
+        try {
+            // 尝试获取锁，最多等待3秒，锁自动释放时间10秒
+            boolean locked = lock.tryLock(3, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙，请稍后重试");
+            }
+            
+            // 加锁后再次检查今日是否已签到（双重检查）
+            if (hasSignedInToday(userId)) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "今日已签到，请勿重复签到");
+            }
+
+            // 计算连续签到天数
+            Integer continuousDays = calculateContinuousDays(userId);
+
+            // 计算本次签到获得的积分
+            Integer pointsEarned = calculateSignInPoints(continuousDays);
+
+            // 保存签到记录
+            SignInRecord signInRecord = SignInRecord.builder()
+                    .userId(userId)
+                    .signInDate(LocalDate.now())
+                    .continuousDays(continuousDays)
+                    .pointsEarned(pointsEarned)
+                    .build();
+            boolean saved = this.save(signInRecord);
+            ThrowUtils.throwIf(!saved, ErrorCode.SYSTEM_ERROR, "保存签到记录失败");
+
+            // 发放积分
+            boolean pointsAdded = userPointsService.addPoints(
+                    userId,
+                    pointsEarned,
+                    PointsTypeEnum.SIGN_IN.getValue(),
+                    "每日签到奖励",
+                    signInRecord.getId()
+            );
+            ThrowUtils.throwIf(!pointsAdded, ErrorCode.SYSTEM_ERROR, "发放签到积分失败");
+
+            log.info("用户 {} 签到成功，连续签到 {} 天，获得 {} 积分", userId, continuousDays, pointsEarned);
+
+            // 返回签到结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("continuousDays", continuousDays);
+            result.put("pointsEarned", pointsEarned);
+            result.put("message", "签到成功！");
+
+            // 添加连续签到提示
+            if (continuousDays == 3) {
+                result.put("bonusMessage", "连续签到3天，额外获得3积分！");
+            } else if (continuousDays == 7) {
+                result.put("bonusMessage", "连续签到7天，额外获得10积分！");
+            } else if (continuousDays == 30) {
+                result.put("bonusMessage", "连续签到30天，额外获得50积分！");
+            }
+
+            return result;
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("用户 {} 签到时获取锁被中断", userId, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙，请稍后重试");
+        } finally {
+            // 释放锁（只有当前线程持有锁时才释放）
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
-
-        // 计算连续签到天数
-        Integer continuousDays = calculateContinuousDays(userId);
-
-        // 计算本次签到获得的积分
-        Integer pointsEarned = calculateSignInPoints(continuousDays);
-
-        // 保存签到记录
-        SignInRecord signInRecord = SignInRecord.builder()
-                .userId(userId)
-                .signInDate(LocalDate.now())
-                .continuousDays(continuousDays)
-                .pointsEarned(pointsEarned)
-                .build();
-        boolean saved = this.save(signInRecord);
-        ThrowUtils.throwIf(!saved, ErrorCode.SYSTEM_ERROR, "保存签到记录失败");
-
-        // 发放积分
-        boolean pointsAdded = userPointsService.addPoints(
-                userId,
-                pointsEarned,
-                PointsTypeEnum.SIGN_IN.getValue(),
-                "每日签到奖励",
-                null
-        );
-        ThrowUtils.throwIf(!pointsAdded, ErrorCode.SYSTEM_ERROR, "发放签到积分失败");
-
-        log.info("用户 {} 签到成功，连续签到 {} 天，获得 {} 积分", userId, continuousDays, pointsEarned);
-
-        // 返回签到结果
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("continuousDays", continuousDays);
-        result.put("pointsEarned", pointsEarned);
-        result.put("message", "签到成功！");
-
-        // 添加连续签到提示
-        if (continuousDays == 3) {
-            result.put("bonusMessage", "连续签到3天，额外获得3积分！");
-        } else if (continuousDays == 7) {
-            result.put("bonusMessage", "连续签到7天，额外获得10积分！");
-        } else if (continuousDays == 30) {
-            result.put("bonusMessage", "连续签到30天，额外获得50积分！");
-        }
-
-        return result;
     }
 
     @Override

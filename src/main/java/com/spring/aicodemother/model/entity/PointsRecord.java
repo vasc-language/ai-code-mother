@@ -60,6 +60,12 @@ public class PointsRecord implements Serializable {
     private String type;
 
     /**
+     * 积分状态（ACTIVE:有效, EXPIRED:已过期, CONSUMED:已消费, PARTIAL_CONSUMED:部分消费）
+     */
+    @Column("status")
+    private String status;
+
+    /**
      * 变动原因描述
      */
     @Column("reason")
@@ -88,6 +94,24 @@ public class PointsRecord implements Serializable {
      */
     @Column("expireTime")
     private LocalDateTime expireTime;
+
+    /**
+     * 实际过期金额（可能小于points）
+     */
+    @Column("expired_amount")
+    private Integer expiredAmount;
+
+    /**
+     * 实际过期时间
+     */
+    @Column("actual_expire_time")
+    private LocalDateTime actualExpireTime;
+
+    /**
+     * 剩余积分（用于FIFO消费追踪，仅对增加类型有效）
+     */
+    @Column("remaining_points")
+    private Integer remainingPoints;
 
     /**
      * 创建时间

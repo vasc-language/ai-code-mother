@@ -53,17 +53,26 @@ const calculatePopupPosition = () => {
     maxHeight: `${popupHeight}px`,
   }
 
-  // 决定显示在上方还是下方
-  if (spaceAbove >= popupHeight || spaceAbove > spaceBelow) {
-    // 显示在上方
+  // 决定显示在上方还是下方（优先向下展开）
+  if (spaceBelow >= popupHeight) {
+    // 下方空间充足，优先向下展开
+    style.top = `${rect.bottom + gap}px`
+    style.bottom = 'auto'
+  } else if (spaceAbove >= popupHeight) {
+    // 下方空间不够但上方空间充足，向上展开
     style.bottom = `${viewportHeight - rect.top + gap}px`
     style.top = 'auto'
   } else {
-    // 显示在下方
-    style.top = `${rect.bottom + gap}px`
-    style.bottom = 'auto'
-    // 如果下方空间也不够，限制最大高度
-    if (spaceBelow < popupHeight) {
+    // 上下空间都不够，选择空间较大的一侧并限制高度
+    if (spaceAbove > spaceBelow) {
+      // 上方空间更大
+      style.bottom = `${viewportHeight - rect.top + gap}px`
+      style.top = 'auto'
+      style.maxHeight = `${spaceAbove - gap - 20}px`
+    } else {
+      // 下方空间更大
+      style.top = `${rect.bottom + gap}px`
+      style.bottom = 'auto'
       style.maxHeight = `${spaceBelow - gap - 20}px`
     }
   }

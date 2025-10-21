@@ -7,7 +7,9 @@ import com.spring.aicodemother.constants.PointsConstants;
 import com.spring.aicodemother.exception.BusinessException;
 import com.spring.aicodemother.exception.ErrorCode;
 import com.spring.aicodemother.exception.ThrowUtils;
+import com.spring.aicodemother.mapper.AppMapper;
 import com.spring.aicodemother.mapper.InviteRecordMapper;
+import com.spring.aicodemother.model.entity.App;
 import com.spring.aicodemother.model.entity.InviteRecord;
 import com.spring.aicodemother.model.enums.InviteStatusEnum;
 import com.spring.aicodemother.model.enums.PointsTypeEnum;
@@ -33,6 +35,9 @@ public class InviteRecordServiceImpl extends ServiceImpl<InviteRecordMapper, Inv
 
     @Resource
     private UserPointsService userPointsService;
+    
+    @Resource
+    private AppMapper appMapper;
 
     // 邀请奖励配置
     private static final int INVITE_REGISTER_POINTS = 20; // 注册奖励
@@ -40,6 +45,10 @@ public class InviteRecordServiceImpl extends ServiceImpl<InviteRecordMapper, Inv
     private static final int INVITE_FIRST_GENERATE_INVITEE_POINTS = 10; // 首次生成-被邀请人奖励
     private static final int MAX_DAILY_INVITE_COUNT = 3; // 单日最多邀请次数
     private static final int ABUSE_CHECK_DAYS = 7; // 防刷检测天数
+    
+    // 防刷阈值配置（优化后）
+    private static final int IP_ABUSE_THRESHOLD = 3; // 7天内同一IP最多3次注册
+    private static final int DEVICE_ABUSE_THRESHOLD = 2; // 7天内同一设备最多2次注册
 
     @Override
     public String generateInviteCode(Long userId) {
@@ -285,21 +294,36 @@ public class InviteRecordServiceImpl extends ServiceImpl<InviteRecordMapper, Inv
 
         LocalDateTime checkTime = LocalDateTime.now().minusDays(ABUSE_CHECK_DAYS);
 
-        QueryWrapper queryWrapper = QueryWrapper.create()
-                .ge(InviteRecord::getRegisterTime, checkTime);
-
-        // 检查IP
+        // 检查IP频次（如果提供了IP）
         if (registerIp != null) {
-            queryWrapper.and((java.util.function.Consumer<QueryWrapper>) qw -> qw.eq(InviteRecord::getRegisterIp, registerIp));
+            QueryWrapper ipQueryWrapper = QueryWrapper.create()
+                    .eq(InviteRecord::getRegisterIp, registerIp)
+                    .ge(InviteRecord::getRegisterTime, checkTime);
+            
+            long ipCount = this.count(ipQueryWrapper);
+            if (ipCount >= IP_ABUSE_THRESHOLD) {
+                log.warn("IP {} 在{}天内已注册{}次，达到阈值{}，疑似刷分", 
+                        registerIp, ABUSE_CHECK_DAYS, ipCount, IP_ABUSE_THRESHOLD);
+                return true;
+            }
         }
 
-        // 检查设备ID
-        if (deviceId != null && registerIp == null) {
-            queryWrapper.and((java.util.function.Consumer<QueryWrapper>) qw -> qw.eq(InviteRecord::getDeviceId, deviceId));
+        // 检查设备ID频次（如果提供了设备ID）
+        if (deviceId != null) {
+            QueryWrapper deviceQueryWrapper = QueryWrapper.create()
+                    .eq(InviteRecord::getDeviceId, deviceId)
+                    .ge(InviteRecord::getRegisterTime, checkTime);
+            
+            long deviceCount = this.count(deviceQueryWrapper);
+            if (deviceCount >= DEVICE_ABUSE_THRESHOLD) {
+                log.warn("设备 {} 在{}天内已注册{}次，达到阈值{}，疑似刷分", 
+                        deviceId, ABUSE_CHECK_DAYS, deviceCount, DEVICE_ABUSE_THRESHOLD);
+                return true;
+            }
         }
 
-        long count = this.count(queryWrapper);
-        return count > 0;
+        // 通过检查
+        return false;
     }
 
     @Override
@@ -323,50 +347,101 @@ public class InviteRecordServiceImpl extends ServiceImpl<InviteRecordMapper, Inv
                 continue;
             }
 
-            boolean deductionSucceeded = false;
+            // 关键修复：检查被邀请人是否已首次生成应用
+            long generationCount = checkInviteeFirstGeneration(inviteeId);
+            if (generationCount > 0) {
+                log.info("被邀请人 {} 已生成应用，保留邀请奖励，跳过回收。记录ID: {}", 
+                        inviteeId, record.getId());
+                // 更新状态为已奖励（避免下次再检查）
+                record.setStatus(InviteStatusEnum.REWARDED.getValue());
+                record.setRewardTime(LocalDateTime.now());
+                this.updateById(record);
+                continue; // 跳过回收
+            }
 
+            // 被邀请人未生成应用，执行回收
+            boolean inviterDeducted = false;
+            boolean inviteeDeducted = false;
+
+            // 回收邀请人奖励
             try {
                 userPointsService.deductPoints(
                         inviterId,
                         PointsConstants.INVITE_REGISTER_INVITER_REWARD,
                         PointsTypeEnum.INVITE.getValue(),
-                        "邀请奖励回收（被邀请人7天无操作）",
+                        "邀请奖励回收（被邀请人7天内未生成应用）",
                         record.getId()
                 );
-                deductionSucceeded = true;
+                inviterDeducted = true;
+                log.info("邀请人 {} 奖励回收成功：扣减 {} 积分", inviterId, PointsConstants.INVITE_REGISTER_INVITER_REWARD);
             } catch (Exception e) {
-                log.warn("邀请奖励回收失败-邀请人扣减异常，记录ID: {}, 错误: {}", record.getId(), e.getMessage());
+                log.warn("邀请人 {} 奖励回收失败，记录ID: {}, 错误: {}", inviterId, record.getId(), e.getMessage());
             }
 
+            // 回收被邀请人奖励
             try {
                 userPointsService.deductPoints(
                         inviteeId,
                         PointsConstants.INVITE_REGISTER_INVITEE_REWARD,
                         PointsTypeEnum.INVITE.getValue(),
-                        "邀请奖励回收（被邀请人7天无操作）",
+                        "邀请奖励回收（被邀请人7天内未生成应用）",
                         record.getId()
                 );
-                deductionSucceeded = true;
+                inviteeDeducted = true;
+                log.info("被邀请人 {} 奖励回收成功：扣减 {} 积分", inviteeId, PointsConstants.INVITE_REGISTER_INVITEE_REWARD);
             } catch (Exception e) {
-                log.warn("邀请奖励回收失败-被邀请人扣减异常，记录ID: {}, 错误: {}", record.getId(), e.getMessage());
+                log.warn("被邀请人 {} 奖励回收失败，记录ID: {}, 错误: {}", inviteeId, record.getId(), e.getMessage());
             }
 
-            int inviterPoints = record.getInviterPoints() == null ? 0 : record.getInviterPoints();
-            int inviteePoints = record.getInviteePoints() == null ? 0 : record.getInviteePoints();
-            record.setStatus(InviteStatusEnum.REVOKED.getValue());
-            record.setRewardTime(LocalDateTime.now());
-            record.setInviterPoints(Math.max(0, inviterPoints - PointsConstants.INVITE_REGISTER_INVITER_REWARD));
-            record.setInviteePoints(Math.max(0, inviteePoints - PointsConstants.INVITE_REGISTER_INVITEE_REWARD));
-            boolean updated = this.updateById(record);
-            if (!updated) {
-                log.warn("邀请奖励回收后更新记录状态失败，记录ID: {}", record.getId());
-            }
-            if (deductionSucceeded) {
-                revokedCount++;
+            // 关键修复：只有扣减成功才更新状态为REVOKED
+            if (inviterDeducted || inviteeDeducted) {
+                int inviterPoints = record.getInviterPoints() == null ? 0 : record.getInviterPoints();
+                int inviteePoints = record.getInviteePoints() == null ? 0 : record.getInviteePoints();
+                
+                record.setStatus(InviteStatusEnum.REVOKED.getValue());
+                record.setRewardTime(LocalDateTime.now());
+                
+                // 更新积分记录（只扣减成功的部分）
+                if (inviterDeducted) {
+                    record.setInviterPoints(Math.max(0, inviterPoints - PointsConstants.INVITE_REGISTER_INVITER_REWARD));
+                }
+                if (inviteeDeducted) {
+                    record.setInviteePoints(Math.max(0, inviteePoints - PointsConstants.INVITE_REGISTER_INVITEE_REWARD));
+                }
+                
+                boolean updated = this.updateById(record);
+                if (!updated) {
+                    log.error("邀请记录状态更新失败，记录ID: {}", record.getId());
+                } else {
+                    revokedCount++;
+                    log.info("邀请奖励回收完成，记录ID: {}，邀请人扣减: {}，被邀请人扣减: {}", 
+                            record.getId(), inviterDeducted, inviteeDeducted);
+                }
+            } else {
+                log.warn("邀请奖励回收失败（双方扣减均失败），保持REGISTERED状态，记录ID: {}", record.getId());
             }
         }
 
+        log.info("邀请奖励回收任务完成，共回收 {} 条记录", revokedCount);
         return revokedCount;
+    }
+
+    /**
+     * 检查被邀请人是否已首次生成应用
+     * 
+     * @param inviteeId 被邀请人ID
+     * @return 生成应用的数量
+     */
+    private long checkInviteeFirstGeneration(Long inviteeId) {
+        // 查询 app 表，检查用户是否有生成记录
+        QueryWrapper wrapper = QueryWrapper.create()
+                .eq(App::getUserId, inviteeId);
+        
+        long generationCount = appMapper.selectCountByQuery(wrapper);
+        
+        log.debug("检查被邀请人 {} 生成记录：{} 个应用", inviteeId, generationCount);
+        
+        return generationCount;
     }
 
     @Override

@@ -44,4 +44,25 @@ public interface AiModelConfigService extends IService<AiModelConfig> {
      */
     Integer calculatePoints(String modelKey, Integer tokenCount);
 
+    /**
+     * 更新模型质量系数
+     *
+     * @param modelKey 模型key
+     * @param qualityScore 质量系数（0.5-2.0）
+     * @return 是否更新成功
+     */
+    boolean updateQualityScore(String modelKey, java.math.BigDecimal qualityScore);
+
+    /**
+     * 更新模型统计信息
+     *
+     * @param modelKey 模型key
+     * @param successRate 成功率
+     * @param avgTokenUsage 平均token消耗
+     * @param userRating 用户评分
+     * @return 是否更新成功
+     */
+    boolean updateModelStats(String modelKey, java.math.BigDecimal successRate, 
+                            Integer avgTokenUsage, java.math.BigDecimal userRating);
+
 }
