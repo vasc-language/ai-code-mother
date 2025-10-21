@@ -202,26 +202,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 增加今日生成次数
         generationValidationService.incrementGenerationCount(loginUser.getId());
 
-        // 4.1 根据生成类型计算所需积分
-        int requiredPoints = com.spring.aicodemother.constants.PointsConstants.getPointsByGenType(codeGenTypeEnum.getValue());
-
-        // 4.2 检查用户积分是否充足
-        if (!userPointsService.checkPointsSufficient(loginUser.getId(), requiredPoints)) {
+        // 4.1 检查用户积分最低门槛（不再预扣，由监听器实时扣费）
+        int minPoints = 50; // 最低积分门槛，确保基本使用能力
+        if (!userPointsService.checkPointsSufficient(loginUser.getId(), minPoints)) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR,
-                String.format("积分不足，当前生成类型需要 %d 积分，请先签到或邀请好友获取积分", requiredPoints));
+                String.format("积分不足，至少需要 %d 积分才能生成，请先签到或邀请好友获取积分", minPoints));
         }
-
-        // 4.3 预扣积分
-        boolean pointsDeducted = userPointsService.deductPoints(
-                loginUser.getId(),
-                requiredPoints,
-                com.spring.aicodemother.model.enums.PointsTypeEnum.GENERATE.getValue(),
-                String.format("生成应用消耗积分（%s）", codeGenTypeEnum.getText()),
-                appId
-        );
-        ThrowUtils.throwIf(!pointsDeducted, ErrorCode.SYSTEM_ERROR, "扣减积分失败");
-        log.info("用户 {} 生成应用 {} ({}) 预扣 {} 积分", loginUser.getId(), appId,
-            codeGenTypeEnum.getText(), requiredPoints);
+        log.info("用户 {} 开始生成应用 {}，当前积分充足（>= {}）", loginUser.getId(), appId, minPoints);
 
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
@@ -267,7 +254,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 8. 收集AI响应内容并在完成后记录到对话历史（根据取消状态抑制副作用）
         java.util.function.BooleanSupplier cancelled = (control == null) ? (() -> false) : control::isCancelled;
         AtomicReference<String> finalResponseRef = new AtomicReference<>("");
-        final int preDeductPoints = requiredPoints; // 保存预扣积分值供后续使用
+        
         return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum,
                         cancelled, finalResponseRef::set)
                 .doFinally(signalType -> {
@@ -276,119 +263,35 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                         if (signalType == reactor.core.publisher.SignalType.ON_COMPLETE && !cancelled.getAsBoolean()) {
                             String finalResponse = finalResponseRef.get();
                             String normalizedContent = normalizeGenerationContent(finalResponse);
-                            // 新版本：同时检查内容和实际文件
+                            
+                            // 校验生成结果是否有效
                             boolean valid = generationValidationService.validateGenerationResult(
                                     normalizedContent, appId, codeGenTypeEnum.getValue());
                             if (!valid) {
                                 log.warn("用户 {} 生成应用 {} 的结果未通过有效性校验（内容为空或未生成代码文件）", loginUser.getId(), appId);
-                                
                                 pointsMetricsCollector.recordInvalidGeneration(loginUser.getId().toString(), "no_code_files");
                                 generationValidationService.recordWarningAndPunish(loginUser.getId(), "AI只输出计划未生成实际代码");
-                                
-                                // 返还预扣的积分（因为没有生成有效代码）
-                                try {
-                                    userPointsService.addPoints(
-                                            loginUser.getId(),
-                                            preDeductPoints,
-                                            "REFUND",
-                                            "生成无效（未生成代码文件），返还积分",
-                                            appId
-                                    );
-                                    log.info("用户 {} 生成无效，已成功返还 {} 积分，应用ID: {}",
-                                            loginUser.getId(),
-                                            preDeductPoints,
-                                            appId);
-                                } catch (Exception refundError) {
-                                    log.error("【积分返还失败】用户ID: {}, 应用ID: {}, 应返还积分: {}, 错误信息: {}",
-                                            loginUser.getId(),
-                                            appId,
-                                            preDeductPoints,
-                                            refundError.getMessage(),
-                                            refundError);
-                                }
+                                // 注意：监听器已扣费，无效生成会导致积分损失（惩罚机制）
                                 return;
                             }
 
-                            long fallbackTokens = (long) preDeductPoints
-                                    * com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT;
+                            // 记录Token消耗（用于统计）
                             com.spring.aicodemother.monitor.MonitorContext monitorContext = com.spring.aicodemother.monitor.MonitorContextHolder.getContext();
-                            long actualTokens = (monitorContext != null && monitorContext.getTotalTokens() != null)
-                                    ? monitorContext.getTotalTokens()
-                                    : fallbackTokens;
-                            int tokenToRecord = (int) Math.min(Integer.MAX_VALUE, actualTokens);
-                            int actualRequiredPoints = (int) Math.ceil(actualTokens / (double) com.spring.aicodemother.constants.PointsConstants.TOKENS_PER_POINT);
-                            if (actualTokens > 0 && actualRequiredPoints == 0) {
-                                actualRequiredPoints = 1;
+                            if (monitorContext != null && monitorContext.getTotalTokens() != null) {
+                                int tokenToRecord = monitorContext.getTotalTokens().intValue();
+                                generationValidationService.recordTokenUsage(loginUser.getId(), tokenToRecord);
+                                log.info("用户 {} 生成应用 {} 消耗 {} tokens，监听器已实时扣费", 
+                                        loginUser.getId(), appId, tokenToRecord);
                             }
 
-                            if (actualRequiredPoints > preDeductPoints) {
-                                int additional = actualRequiredPoints - preDeductPoints;
-                                try {
-                                    userPointsService.deductPoints(
-                                            loginUser.getId(),
-                                            additional,
-                                            com.spring.aicodemother.model.enums.PointsTypeEnum.GENERATE.getValue(),
-                                            "生成应用实际消耗补扣",
-                                            appId
-                                    );
-                                    log.info("用户 {} 生成应用 {} 实际消耗补扣 {} 积分", loginUser.getId(), appId, additional);
-                                } catch (Exception e) {
-                                    log.error("生成应用补扣积分失败，用户:{} 应用:{} 补扣:{} 错误:{}", loginUser.getId(), appId, additional, e.getMessage());
-                                }
-                            } else if (actualRequiredPoints < preDeductPoints) {
-                                int refund = preDeductPoints - actualRequiredPoints;
-                                try {
-                                    userPointsService.addPoints(
-                                            loginUser.getId(),
-                                            refund,
-                                            com.spring.aicodemother.model.enums.PointsTypeEnum.REFUND.getValue(),
-                                            "生成应用实际消耗返还",
-                                            appId
-                                    );
-                                    log.info("用户 {} 生成应用 {} 实际消耗返还 {} 积分", loginUser.getId(), appId, refund);
-                                } catch (Exception e) {
-                                    log.error("生成应用返还积分失败，用户:{} 应用:{} 返还:{} 错误:{}", loginUser.getId(), appId, refund, e.getMessage());
-                                }
-                            }
-
-                            // 8.1 记录Token消耗
-                            generationValidationService.recordTokenUsage(loginUser.getId(), tokenToRecord);
-
-                            // 8.2 检查是否是用户首次生成，发放首次生成奖励
+                            // 检查是否是用户首次生成，发放首次生成奖励
                             checkAndRewardFirstGenerate(loginUser.getId(), appId);
                         } else {
-                            // 生成失败或取消，返还预扣的积分
-                            try {
-                                userPointsService.addPoints(
-                                        loginUser.getId(),
-                                        preDeductPoints,
-                                        "REFUND",
-                                        "生成失败/取消，返还积分",
-                                        appId
-                                );
-                                log.info("用户 {} 生成失败/取消，已成功返还 {} 积分，应用ID: {}",
-                                        loginUser.getId(),
-                                        preDeductPoints,
-                                        appId);
-                            } catch (Exception refundError) {
-                                // 返还失败，记录详细错误信息，便于后续人工补偿
-                                log.error("【积分返还失败】用户ID: {}, 应用ID: {}, 应返还积分: {}, 错误信息: {}, 堆栈: ",
-                                        loginUser.getId(),
-                                        appId,
-                                        preDeductPoints,
-                                        refundError.getMessage(),
-                                        refundError);
-
-                                // 记录到监控指标，便于告警
-                                try {
-                                    pointsMetricsCollector.recordRefundFailure(loginUser.getId().toString(), appId.toString());
-                                } catch (Exception metricsError) {
-                                    log.error("记录返还失败指标时出错: {}", metricsError.getMessage());
-                                }
-                            }
+                            // 生成失败或取消（监听器未触发扣费，无需返还）
+                            log.info("用户 {} 生成应用 {} 失败或取消，监听器未扣费", loginUser.getId(), appId);
                         }
                     } catch (Exception e) {
-                        log.error("处理首次生成奖励时出错: {}", e.getMessage(), e);
+                        log.error("处理生成完成后逻辑时出错: {}", e.getMessage(), e);
                     } finally {
                         // 无论成功与否，最后流结束都清除监控上下文
                         MonitorContextHolder.clearContext();

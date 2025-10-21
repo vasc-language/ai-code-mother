@@ -13,7 +13,7 @@ public class AppAddRequest implements Serializable {
     private String initPrompt;
 
     /**
-     * 用户选择的AI模型Key（如 qwen-turbo, gpt-5-codex-medium）
+     * 用户选择的AI模型Key（如 qwen-turbo, gpt-5-codex）
      */
     private String modelKey;
 

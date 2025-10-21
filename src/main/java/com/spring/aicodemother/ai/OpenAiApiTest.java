@@ -21,7 +21,7 @@ public class OpenAiApiTest {
     // 配置常量
     private static final String BASE_URL = "https://204992.xyz/v1";
     private static final String API_KEY = "sk-6d9175726392996b969a9ded28fe2a47dce1884c2023f28fc3cb666d22db57d8";
-    private static final String MODEL_NAME = "gpt-5-codex-medium";
+    private static final String MODEL_NAME = "gpt-5-codex";
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_DELAY_MS = 2000;
 

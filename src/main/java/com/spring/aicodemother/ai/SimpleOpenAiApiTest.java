@@ -22,7 +22,7 @@ public class SimpleOpenAiApiTest {
 
     private static final String BASE_URL = "https://204992.xyz/v1";
     private static final String API_KEY = "sk-6d9175726392996b969a9ded28fe2a47dce1884c2023f28fc3cb666d22db57d8";
-    private static final String MODEL_NAME = "gpt-5-codex-medium";
+    private static final String MODEL_NAME = "gpt-5-codex";
 
     /**
      * 调用 OpenAI Chat API
@@ -118,7 +118,7 @@ public class SimpleOpenAiApiTest {
         log.info("\n========== 多模型测试 ==========");
 
         String[] models = {
-            "gpt-5-codex-medium",
+            "gpt-5-codex",
             "gpt-5-codex",
             "deepseek-v3",
             "qwen3-max"
