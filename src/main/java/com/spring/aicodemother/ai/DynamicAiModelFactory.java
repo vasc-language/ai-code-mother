@@ -28,6 +28,9 @@ public class DynamicAiModelFactory {
     @Resource
     private AiModelConfigService aiModelConfigService;
 
+    @Resource
+    private com.spring.aicodemother.monitor.AiModelMonitorListener aiModelMonitorListener;
+
     /**
      * 统一的API密钥（从配置文件读取）
      */
@@ -86,6 +89,8 @@ public class DynamicAiModelFactory {
 
         // 动态创建OpenAiStreamingChatModel
         // 使用统一的API密钥，支持所有55个模型
+        // ✅ 注意：OpenAI的流式API会在最后一条消息中返回完整的Token usage统计（包括工具调用的Token）
+        //    监听器会在 onResponse 中自动收集这些Token，并通过全局缓存累加
         return OpenAiStreamingChatModel.builder()
                 .apiKey(unifiedApiKey)  // 使用统一的API密钥
                 .modelName(modelKey)     // 使用modelKey作为模型名称
@@ -94,6 +99,7 @@ public class DynamicAiModelFactory {
                 .temperature(0.0)        // 降低温度以提升工具调用稳定性
                 .logRequests(true)
                 .logResponses(true)
+                .listeners(java.util.List.of(aiModelMonitorListener))  // ✅ 注册监听器，监控Token使用
                 .build();
     }
 
