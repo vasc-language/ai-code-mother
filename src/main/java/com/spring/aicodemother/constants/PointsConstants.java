@@ -37,12 +37,12 @@ public class PointsConstants {
     /**
      * 首次生成奖励积分
      */
-    public static final int FIRST_GENERATE_REWARD = 30;
+    public static final int FIRST_GENERATE_REWARD = 50;
 
     /**
      * 新用户注册奖励积分
      */
-    public static final int REGISTER_REWARD = 30;
+    public static final int REGISTER_REWARD = 100;
 
     /**
      * 签到基础奖励积分
@@ -67,22 +67,22 @@ public class PointsConstants {
     /**
      * 邀请用户注册 - 邀请人奖励
      */
-    public static final int INVITE_REGISTER_INVITER_REWARD = 20;
+    public static final int INVITE_REGISTER_INVITER_REWARD = 50;
 
     /**
      * 邀请用户注册 - 被邀请人奖励
      */
-    public static final int INVITE_REGISTER_INVITEE_REWARD = 20;
+    public static final int INVITE_REGISTER_INVITEE_REWARD = 50;
 
     /**
      * 邀请用户首次生成 - 邀请人奖励
      */
-    public static final int INVITE_FIRST_GEN_INVITER_REWARD = 30;
+    public static final int INVITE_FIRST_GEN_INVITER_REWARD = 50;
 
     /**
      * 邀请用户首次生成 - 被邀请人奖励
      */
-    public static final int INVITE_FIRST_GEN_INVITEE_REWARD = 10;
+    public static final int INVITE_FIRST_GEN_INVITEE_REWARD = 30;
 
     /**
      * 无效生成惩罚积分

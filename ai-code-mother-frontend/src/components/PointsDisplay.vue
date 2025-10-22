@@ -4,7 +4,7 @@
       <template #title>
         <div class="points-tooltip">
           <p>当前可用积分：{{ availablePoints }}</p>
-          <p class="tip">每次生成消耗约6积分</p>
+          <p class="tip">根据实际Token消耗计算积分</p>
         </div>
       </template>
       <div class="points-badge" @click="goToPointsDetail">

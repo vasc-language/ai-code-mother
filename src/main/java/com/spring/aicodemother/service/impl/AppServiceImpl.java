@@ -191,17 +191,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                             usage, com.spring.aicodemother.constants.PointsConstants.DAILY_TOKEN_LIMIT));
         }
 
-        // 检查24小时内是否重复生成相同需求
+        // [已禁用] 检查24小时内是否重复生成相同需求（简化开发，用户在同一对话中反复修改需求是正常的）
+        /*
         if (generationValidationService.isDuplicateGeneration(loginUser.getId(), message)) {
             int warningCount = generationValidationService.recordWarningAndPunish(loginUser.getId(), "24小时内重复生成相同需求");
             String msg = String.format("检测到重复生成，已记录警告（今日第%d次），并扣除%d积分",
                     warningCount, com.spring.aicodemother.constants.PointsConstants.INVALID_GENERATION_PENALTY);
             throw new BusinessException(ErrorCode.OPERATION_ERROR, msg);
         }
+        */
 
         // 增加今日生成次数
         generationValidationService.incrementGenerationCount(loginUser.getId());
 
+        // ⚠️ 临时禁用积分检查（测试期间）- 测试完成后请取消注释
+        /*
         // 4.1 检查用户积分最低门槛（不再预扣，由监听器实时扣费）
         int minPoints = 50; // 最低积分门槛，确保基本使用能力
         if (!userPointsService.checkPointsSufficient(loginUser.getId(), minPoints)) {
@@ -209,12 +213,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 String.format("积分不足，至少需要 %d 积分才能生成，请先签到或邀请好友获取积分", minPoints));
         }
         log.info("用户 {} 开始生成应用 {}，当前积分充足（>= {}）", loginUser.getId(), appId, minPoints);
+        */
+        log.info("[测试模式] 用户 {} 开始生成应用 {}，已跳过积分检查", loginUser.getId(), appId);
 
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
 
-        // 5.0 记录本次生成（用于后续重复检测）
-        generationValidationService.recordGeneration(loginUser.getId(), message);
+        // [已禁用] 记录本次生成（用于后续重复检测）
+        // generationValidationService.recordGeneration(loginUser.getId(), message);
 
         // 5.1 若为 Vue 工程模式，尝试命中预置模板并进行首次目录拷贝，同时为当前轮拼接模板说明
         // [已禁用] VUE模板功能暂时不使用
@@ -270,8 +276,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                             if (!valid) {
                                 log.warn("用户 {} 生成应用 {} 的结果未通过有效性校验（内容为空或未生成代码文件）", loginUser.getId(), appId);
                                 pointsMetricsCollector.recordInvalidGeneration(loginUser.getId().toString(), "no_code_files");
-                                generationValidationService.recordWarningAndPunish(loginUser.getId(), "AI只输出计划未生成实际代码");
-                                // 注意：监听器已扣费，无效生成会导致积分损失（惩罚机制）
+                                // [已禁用] 惩罚机制：AI只输出计划未生成实际代码时不扣额外积分
+                                // generationValidationService.recordWarningAndPunish(loginUser.getId(), "AI只输出计划未生成实际代码");
+                                // 注意：监听器已扣费，但不额外惩罚扣分
                                 return;
                             }
 

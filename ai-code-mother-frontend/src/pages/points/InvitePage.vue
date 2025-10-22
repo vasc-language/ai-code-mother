@@ -69,8 +69,8 @@
             >
               <template #description>
                 <ul class="reward-list">
-                  <li>好友注册：你和好友各得 <span class="points-highlight">20积分</span></li>
-                  <li>好友首次生成：你得 <span class="points-highlight">30积分</span>，好友得 <span class="points-highlight">10积分</span></li>
+                  <li>好友注册：你和好友各得 <span class="points-highlight">50积分</span></li>
+                  <li>好友首次生成：你得 <span class="points-highlight">50积分</span>，好友得 <span class="points-highlight">30积分</span></li>
                   <li>每日最多获得 <span class="points-highlight">3次</span> 邀请奖励</li>
                 </ul>
               </template>
