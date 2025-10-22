@@ -49,7 +49,7 @@
           />
         </div>
 
-        <!-- Token数量 -->
+        <!-- 质量系数 -->
         <div class="token-count">
           {{ formatTokenCount(model) }}
         </div>
@@ -274,9 +274,13 @@ const getCapabilityIcons = (model: API.AiModelConfig) => {
   return icons
 }
 
-// 格式化倍率显示
+// 格式化质量系数显示
 const formatTokenCount = (model: API.AiModelConfig) => {
-  // 显示倍率而不是固定积分，避免用户误解
+  // 显示质量系数，反映模型的积分消耗倍数
+  if (model.qualityScore) {
+    return `${model.qualityScore}×`
+  }
+  // 降级显示：如果没有质量系数，显示基础倍率
   return model.pointsPerKToken ? `×${model.pointsPerKToken}` : '-'
 }
 
@@ -465,7 +469,7 @@ defineExpose({
   background: rgba(168, 85, 247, 0.1);
 }
 
-/* ========== 倍率显示 ========== */
+/* ========== 质量系数显示 ========== */
 .token-count {
   min-width: 45px;
   text-align: right;

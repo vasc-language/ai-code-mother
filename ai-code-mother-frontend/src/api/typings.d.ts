@@ -7,6 +7,10 @@ declare namespace API {
     baseUrl?: string
     tier?: string
     pointsPerKToken?: number
+    qualityScore?: number
+    successRate?: number
+    avgTokenUsage?: number
+    userRating?: number
     description?: string
     isEnabled?: number
     sortOrder?: number
@@ -464,11 +468,15 @@ declare namespace API {
     points?: number
     balance?: number
     type?: string
+    status?: string
     reason?: string
     relatedId?: number
     modelKey?: string
     tokenCount?: number
     expireTime?: string
+    expiredAmount?: number
+    actualExpireTime?: string
+    remainingPoints?: number
     createTime?: string
     isDelete?: number
   }
