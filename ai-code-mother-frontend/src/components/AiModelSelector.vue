@@ -318,6 +318,7 @@ defineExpose({
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  padding-bottom: 8px;
 }
 
 .selector-header {

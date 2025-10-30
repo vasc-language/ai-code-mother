@@ -925,7 +925,7 @@ onMounted(() => {
     0 0 0 1px rgba(255, 107, 53, 0.08),
     0 8px 24px rgba(255, 107, 53, 0.15),
     0 16px 48px rgba(255, 107, 53, 0.1);
-  overflow: hidden;
+  overflow: visible;
   animation: popupFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
