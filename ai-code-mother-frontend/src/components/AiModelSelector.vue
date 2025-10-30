@@ -206,11 +206,15 @@ const getBrandClass = (model: API.AiModelConfig) => {
     return 'openai'
   } else if (modelKey.includes('kimi')) {
     return 'kimi'
+  } else if (modelKey.includes('gemini')) {
+    return 'gemini'
   }
 
   // 根据provider判断
   if (provider === 'openai' || provider === 'openrouter') {
     return 'openai'
+  } else if (provider === 'google') {
+    return 'gemini'
   } else if (provider === 'iflow') {
     return 'default'
   }
@@ -249,7 +253,7 @@ const getCapabilityIcons = (model: API.AiModelConfig) => {
   // DeepSeek系列 - 推理+工具型(❄️ 🔧)
   const isDeepSeek = modelKey.includes('deepseek')
 
-  // Qwen3 Coder和Kimi系列 - 工具专精型(🔧)
+  // Qwen3 Coder、Kimi系列 - 工具专精型(🔧)
   const isToolOnly = modelKey.includes('qwen3-coder') || modelKey.includes('qwen') ||
                      modelKey.includes('kimi')
 

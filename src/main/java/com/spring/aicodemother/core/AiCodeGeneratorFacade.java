@@ -143,6 +143,9 @@ public class AiCodeGeneratorFacade {
             // 本轮运行的轻量级重复写入守卫：用于检测明显的循环趋势
             final java.util.Set<String> writtenPaths = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
             final java.util.concurrent.atomic.AtomicInteger duplicateWriteCount = new java.util.concurrent.atomic.AtomicInteger(0);
+            // 项目完成状态检查
+            final java.util.concurrent.atomic.AtomicBoolean projectCompleted = new java.util.concurrent.atomic.AtomicBoolean(false);
+            final java.util.concurrent.atomic.AtomicInteger confirmationAttempts = new java.util.concurrent.atomic.AtomicInteger(0);
             try {
                 java.util.concurrent.atomic.AtomicBoolean completed = new java.util.concurrent.atomic.AtomicBoolean(false);
                 // 当下游取消或释放时，触发控制器取消，以便上层尽早停止
@@ -158,6 +161,27 @@ public class AiCodeGeneratorFacade {
                                     }
                                     return;
                                 }
+                                
+                                // 检查项目是否已完成
+                                if (!projectCompleted.get() && isProjectCompleted(appId)) {
+                                    projectCompleted.set(true);
+                                    log.info("[项目完成检测] Vue项目已生成完成，后续将过滤确认性内容");
+                                }
+                                
+                                // 如果项目已完成，检查并过滤确认性内容
+                                if (projectCompleted.get() && containsConfirmationContent(partialResponse)) {
+                                    int attempts = confirmationAttempts.incrementAndGet();
+                                    log.warn("[UX优化] 项目已完成，过滤AI的确认性输出 (第{}次), 内容: {}", attempts, 
+                                            partialResponse.length() > 100 ? partialResponse.substring(0, 100) + "..." : partialResponse);
+                                    
+                                    // 如果是第一次检测到确认性内容，发送一个替代消息
+                                    if (attempts == 1) {
+                                        AiResponseMessage completionMessage = new AiResponseMessage("\n\n✅ 项目生成已完成！您可以预览和使用生成的应用了。\n\n");
+                                        sink.next(JSONUtil.toJsonStr(completionMessage));
+                                    }
+                                    return; // 跳过原始的确认性内容
+                                }
+                                
                                 AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
                                 sink.next(JSONUtil.toJsonStr(aiResponseMessage));
                             } catch (Exception e) {
@@ -465,5 +489,87 @@ public class AiCodeGeneratorFacade {
 //                    }
 //                });
 //    }
+
+    /**
+     * 检查Vue项目是否已完成（存在核心文件且构建成功）
+     * 
+     * @param appId 应用ID
+     * @return 是否完成
+     */
+    private boolean isProjectCompleted(Long appId) {
+        try {
+            String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+            File projectDir = new File(projectPath);
+            
+            if (!projectDir.exists() || !projectDir.isDirectory()) {
+                return false;
+            }
+            
+            // 检查核心文件是否存在
+            String[] coreFiles = {"package.json", "src/main.js", "src/App.vue", "vite.config.js"};
+            for (String coreFile : coreFiles) {
+                File file = new File(projectDir, coreFile);
+                if (!file.exists()) {
+                    return false;
+                }
+            }
+            
+            // 检查是否已构建（dist目录存在）
+            File distDir = new File(projectDir, "dist");
+            if (!distDir.exists() || !distDir.isDirectory()) {
+                return false;
+            }
+            
+            // 检查dist目录是否有内容
+            File[] distFiles = distDir.listFiles();
+            return distFiles != null && distFiles.length > 0;
+            
+        } catch (Exception e) {
+            log.error("检查项目完成状态失败: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * 检查内容是否包含确认性询问
+     * 
+     * @param content 内容
+     * @return 是否包含确认性内容
+     */
+    private boolean containsConfirmationContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            return false;
+        }
+        
+        String lowerContent = content.toLowerCase();
+        
+        // 确认性短语列表（与 GenerationValidationServiceImpl 保持一致）
+        String[] confirmationPhrases = {
+            "您觉得这个计划",
+            "你觉得这个计划",
+            "这个方案",
+            "是否满意",
+            "是否可以",
+            "请确认",
+            "请问是否",
+            "可以开始吗",
+            "是否开始",
+            "合适吗",
+            "同意吗",
+            "没问题吗",
+            "可以开始生成代码吗",
+            "开始生成代码吗",
+            "✨小计划如下",
+            "小计划如下"
+        };
+        
+        for (String phrase : confirmationPhrases) {
+            if (lowerContent.contains(phrase.toLowerCase())) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
 }
 

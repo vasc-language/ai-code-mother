@@ -46,14 +46,16 @@ public class AiModelMetricsCollector {
      * 记录错误
      */
     public void recordError(String userId, String appId, String modelName, String errorMessage) {
-        String key = String.format("%s_%s_%s_%s", userId, appId, modelName, errorMessage);
+        // ✅ 修复：处理 errorMessage 为 null 的情况
+        String safeErrorMessage = errorMessage != null ? errorMessage : "unknown_error";
+        String key = String.format("%s_%s_%s_%s", userId, appId, modelName, safeErrorMessage);
         Counter counter = errorCountersCache.computeIfAbsent(key, k ->
                 Counter.builder("ai_model_errors_total")
                         .description("AI模型错误次数")
-                        .tag("user_id", userId)
-                        .tag("app_id", appId)
-                        .tag("model_name", modelName)
-                        .tag("error_message", errorMessage)
+                        .tag("user_id", userId != null ? userId : "unknown")
+                        .tag("app_id", appId != null ? appId : "unknown")
+                        .tag("model_name", modelName != null ? modelName : "unknown")
+                        .tag("error_message", safeErrorMessage)
                         .register(meterRegistry)
         );
         counter.increment();

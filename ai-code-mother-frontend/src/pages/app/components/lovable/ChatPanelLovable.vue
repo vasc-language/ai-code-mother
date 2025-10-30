@@ -94,6 +94,7 @@
       >
         <AiModelSelector
           ref="modelSelectorRef"
+          :defaultModelKey="selectedModelKey"
           :disabled="isGenerating"
           @change="handleModelChange"
         />
@@ -192,6 +193,7 @@ interface Props {
   isGenerating?: boolean
   primaryActionDisabled?: boolean
   primaryActionTitle?: string
+  defaultModelKey?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -199,6 +201,7 @@ const props = withDefaults(defineProps<Props>(), {
   isGenerating: false,
   primaryActionDisabled: false,
   primaryActionTitle: '发送',
+  defaultModelKey: 'codex-mini-latest',
 })
 
 const emit = defineEmits<{
@@ -207,6 +210,7 @@ const emit = defineEmits<{
   'primary-action': []
   'update:userInput': [value: string]
   'keydown': [e: KeyboardEvent]
+  'model-change': [modelKey: string, model: API.AiModelConfig]
 }>()
 
 const messagesWrapperRef = ref<HTMLElement>()
@@ -215,7 +219,7 @@ const inputValue = ref(props.userInput)
 
 // AI模型选择相关
 const modelSelectorRef = ref()
-const selectedModelKey = ref('codex-mini-latest')
+const selectedModelKey = ref(props.defaultModelKey)
 const showModelSelector = ref(false)
 let hoverTimeout: number | null = null
 
@@ -270,7 +274,9 @@ const handleModelChange = (modelKey: string, model: API.AiModelConfig) => {
   selectedModelKey.value = modelKey
   // 选择模型后自动关闭列表
   showModelSelector.value = false
-  console.log('切换模型:', modelKey)
+  // 向父组件传递模型变化事件
+  emit('model-change', modelKey, model)
+  // console.log('切换模型:', modelKey)  // 生产环境可注释
 }
 
 // 获取当前选中模型的图标
@@ -299,6 +305,13 @@ watch(() => props.userInput, (val) => {
 
 watch(inputValue, (val) => {
   emit('update:userInput', val)
+})
+
+// 同步 defaultModelKey 的变化
+watch(() => props.defaultModelKey, (newModelKey) => {
+  if (newModelKey) {
+    selectedModelKey.value = newModelKey
+  }
 })
 
 // 计算是否可以发送

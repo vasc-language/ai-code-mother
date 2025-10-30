@@ -15,6 +15,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
@@ -38,6 +39,9 @@ public class OpenAiStreamingResponseBuilder {
     private final StringBuffer toolArgumentsBuilder = new StringBuffer();
 
     private final Map<Integer, ToolExecutionRequestBuilder> indexToToolExecutionRequestBuilder = new ConcurrentHashMap<>();
+
+    // ✅ 修复：用于处理 Gemini 返回 null index 的情况
+    private final AtomicInteger nullIndexCounter = new AtomicInteger(0);
 
     private final AtomicReference<String> id = new AtomicReference<>();
     private final AtomicReference<Long> created = new AtomicReference<>();
@@ -115,8 +119,14 @@ public class OpenAiStreamingResponseBuilder {
 
             for (ToolCall toolCall : delta.toolCalls()) {
 
+                // ✅ 修复：如果 index 为 null，使用递增的计数器（兼容 Gemini）
+                // 这样可以避免多个工具调用时的索引冲突
+                Integer index = toolCall.index() != null
+                    ? toolCall.index()
+                    : nullIndexCounter.getAndIncrement();
+
                 ToolExecutionRequestBuilder builder = this.indexToToolExecutionRequestBuilder.computeIfAbsent(
-                        toolCall.index(),
+                        index,
                         idx -> new ToolExecutionRequestBuilder()
                 );
 

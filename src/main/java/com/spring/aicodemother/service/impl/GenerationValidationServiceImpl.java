@@ -96,19 +96,34 @@ public class GenerationValidationServiceImpl implements GenerationValidationServ
             return false;
         }
 
-        // 新增：检查是否是"计划确认阶段"（AI在等待用户确认）
-        if (isWaitingForConfirmation(trimmed)) {
-            log.info("[计划阶段] AI正在等待用户确认计划，这是正常流程，允许通过校验");
-            return true;  // 这是两阶段流程的第一阶段，不是失败！
+        // 优化后的逻辑：先检查文件，再判断是否为计划阶段
+        boolean hasCodeFiles = false;
+        if (appId != null && StrUtil.isNotBlank(codeGenType)) {
+            hasCodeFiles = checkCodeFilesGenerated(appId, codeGenType);
         }
 
-        // 检查是否生成了实际代码文件（只有在不是计划阶段时才检查）
-        if (appId != null && StrUtil.isNotBlank(codeGenType)) {
-            if (!checkCodeFilesGenerated(appId, codeGenType)) {
-                log.warn("[无效生成] 未生成实际代码文件，appId={}, codeGenType={}", appId, codeGenType);
-                return false;
-            }
+        boolean isWaitingConfirmation = isWaitingForConfirmation(trimmed);
+
+        // 情况1：文件已生成 + AI输出确认内容 = 异常输出（但仍通过校验）
+        if (hasCodeFiles && isWaitingConfirmation) {
+            log.warn("[AI输出异常] 项目已成功生成但AI又输出了计划确认内容，这可能是AI的时序问题，appId={}, codeGenType={}", appId, codeGenType);
+            return true; // 通过校验，因为实际功能已完成
         }
+
+        // 情况2：没有文件 + AI输出确认内容 = 正常计划阶段
+        if (!hasCodeFiles && isWaitingConfirmation) {
+            log.info("[计划阶段] AI正在等待用户确认计划，这是正常流程，允许通过校验");
+            return true; // 这是两阶段流程的第一阶段，不是失败！
+        }
+
+        // 情况3：没有文件 + AI未输出确认内容 = 生成失败
+        if (!hasCodeFiles && !isWaitingConfirmation) {
+            log.warn("[无效生成] 未生成实际代码文件且AI未提供计划，appId={}, codeGenType={}", appId, codeGenType);
+            return false;
+        }
+
+        // 情况4：有文件 + AI未输出确认内容 = 正常完成
+        log.info("[正常完成] 项目生成成功且AI输出正常，appId={}, codeGenType={}", appId, codeGenType);
 
         // TODO: 后续可以添加安全过滤（色情、暴力、政治敏感内容检测）
         // if (containsSensitiveContent(content)) {

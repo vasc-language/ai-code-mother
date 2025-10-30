@@ -82,10 +82,12 @@
           :isGenerating="isGenerating"
           :primaryActionDisabled="primaryActionDisabled"
           :primaryActionTitle="primaryActionTitle"
+          :defaultModelKey="selectedModelKey"
           @load-more="loadMoreHistory"
           @clear-selected-element="clearSelectedElement"
           @primary-action="onPrimaryActionClick"
           @keydown="onInputKeydown"
+          @model-change="handleModelChange"
         />
       </div>
 
@@ -207,6 +209,16 @@ const activeFileKey = computed({
   set: (val) => (activeMultiFileKey.value = val),
 })
 
+// ========== AI 模型选择 ==========
+const selectedModelKey = ref<string>('codex-mini-latest')
+const selectedModel = ref<API.AiModelConfig | null>(null)
+
+const handleModelChange = (modelKey: string, model: API.AiModelConfig) => {
+  selectedModelKey.value = modelKey
+  selectedModel.value = model
+  // console.log('[AppChatPage] 模型切换:', modelKey, model)  // 生产环境可注释
+}
+
 // ========== 按钮状态 ==========
 const primaryActionDisabled = computed(() => !userInput.value.trim() || isGenerating.value)
 const primaryActionTitle = computed(() => (isGenerating.value ? '停止' : '发送'))
@@ -320,8 +332,8 @@ const sendMessage = async () => {
       updateAiMessage(aiMessageIndex, messages.value[aiMessageIndex].content, false)
       scrollToBottom()
     },
-    // 传入 modelKey
-    appInfo.value?.modelKey
+    // 传入用户选中的 modelKey（优先使用），如果未选择则使用应用默认的
+    selectedModelKey.value || appInfo.value?.modelKey
   )
 }
 
@@ -374,6 +386,12 @@ const stopResize = () => {
 // ========== 生命周期 ==========
 onMounted(async () => {
   await fetchAppInfo()
+
+  // ✅ 初始化选中的模型为应用的默认模型
+  if (appInfo.value?.modelKey) {
+    selectedModelKey.value = appInfo.value.modelKey
+    // console.log('[AppChatPage] 初始化模型:', appInfo.value.modelKey)  // 调试用
+  }
 
   // ✅ 加载聊天历史
   if (!historyLoaded.value) {

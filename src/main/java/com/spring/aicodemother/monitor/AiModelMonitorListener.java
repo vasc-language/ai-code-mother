@@ -127,16 +127,19 @@ public class AiModelMonitorListener implements ChatModelListener {
             log.warn("[错误监控-跳过] userId或appId为null");
             return;
         }
-        
+
         // 获取模型名称和错误类型
         String modelName = errorContext.chatRequest().modelName();
-        String errorMessage = errorContext.error().getMessage();
+        // ✅ 修复：安全获取错误信息，处理 null 的情况
+        String errorMessage = errorContext.error() != null
+            ? errorContext.error().getMessage()
+            : null;
         // 记录失败请求
         aiModelMetricsCollector.recordRequest(userId, appId, modelName, "error");
         aiModelMetricsCollector.recordError(userId, appId, modelName, errorMessage);
         // 记录响应时间（即使是错误响应）
         recordResponseTime(attributes, userId, appId, modelName);
-        
+
         log.info("[错误监控] userId:{}, appId:{}, model:{}, error:{}", userId, appId, modelName, errorMessage);
     }
 
