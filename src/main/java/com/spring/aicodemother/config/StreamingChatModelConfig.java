@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.util.StringUtils;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -51,6 +52,7 @@ public class StreamingChatModelConfig {
             .modelName(modelName)
             .maxTokens(maxTokens)
             .temperature(temperature)
+            .timeout(Duration.ofMinutes(5)) // 增加超时时间到 5 分钟，避免生成大型项目时超时
             .logRequests(logRequests)
             .logResponses(logResponses)
             .listeners(List.of(aiModelMonitorListener))
