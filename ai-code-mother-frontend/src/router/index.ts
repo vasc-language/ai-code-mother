@@ -60,19 +60,9 @@ const router = createRouter({
           component: () => import('@/pages/docs/features/VersionControlDoc.vue'),
         },
         {
-          path: 'tutorial/create-html',
-          name: '生成 HTML 页面教程',
-          component: () => import('@/pages/docs/tutorial/CreateHTMLDoc.vue'),
-        },
-        {
           path: 'tutorial/create-vue',
           name: '生成 Vue 应用教程',
           component: () => import('@/pages/docs/tutorial/CreateVueDoc.vue'),
-        },
-        {
-          path: 'tutorial/create-multifile',
-          name: '生成多文件项目教程',
-          component: () => import('@/pages/docs/tutorial/CreateMultifileDoc.vue'),
         },
         {
           path: 'tutorial/edit-code',

@@ -2,7 +2,7 @@
   <div class="doc-page">
     <h1 class="doc-title">快速开始</h1>
     <p class="doc-intro">
-      欢迎使用 AI Code Mother! 本指南将帮助你在几分钟内开始使用平台,无需任何编程经验即可生成你的第一个应用。
+      欢迎使用 AICodeHub! 本指南将帮助你在几分钟内开始使用平台,无需任何编程经验即可生成你的第一个应用。
     </p>
 
     <a-divider />
@@ -22,7 +22,7 @@
       </ul>
       <a-alert
         message="新用户福利"
-        description="注册成功后,你将自动获得 50 积分,足够生成多个应用!"
+        description="注册成功后,你将自动获得 100 积分,足够生成多个应用!"
         type="success"
         show-icon
         class="tip-alert"
@@ -38,19 +38,19 @@
         登录后,你将看到应用生成页面。在输入框中用自然语言描述你想要的应用:
       </p>
       <a-card class="example-card" title="示例需求描述">
-        <p><strong>示例 1 - 简单页面:</strong></p>
-        <blockquote class="example-quote">
-          "帮我生成一个个人简历页面,包含头部导航栏、个人信息展示区、技能列表和联系方式"
-        </blockquote>
-
-        <p class="example-divider"><strong>示例 2 - Vue 应用:</strong></p>
+        <p><strong>示例 1 - 待办事项应用:</strong></p>
         <blockquote class="example-quote">
           "创建一个待办事项管理应用,需要添加任务、标记完成、删除任务的功能,使用 Vue 3"
         </blockquote>
 
-        <p class="example-divider"><strong>示例 3 - 多文件项目:</strong></p>
+        <p class="example-divider"><strong>示例 2 - 电商产品展示:</strong></p>
         <blockquote class="example-quote">
-          "生成一个在线计算器项目,包含基本的加减乘除功能,分离 HTML、CSS 和 JavaScript 文件"
+          "生成一个电商产品展示页面,包含商品列表、搜索筛选、购物车功能,使用 Vue 3 和 Ant Design Vue"
+        </blockquote>
+
+        <p class="example-divider"><strong>示例 3 - 个人博客系统:</strong></p>
+        <blockquote class="example-quote">
+          "创建一个个人博客应用,包含文章列表、文章详情、标签分类、评论功能,使用 Vue 3 和 Vue Router"
         </blockquote>
       </a-card>
 
@@ -74,64 +74,59 @@
     <section class="doc-section">
       <h2 class="section-title">
         <ThunderboltOutlined class="title-icon" />
-        第三步:选择生成类型
+        第三步:开始生成 Vue 项目
       </h2>
       <p class="section-content">
-        根据你的需求选择合适的生成类型:
+        平台采用 <strong>Vue 3 项目模式</strong>,为你生成完整的现代化 Web 应用:
       </p>
-      <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :sm="8">
-          <a-card class="type-card" hoverable>
-            <template #cover>
-              <div class="type-cover html-type">
-                <FileTextOutlined class="type-icon" />
-              </div>
-            </template>
-            <a-card-meta title="HTML 页面">
-              <template #description>
-                <p>单文件输出,开箱即用</p>
-                <a-tag color="green">6 积分</a-tag>
-                <p class="type-time">约 2 分钟生成</p>
-              </template>
-            </a-card-meta>
-          </a-card>
-        </a-col>
 
-        <a-col :xs="24" :sm="8">
-          <a-card class="type-card popular-card" hoverable>
-            <template #cover>
-              <div class="type-cover vue-type">
-                <AppstoreOutlined class="type-icon" />
-                <div class="popular-badge">推荐</div>
-              </div>
-            </template>
-            <a-card-meta title="Vue 应用">
-              <template #description>
-                <p>完整 Vue 3 项目结构</p>
-                <a-tag color="blue">15 积分</a-tag>
-                <p class="type-time">约 15 分钟生成</p>
-              </template>
-            </a-card-meta>
-          </a-card>
-        </a-col>
+      <a-card class="vue-intro-card" hoverable>
+        <template #cover>
+          <div class="vue-intro-cover">
+            <AppstoreOutlined class="vue-intro-icon" />
+          </div>
+        </template>
 
-        <a-col :xs="24" :sm="8">
-          <a-card class="type-card" hoverable>
-            <template #cover>
-              <div class="type-cover multifile-type">
-                <FolderOpenOutlined class="type-icon" />
-              </div>
-            </template>
-            <a-card-meta title="多文件项目">
-              <template #description>
-                <p>自定义技术栈和结构</p>
-                <a-tag color="purple">9 积分</a-tag>
-                <p class="type-time">约 4 分钟生成</p>
-              </template>
-            </a-card-meta>
-          </a-card>
-        </a-col>
-      </a-row>
+        <div class="vue-intro-content">
+          <h3 class="vue-intro-title">Vue 3 项目模式</h3>
+          <p class="vue-intro-desc">基于最新的 Vue 3 生态，生成完整的项目结构</p>
+
+          <div class="vue-features">
+            <div class="feature-item">
+              <CheckCircleOutlined class="feature-icon" />
+              <span>完整的组件化架构</span>
+            </div>
+            <div class="feature-item">
+              <CheckCircleOutlined class="feature-icon" />
+              <span>响应式状态管理</span>
+            </div>
+            <div class="feature-item">
+              <CheckCircleOutlined class="feature-icon" />
+              <span>现代化开发工具链</span>
+            </div>
+            <div class="feature-item">
+              <CheckCircleOutlined class="feature-icon" />
+              <span>开箱即用的路由系统</span>
+            </div>
+          </div>
+
+          <div class="vue-cost-info">
+            <a-tag color="blue" class="cost-tag">消耗积分: 15</a-tag>
+            <span class="time-info">预计生成时间: 约 15 分钟</span>
+          </div>
+        </div>
+      </a-card>
+
+      <a-alert
+        message="智能生成"
+        type="info"
+        show-icon
+        class="tip-alert"
+      >
+        <template #description>
+          AI 将根据你的需求描述，自动生成包含组件、路由、样式等完整文件结构的 Vue 3 项目，你可以直接下载运行或在线编辑。
+        </template>
+      </a-alert>
     </section>
 
     <section class="doc-section">
@@ -201,7 +196,15 @@
         <a-collapse-panel key="2" header="如何获得更多积分?">
           <ul>
             <li>每日签到:每天签到获得 5 积分</li>
-            <li>邀请好友:每邀请一位好友注册,双方各得 20 积分</li>
+            <li>连续签到奖励:
+              <ul style="margin-top: 8px;">
+                <li>连续签到 3 天:额外 +3 积分</li>
+                <li>连续签到 7 天:额外 +10 积分</li>
+                <li>连续签到 30 天:额外 +50 积分</li>
+              </ul>
+            </li>
+            <li>邀请好友:每邀请一位好友注册,双方各得 50 积分</li>
+            <li>好友首次生成:当被邀请的好友首次生成应用时,邀请人获得 50 积分,被邀请人获得 30 积分</li>
           </ul>
         </a-collapse-panel>
 
@@ -249,7 +252,8 @@ import {
   FileTextOutlined,
   AppstoreOutlined,
   FolderOpenOutlined,
-  CloudUploadOutlined
+  CloudUploadOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -263,7 +267,7 @@ const goToFeatures = () => {
 }
 
 const goToTutorial = () => {
-  router.push('/docs/tutorial/create-html')
+  router.push('/docs/tutorial/create-vue')
 }
 </script>
 
@@ -447,6 +451,112 @@ const goToTutorial = () => {
   margin-top: 28px;
   font-weight: 600;
   color: #333;
+}
+
+.vue-intro-card {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid #4facfe;
+  box-shadow: 0 4px 16px rgba(79, 172, 254, 0.2);
+  transition: all 0.3s ease;
+}
+
+.vue-intro-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(79, 172, 254, 0.3);
+}
+
+.vue-intro-cover {
+  height: 120px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.vue-intro-cover::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(45deg);
+}
+
+.vue-intro-icon {
+  font-size: 48px;
+  color: white;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  z-index: 1;
+}
+
+.vue-intro-content {
+  padding: 24px;
+}
+
+.vue-intro-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.vue-intro-desc {
+  font-size: 15px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.vue-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8f9ff;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+  background: #e8ecff;
+  transform: translateX(4px);
+}
+
+.feature-icon {
+  color: #4facfe;
+  font-size: 16px;
+}
+
+.vue-cost-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.cost-tag {
+  font-size: 14px;
+  padding: 4px 12px;
+  font-weight: 600;
+}
+
+.time-info {
+  color: #999;
+  font-size: 13px;
 }
 
 .type-card {

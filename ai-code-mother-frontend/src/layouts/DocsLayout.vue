@@ -52,14 +52,8 @@
           <a-sub-menu key="tutorial">
             <template #icon><FileTextOutlined /></template>
             <template #title>使用教程</template>
-            <a-menu-item key="/docs/tutorial/create-html" @click="navigateTo('/docs/tutorial/create-html')">
-              生成 HTML 页面
-            </a-menu-item>
             <a-menu-item key="/docs/tutorial/create-vue" @click="navigateTo('/docs/tutorial/create-vue')">
               生成 Vue 应用
-            </a-menu-item>
-            <a-menu-item key="/docs/tutorial/create-multifile" @click="navigateTo('/docs/tutorial/create-multifile')">
-              生成多文件项目
             </a-menu-item>
             <a-menu-item key="/docs/tutorial/edit-code" @click="navigateTo('/docs/tutorial/edit-code')">
               在线编辑代码
@@ -168,9 +162,7 @@ const currentDocTitle = computed(() => {
     '/docs/features/points-system': '积分系统',
     '/docs/features/online-editor': '在线编辑',
     '/docs/features/version-control': '版本管理',
-    '/docs/tutorial/create-html': '生成 HTML 页面',
     '/docs/tutorial/create-vue': '生成 Vue 应用',
-    '/docs/tutorial/create-multifile': '生成多文件项目',
     '/docs/tutorial/edit-code': '在线编辑代码',
     '/docs/faq': '常见问题',
     '/docs/api': 'API 文档',

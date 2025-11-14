@@ -30,7 +30,7 @@
             <template #title>
               <CalendarOutlined /> 每日签到
             </template>
-            <div class="points-amount">10 积分</div>
+            <div class="points-amount">5 积分</div>
             <p>每天签到一次,连续签到有额外奖励</p>
             <a-tag color="blue">每日</a-tag>
           </a-card>
@@ -41,8 +41,8 @@
             <template #title>
               <TeamOutlined /> 邀请好友
             </template>
-            <div class="points-amount">100 积分</div>
-            <p>每邀请一位好友注册,双方各得 100 积分</p>
+            <div class="points-amount">50 积分</div>
+            <p>每邀请一位好友注册,双方各得 50 积分</p>
             <a-tag color="purple">不限次数</a-tag>
           </a-card>
         </a-col>
@@ -106,7 +106,7 @@
 
       <a-collapse :bordered="false">
         <a-collapse-panel key="1" header="积分会过期吗?">
-          <p>目前积分永久有效,不会过期。未来如有政策调整会提前通知用户。</p>
+          <p>积分自获得之日起 90 天内有效。过期前 7 天系统会提醒你,请及时使用。</p>
         </a-collapse-panel>
 
         <a-collapse-panel key="2" header="生成失败积分会退还吗?">
@@ -138,9 +138,7 @@ import {
 } from '@ant-design/icons-vue'
 
 const pointsUsage = [
-  { type: 'HTML 页面', points: 10, time: '约 10 秒', description: '单文件 HTML 页面生成' },
-  { type: 'Vue 应用', points: 30, time: '约 20 秒', description: '完整 Vue 3 项目' },
-  { type: '多文件项目', points: 50, time: '约 30 秒', description: '多文件多目录项目' },
+  { type: 'Vue 3 应用', points: 15, time: '约 15 分钟', description: '完整 Vue 3 项目,包含组件、路由等' },
 ]
 
 const usageColumns = [

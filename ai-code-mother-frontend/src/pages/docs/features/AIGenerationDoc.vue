@@ -2,7 +2,7 @@
   <div class="doc-page">
     <h1 class="doc-title">AI 智能生成</h1>
     <p class="doc-intro">
-      基于先进的 DeepSeek AI 模型,理解你的自然语言需求,自动生成高质量、可运行的代码。
+      基于先进的 GPT-5 AI 模型,理解你的自然语言需求,自动生成高质量、可运行的代码。
     </p>
 
     <a-divider />
@@ -59,13 +59,13 @@
         <a-col :xs="24" :md="12">
           <a-card class="feature-card" hoverable>
             <template #title>
-              <AppstoreOutlined /> 多种生成类型
+              <AppstoreOutlined /> Vue 项目生成
             </template>
-            <p>支持不同场景的代码生成需求</p>
+            <p>专注于现代化 Vue 3 应用开发</p>
             <ul>
-              <li>单页 HTML</li>
-              <li>Vue 3 应用</li>
-              <li>多文件项目</li>
+              <li>完整的组件化架构</li>
+              <li>Vue 3 + TypeScript</li>
+              <li>开箱即用的路由系统</li>
             </ul>
           </a-card>
         </a-col>
@@ -80,13 +80,8 @@
 
       <a-descriptions bordered :column="{ xs: 1, sm: 2 }">
         <a-descriptions-item label="AI 模型">
-          <a-tag color="purple">DeepSeek Reasoner</a-tag>
-          <p class="desc-text">用于复杂推理和代码生成</p>
-        </a-descriptions-item>
-
-        <a-descriptions-item label="路由模型">
-          <a-tag color="blue">Qwen Turbo</a-tag>
-          <p class="desc-text">用于简单分类和快速响应</p>
+          <a-tag color="purple">GPT-5</a-tag>
+          <p class="desc-text">OpenAI 最新一代大语言模型</p>
         </a-descriptions-item>
 
         <a-descriptions-item label="集成框架">
@@ -95,8 +90,13 @@
         </a-descriptions-item>
 
         <a-descriptions-item label="最大Token">
-          <a-tag color="orange">32,768</a-tag>
-          <p class="desc-text">支持生成大型项目代码</p>
+          <a-tag color="orange">128,000</a-tag>
+          <p class="desc-text">支持生成超大型项目代码</p>
+        </a-descriptions-item>
+
+        <a-descriptions-item label="生成类型">
+          <a-tag color="blue">Vue 3 项目</a-tag>
+          <p class="desc-text">完整的现代化 Web 应用</p>
         </a-descriptions-item>
       </a-descriptions>
     </section>
@@ -170,24 +170,24 @@
           <div class="example-content">
             <h4>需求描述:</h4>
             <blockquote class="example-quote">
-              "生成一个个人博客首页,包含文章列表、分类标签和搜索功能"
+              "生成一个个人博客应用,包含文章列表、文章详情页、标签分类和搜索功能,使用 Vue 3"
             </blockquote>
 
             <h4>AI 理解:</h4>
             <a-alert message="需求解析" type="info" show-icon style="margin: 12px 0;">
               <template #description>
                 <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-                  <li>页面类型: 博客首页</li>
-                  <li>核心组件: 文章列表、分类标签、搜索框</li>
-                  <li>推荐技术: HTML + CSS + JavaScript</li>
+                  <li>应用类型: Vue 3 单页应用</li>
+                  <li>核心组件: 文章列表、文章详情、标签组件、搜索框</li>
+                  <li>技术栈: Vue 3 + Vue Router + TypeScript</li>
                 </ul>
               </template>
             </a-alert>
 
             <h4>生成结果:</h4>
             <a-tag color="green">成功</a-tag>
-            <a-tag color="blue">耗时 2 分钟</a-tag>
-            <a-tag color="purple">消耗 6 积分</a-tag>
+            <a-tag color="blue">耗时 15 分钟</a-tag>
+            <a-tag color="purple">消耗 15 积分</a-tag>
           </div>
         </a-tab-pane>
 
@@ -237,9 +237,7 @@ import {
 } from '@ant-design/icons-vue'
 
 const timeData = [
-  { type: 'HTML 页面', time: '2-4 分钟', points: '6 积分' },
-  { type: 'Vue 应用', time: '3-5 分钟', points: '15 积分' },
-  { type: '多文件项目', time: '15-20 分钟', points: '9 积分' },
+  { type: 'Vue 3 应用', time: '15-20 分钟', points: '15 积分' },
 ]
 
 const timeColumns = [
