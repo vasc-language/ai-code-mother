@@ -15,7 +15,7 @@
   <a href="deployment/docs/DEPLOYMENT.md">📖 部署文档</a>
 </p>
 
-一个功能强大的全栈 AI 代码生成平台，基于 Spring Boot 3.5.4 和 Vue 3 构建，集成 DeepSeek、Qwen 等多种 AI 模型，专注于 Vue 3 项目的智能化生成服务。支持 AI 模型动态选择、两阶段代码生成、代码自动验证等先进功能。
+一个功能强大的全栈 AI 代码生成平台，基于 Spring Boot 3.5.4 和 Vue 3 构建，集成 GPT、Qwen 等多种 AI 模型，专注于 Vue 3 项目的智能化生成服务。支持 AI 模型动态选择、两阶段代码生成、代码自动验证等先进功能。
 
 ## 🚀 项目概述
 
@@ -24,7 +24,7 @@ AI Code Mother 是一个现代化的 AI 驱动代码生成平台，旨在通过�
 ### ✨ 核心特性
 
 #### AI 智能生成
-- **🤖 动态模型选择**: 支持 DeepSeek、Qwen、OpenAI 等 24+ 个 AI 模型，根据任务复杂度智能选择
+- **🤖 动态模型选择**: 支持 GPT、Qwen、OpenAI 等 20+ 个 AI 模型，根据任务复杂度智能选择
 - **📋 两阶段生成**: 计划生成 → 用户确认 → 代码生成，避免无效生成节省成本
 - **✅ 代码自动验证**: 集成 ESLint 代码质量检查，自动生成代码审查报告
 - **🎯 Vue 3 专注**: 专为 Vue 3 项目优化，支持 Composition API、TypeScript、Pinia 等现代特性
@@ -34,7 +34,7 @@ AI Code Mother 是一个现代化的 AI 驱动代码生成平台，旨在通过�
 - **📧 邮箱认证**: 支持邮箱注册登录，邮件验证码双因素认证，提升账户安全性
 - **🎁 积分系统**: 完善的积分获取、消耗、过期机制（已修复 8 个 P0-P3 级别缺陷）
 - **👥 邀请机制**: 邀请码系统，邀请双方均可获得积分奖励，配套防刷机制
-- **📦 版本管理**: 完整的应用版本历史记录、版本对比、一键回滚功能
+- **📦 版本管理**: 完整的应用版本历史记录、一键回滚功能
 
 #### 企业级运维
 - **🚀 一键部署**: 规范的 deployment/ 目录，支持 Ubuntu 服务器一键部署
@@ -74,11 +74,11 @@ AI Code Mother 是一个现代化的 AI 驱动代码生成平台，旨在通过�
 **AI集成**
 - **LangChain4j 1.1.0**: Java AI 应用开发框架，支持工具调用和流式输出
 - **LangGraph4j 1.6.0**: AI 工作流编排引擎，支持复杂任务编排
-- **动态模型工厂**: 支持 24+ 个 AI 模型的动态选择和配置
-  - **DeepSeek Reasoner**: 高级推理模型，用于复杂代码生成
-  - **DeepSeek Chat**: 标准编码模型，快速响应
+- **动态模型工厂**: 支持 20+ 个 AI 模型的动态选择和配置
+  - **GPT-5 Codex**: 高级编码模型，用于复杂代码生成
+  - **GPT-5 Low**: 基础编码模型，快速响应
   - **Qwen Turbo**: 快速分类和简单任务处理
-  - **OpenAI GPT-4/3.5**: 备选模型支持
+  - **其他 OpenAI 兼容模型**: 支持多种第三方模型
 - **AI 模型等级系统**: 基础编码、标准编码、高级编码、基础推理、高级推理 5 个等级
 - **Reactor**: 响应式编程支持 Server-Sent Events 流式输出
 
@@ -164,8 +164,8 @@ AI Code Mother 是一个现代化的 AI 驱动代码生成平台，旨在通过�
 ### 1. AI 代码生成引擎
 
 **🆕 动态模型选择系统**
-- **24+ AI 模型支持**: DeepSeek、Qwen、OpenAI 等主流模型
-- **5 级模型分类**: 基础编码、标准编码、高级编码、基础推理、高级推理
+- **20+ AI 模型支持**: GPT、Qwen、OpenAI 兼容模型等
+- **4 级模型分类**: SIMPLE（简单）、MEDIUM（中等）、HARD（困难）、EXPERT（专家）
 - **智能模型推荐**: 根据项目复杂度自动推荐合适的模型
 - **质量系数显示**: 前端显示模型质量系数（替代倍率），帮助用户选择
 - **实时成本预估**: 根据选择的模型预估积分消耗
@@ -220,11 +220,6 @@ AI Code Mother 是一个现代化的 AI 驱动代码生成平台，旨在通过�
 - 保持完整的版本变更链
 - 仅应用创建者可执行回滚
 
-**版本对比**
-- 查看不同版本之间的差异
-- 对比应用配置变化
-- 追溯功能变更历史
-
 **权限控制**
 - 仅应用创建者可查看版本历史
 - 仅应用创建者可执行版本回滚
@@ -236,12 +231,14 @@ AI Code Mother 是一个现代化的 AI 驱动代码生成平台，旨在通过�
 - **注册奖励**: 新用户注册赠送初始积分
 - **邀请奖励**: 成功邀请好友注册，邀请双方均获得积分
 - **每日签到**: 每日首次登录获得签到积分（可扩展）
-- **活动奖励**: 参与平台活动获得额外积分（可扩展）
 
 **积分消耗场景**
-- **AI 代码生成**: 根据选择的 AI 模型消耗相应积分（支持质量系数计费）
-- **高级功能**: 使用高级功能（如大规模项目生成）消耗更多积分
-- **项目部署**: 部署生成的项目到云端消耗积分
+- **AI 代码生成**: 根据选择的 AI 模型和实际 Token 消耗量计费
+  - 不同模型有不同的积分消耗率（每千 Token 消耗的积分数）
+  - 质量系数会影响最终积分消耗（1.0-3.5倍）
+  - 典型 Vue 3 项目生成消耗: 50-200 积分
+- **项目部署**: 完全免费，不消耗积分
+- **代码下载**: 完全免费，不消耗积分
 
 **🆕 积分状态管理**
 - **PENDING**: 待处理 - 积分操作已创建但未确认
@@ -652,78 +649,545 @@ redis-server
 mysql -u root -p ai_code_mother < sql/create_table.sql
 ```
 
-### 3. 后端启动
+### 3. 后端配置和启动
 
 ```bash
 # 克隆项目
 git clone [repository-url]
 cd ai-code-mother
+```
 
-# 配置数据库连接 (修改 src/main/resources/application-dev.yml)
+#### 3.1 完整配置文件 (src/main/resources/application-dev.yml)
+
+```yaml
 spring:
+  # 应用名称
+  application:
+    name: ai-code-mother-backend
+
+  # 数据库配置
   datasource:
-    url: jdbc:mysql://localhost:3306/ai_code_mother
-    username: your_username
-    password: your_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai_code_mother?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root                    # 修改为你的MySQL用户名
+    password: your_password           # 修改为你的MySQL密码
+    # HikariCP 连接池配置（生产环境建议）
+    hikari:
+      maximum-pool-size: 20           # 最大连接数
+      minimum-idle: 5                 # 最小空闲连接数
+      connection-timeout: 30000       # 连接超时时间（毫秒）
+      idle-timeout: 600000            # 空闲超时时间（毫秒）
+      max-lifetime: 1800000           # 连接最大生命周期（毫秒）
 
-# 配置Redis连接
-spring:
+  # Redis 配置
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: 127.0.0.1                 # Redis服务器地址
+      port: 6379                      # Redis端口
+      password:                       # Redis密码（如无密码留空）
+      database: 0                     # Redis数据库索引（0-15）
+      ttl: 3600                       # 缓存存活时间（秒）
+      # Lettuce 连接池配置（生产环境建议）
+      lettuce:
+        pool:
+          max-active: 8               # 最大活跃连接数
+          max-idle: 8                 # 最大空闲连接数
+          min-idle: 2                 # 最小空闲连接数
+          max-wait: -1ms              # 最大等待时间
 
-# 配置AI API密钥
-ai:
-  deepseek:
-    api-key: your-deepseek-api-key
-  dashscope:
-    api-key: your-dashscope-api-key
+  # Session 配置
+  session:
+    store-type: redis                 # 使用Redis存储Session
+    timeout: 2592000                  # Session过期时间（秒，30天）
 
-# 配置邮件服务
-spring:
+  # 邮件服务配置
   mail:
-    host: smtp.example.com
-    port: 587
-    username: your-email@example.com
-    password: your-email-password
+    host: smtp.qq.com                 # SMTP服务器地址（示例：QQ邮箱）
+    port: 587                         # SMTP端口（587为TLS加密端口）
+    username: your-email@qq.com       # 发件邮箱地址
+    password: your-smtp-password      # SMTP密码或授权码
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true                  # 启用SMTP认证
+          starttls:
+            enable: true              # 启用TLS加密
+            required: true
+          ssl:
+            trust: smtp.qq.com        # 信任的SMTP服务器
+    # 其他常用邮箱配置示例：
+    # Gmail: smtp.gmail.com:587
+    # 163邮箱: smtp.163.com:465 (SSL)
+    # 阿里云邮箱: smtp.aliyun.com:465
 
+  # 激活的配置文件
+  profiles:
+    active: dev                       # 开发环境使用dev
+
+# 服务器配置
+server:
+  port: 8123                          # 后端服务端口
+  servlet:
+    context-path: /api                # API上下文路径
+    session:
+      cookie:
+        max-age: 2592000              # Cookie过期时间（秒，30天）
+        http-only: true               # 仅HTTP访问，防止XSS攻击
+        secure: false                 # 开发环境使用HTTP（生产环境改为true）
+
+# AI 模型配置（核心配置）
+langchain4j:
+  open-ai:
+    # 推理AI模型配置（用于复杂的代码生成任务）
+    reasoning-streaming-chat-model:
+      base-url: https://204992.xyz/v1              # OpenAI兼容API地址
+      api-key: sk-your-api-key-here                # 你的API密钥
+      model-name: gpt-5-codex-medium               # 高级编码模型
+      max-tokens: 4000                             # 最大生成Token数
+      temperature: 0.7                             # 生成温度（0-2，越高越随机）
+      timeout: 300s                                # 请求超时时间（5分钟）
+      log-requests: true                           # 记录请求日志（开发环境）
+      log-responses: true                          # 记录响应日志（开发环境）
+
+    # 路由AI模型配置（用于简单的分类和路由任务）
+    routing-chat-model:
+      base-url: https://204992.xyz/v1
+      api-key: sk-your-api-key-here
+      model-name: gpt-5-low                        # 基础编码模型（快速响应）
+      max-tokens: 50                               # 路由任务只需少量Token
+      temperature: 0.3                             # 较低温度确保稳定性
+      timeout: 30s
+      log-requests: true
+      log-responses: true
+
+    # 流式聊天模型配置（用于动态模型选择）
+    streaming-chat-model:
+      base-url: https://204992.xyz/v1
+      api-key: sk-your-api-key-here
+      model-name: gpt-5-low                        # 默认流式模型
+      max-tokens: 8192                             # 支持长文本生成
+      temperature: 0.7
+      timeout: 300s
+      log-requests: true
+      log-responses: true
+
+# 腾讯云 COS 对象存储配置（用于文件存储和部署）
+cos:
+  client:
+    host: your-custom-domain.com      # 自定义域名（可选）
+    secretId: your-secret-id          # 腾讯云SecretId
+    secretKey: your-secret-key        # 腾讯云SecretKey
+    region: ap-shanghai               # COS地域（ap-beijing/ap-shanghai/ap-guangzhou等）
+    bucket: your-bucket-name          # 存储桶名称
+    # 获取方式：登录腾讯云控制台 > 访问管理 > API密钥管理
+
+# Pexels 图片搜索配置（可选功能）
+pexels:
+  api-key: your-pexels-api-key
+  # 获取方式：https://www.pexels.com/api/
+
+# Pixabay 插画搜索配置（可选功能）
+pixabay:
+  api-key: your-pixabay-api-key
+  # 获取方式：https://pixabay.com/api/docs/
+
+# 阿里云 DashScope 配置（可选功能）
+dashscope:
+  api-key: your-dashscope-api-key
+  image-model: wan2.2-t2i-flash
+  # 获取方式：https://dashscope.console.aliyun.com/
+
+# Knife4j API文档配置
+knife4j:
+  enable: true                        # 启用API文档
+  setting:
+    language: zh_cn                   # 中文界面
+
+# SpringDoc OpenAPI配置
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan: com.spring.aicodemother.controller
+
+# 监控端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus   # 暴露的端点
+  endpoint:
+    health:
+      show-details: always                # 显示详细健康信息
+
+# 日志配置（可选）
+logging:
+  level:
+    root: INFO
+    com.spring.aicodemother: DEBUG        # 开发环境使用DEBUG级别
+  file:
+    name: logs/application.log            # 日志文件路径
+    max-size: 100MB                       # 单个日志文件最大大小
+    max-history: 30                       # 保留30天的日志
+```
+
+#### 3.2 环境变量配置（推荐用于敏感信息）
+
+作为application.yml的替代方案，可以使用环境变量：
+
+```bash
+# 数据库配置
+export DB_HOST=localhost
+export DB_PORT=3306
+export DB_NAME=ai_code_mother
+export DB_USERNAME=root
+export DB_PASSWORD=your_password
+
+# Redis配置
+export REDIS_HOST=127.0.0.1
+export REDIS_PORT=6379
+export REDIS_PASSWORD=
+
+# AI API配置
+export OPENAI_API_BASE_URL=https://204992.xyz/v1
+export OPENAI_API_KEY=sk-your-api-key-here
+export OPENAI_MODEL_REASONING=gpt-5-codex-medium
+export OPENAI_MODEL_ROUTING=gpt-5-low
+
+# 邮件配置
+export MAIL_HOST=smtp.qq.com
+export MAIL_PORT=587
+export MAIL_USERNAME=your-email@qq.com
+export MAIL_PASSWORD=your-smtp-password
+
+# COS配置
+export COS_SECRET_ID=your-secret-id
+export COS_SECRET_KEY=your-secret-key
+export COS_REGION=ap-shanghai
+export COS_BUCKET=your-bucket-name
+```
+
+#### 3.3 启动应用
+
+```bash
 # 编译项目
 ./mvnw clean compile     # Linux/Mac
 mvnw.cmd clean compile   # Windows
 
-# 运行测试
+# 运行测试（可选）
 ./mvnw test             # Linux/Mac
 mvnw.cmd test           # Windows
 
 # 启动应用
 ./mvnw spring-boot:run     # Linux/Mac
 mvnw.cmd spring-boot:run   # Windows
+
+# 或者打包后运行
+./mvnw clean package -DskipTests
+java -jar target/ai-code-mother-0.0.1-SNAPSHOT.jar
 ```
 
-### 4. 前端启动
+### 4. 前端配置和启动
 
 ```bash
 # 进入前端目录
 cd ai-code-mother-frontend
+```
 
+#### 4.1 环境变量配置
+
+创建环境配置文件：
+
+**开发环境配置 (.env.development)**
+```bash
+# API基础URL
+VITE_API_BASE_URL=http://localhost:8123/api
+
+# 应用标题
+VITE_APP_TITLE=AI Code Mother
+
+# 环境标识
+VITE_ENV=development
+
+# 是否启用调试模式
+VITE_DEBUG=true
+
+# API超时时间（毫秒）
+VITE_API_TIMEOUT=60000
+```
+
+**生产环境配置 (.env.production)**
+```bash
+# API基础URL（修改为你的生产环境地址）
+VITE_API_BASE_URL=https://your-domain.com/api
+
+# 应用标题
+VITE_APP_TITLE=AI Code Mother
+
+# 环境标识
+VITE_ENV=production
+
+# 是否启用调试模式
+VITE_DEBUG=false
+
+# API超时时间（毫秒）
+VITE_API_TIMEOUT=60000
+```
+
+#### 4.2 安装依赖和启动
+
+```bash
 # 安装依赖
 npm install
+# 或使用yarn
+yarn install
+# 或使用pnpm（推荐，更快）
+pnpm install
 
-# 生成API客户端
+# 生成API客户端（需要后端服务先启动）
 npm run openapi2ts
 
 # 启动开发服务器
 npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览生产构建
+npm run preview
+
+# 类型检查
+npm run type-check
+
+# 代码检查
+npm run lint
+
+# 代码格式化
+npm run format
+```
+
+#### 4.3 常见配置说明
+
+**package.json 关键配置**
+```json
+{
+  "scripts": {
+    "dev": "vite",                    // 启动开发服务器
+    "build": "vite build",            // 构建生产版本
+    "preview": "vite preview",        // 预览生产构建
+    "openapi2ts": "openapi-typescript http://localhost:8123/api/v3/api-docs -o src/api/openapi.d.ts",  // 生成API类型
+    "type-check": "vue-tsc --noEmit",  // TypeScript类型检查
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",  // 代码检查
+    "format": "prettier --write src/"  // 代码格式化
+  }
+}
+```
+
+**vite.config.ts 关键配置**
+```typescript
+export default defineConfig({
+  server: {
+    port: 5173,                       // 开发服务器端口
+    proxy: {
+      '/api': {                       // API代理配置
+        target: 'http://localhost:8123',
+        changeOrigin: true,
+        // rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  },
+  build: {
+    outDir: 'dist',                   // 构建输出目录
+    sourcemap: false,                 // 生产环境不生成sourcemap
+    minify: 'terser',                 // 使用terser压缩
+    chunkSizeWarningLimit: 1500       // chunk大小警告阈值（KB）
+  }
+})
 ```
 
 ### 5. 访问应用
 
-- **前端应用**: http://localhost:5173
-- **后端API**: http://localhost:8123/api
-- **API文档**: http://localhost:8123/api/doc.html
-- **健康检查**: http://localhost:8123/api/health
-- **Prometheus指标**: http://localhost:8123/api/actuator/prometheus
+#### 5.1 应用访问地址
+
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| **前端应用** | http://localhost:5173 | Vue 3 用户界面 |
+| **后端API** | http://localhost:8123/api | REST API 服务 |
+| **API文档** | http://localhost:8123/api/doc.html | Knife4j 交互式 API 文档 |
+| **OpenAPI规范** | http://localhost:8123/api/v3/api-docs | OpenAPI 3.0 JSON 规范 |
+| **健康检查** | http://localhost:8123/api/health | 应用健康状态 |
+| **Prometheus指标** | http://localhost:8123/api/actuator/prometheus | 监控指标端点 |
+| **Actuator端点** | http://localhost:8123/api/actuator | Spring Boot Actuator |
+
+#### 5.2 首次使用步骤
+
+1. **访问前端应用**: 打开浏览器访问 http://localhost:5173
+
+2. **注册账户**:
+   - 点击"注册"按钮
+   - 输入邮箱地址
+   - 点击"发送验证码"（需要配置好邮件服务）
+   - 输入收到的6位验证码
+   - 设置密码和用户名
+   - 可选：输入邀请码获得额外积分
+   - 点击"注册"完成账户创建
+
+3. **登录系统**:
+   - 输入注册的邮箱
+   - 点击"发送验证码"
+   - 输入验证码登录
+
+4. **创建第一个应用**:
+   - 进入"应用管理"页面
+   - 点击"创建应用"
+   - 填写应用名称和描述
+   - 选择生成类型（推荐：Vue 3 项目）
+   - 点击创建
+
+5. **生成代码**:
+   - 在应用列表中点击"生成代码"
+   - 输入详细的需求描述（参考推荐测试提示词）
+   - 选择合适的 AI 模型
+   - 等待 AI 生成代码
+   - 查看生成结果
+
+6. **部署项目**:
+   - 点击"部署"按钮
+   - 等待项目构建和上传
+   - 获取在线预览链接
+
+#### 5.3 配置验证检查
+
+启动应用后，建议进行以下验证：
+
+```bash
+# 1. 检查后端健康状态
+curl http://localhost:8123/api/health
+
+# 预期输出: {"status":"UP"}
+
+# 2. 检查数据库连接
+# 访问 http://localhost:8123/api/actuator/health
+# 查看 db.status 应为 UP
+
+# 3. 检查Redis连接
+# 查看 redis.status 应为 UP
+
+# 4. 测试前端API连接
+# 打开浏览器访问 http://localhost:5173
+# 打开开发者工具查看Network请求是否正常
+
+# 5. 查看API文档
+# 访问 http://localhost:8123/api/doc.html
+# 应能看到完整的API接口列表
+```
+
+#### 5.4 常见启动问题排查
+
+**问题1: 后端启动失败 - 数据库连接错误**
+```bash
+# 检查MySQL服务状态
+# Windows
+net start mysql
+
+# Linux/Mac
+sudo systemctl status mysql
+# 或
+brew services list | grep mysql
+
+# 验证数据库存在
+mysql -u root -p
+SHOW DATABASES;
+# 应能看到 ai_code_mother
+
+# 检查用户名密码是否正确
+mysql -u your_username -p your_password ai_code_mother
+```
+
+**问题2: 后端启动失败 - Redis连接错误**
+```bash
+# 检查Redis服务状态
+# Windows
+redis-server
+
+# Linux
+sudo systemctl status redis
+# 或
+ps aux | grep redis
+
+# Mac
+brew services list | grep redis
+
+# 测试Redis连接
+redis-cli ping
+# 应返回 PONG
+```
+
+**问题3: 前端API调用失败**
+```bash
+# 检查后端是否启动
+curl http://localhost:8123/api/health
+
+# 检查端口是否被占用
+# Windows
+netstat -ano | findstr 8123
+
+# Linux/Mac
+lsof -i :8123
+
+# 清除浏览器缓存并重试
+# Chrome: Ctrl+Shift+Delete
+```
+
+**问题4: AI模型调用失败**
+```bash
+# 检查API密钥配置
+# 查看 application.yml 中的 langchain4j.open-ai.*.api-key
+
+# 测试API连接
+curl -X POST https://204992.xyz/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-your-api-key-here" \
+  -d '{
+    "model": "gpt-5-low",
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
+
+# 检查后端日志
+tail -f logs/application.log | grep -i "error"
+```
+
+**问题5: 邮件验证码发送失败**
+```bash
+# 检查邮件配置
+# 查看 application.yml 中的 spring.mail 配置
+
+# 常见问题：
+# 1. QQ邮箱需要使用授权码而非密码
+# 2. Gmail需要开启"允许不够安全的应用"
+# 3. 163邮箱需要开启SMTP服务
+
+# 查看后端日志确认错误详情
+tail -f logs/application.log | grep -i "mail"
+```
+
+#### 5.5 开发环境推荐配置
+
+**最小配置要求**:
+- CPU: 双核 2.0 GHz+
+- 内存: 4 GB RAM
+- 磁盘: 10 GB 可用空间
+
+**推荐配置**:
+- CPU: 四核 2.5 GHz+
+- 内存: 8 GB RAM
+- 磁盘: 20 GB 可用空间（SSD 更佳）
+
+**网络要求**:
+- 可访问 OpenAI 兼容 API（或配置代理）
+- 可访问腾讯云 COS（如需文件存储功能）
+- 可访问邮件 SMTP 服务器
 
 ## 📖 用户指南
 
@@ -757,21 +1221,23 @@ npm run dev
 3. 填写应用信息:
    - 应用名称
    - 应用描述
-   - 选择生成类型(HTML/多文件项目/Vue应用)
+   - 生成类型：Vue 3 项目（当前版本专注于 Vue 3 项目生成）
 4. 点击创建
 
 **2. 生成代码**
 1. 在应用列表中找到创建的应用
 2. 点击"生成代码"按钮
-3. 输入详细的需求描述
-4. 系统实时显示AI生成过程:
+3. 选择合适的 AI 模型（根据项目复杂度选择）
+4. 输入详细的需求描述（可参考推荐测试提示词）
+5. 系统实时显示AI生成过程:
    - AI思考过程
+   - 工具调用信息
    - 代码生成进度
    - 文件列表
-5. 生成完成后可以:
+6. 生成完成后可以:
    - 在线预览代码
-   - 下载完整项目
-   - 部署到云端
+   - 下载完整项目压缩包
+   - 部署到云端（免费）
 
 **3. 代码预览与下载**
 - 支持在线查看生成的代码
@@ -779,12 +1245,13 @@ npm run dev
 - 支持复制代码
 - 一键下载完整项目压缩包
 
-**4. 项目部署**
+**4. 项目部署**（完全免费）
 1. 生成完成后点击"部署"按钮
-2. 系统自动将项目上传到腾讯云COS
-3. 生成唯一的访问链接
+2. 系统自动将项目构建并上传到腾讯云COS
+3. 生成唯一的在线预览链接
 4. 通过链接即可访问部署的项目
 5. 支持分享链接给他人访问
+6. **注意**：项目部署不消耗积分，完全免费
 
 ### 版本管理使用
 
@@ -804,14 +1271,6 @@ npm run dev
 4. 系统自动恢复应用到该版本状态
 5. 回滚操作会创建新的版本记录
 
-**3. 版本对比**
-1. 选择两个不同的版本
-2. 点击"对比"按钮
-3. 查看版本之间的差异:
-   - 配置变化
-   - 代码变化
-   - 功能变更
-
 ### 积分系统使用
 
 **1. 查看积分余额**
@@ -823,15 +1282,25 @@ npm run dev
 - **注册奖励**: 新用户注册赠送100积分
 - **邀请奖励**: 成功邀请好友注册，双方各得50积分
 - **每日签到**: 每日首次登录获得10积分(可扩展)
-- **完成任务**: 参与平台活动获得额外积分
 
 **3. 消耗积分**
-- **AI代码生成**:
-  - HTML页面生成: 10积分/次
-  - 多文件项目: 30积分/次
-  - Vue应用: 50积分/次
-- **项目部署**: 20积分/次
-- **高级功能**: 根据功能复杂度消耗相应积分
+- **AI 代码生成**（唯一消耗场景）:
+  - 根据选择的 AI 模型和实际消耗的 Token 数量计费
+  - 不同模型有不同的积分消耗率（每千 Token 消耗的积分数）
+  - 模型等级分类：
+    - **基础编码模型**（如 gpt-5-low）: 约 1-3 积分/千Token
+    - **标准编码模型**（如 qwen-turbo）: 约 3-5 积分/千Token
+    - **高级编码模型**（如 gpt-5-codex-medium）: 约 5-10 积分/千Token
+    - **基础推理模型**: 约 10-15 积分/千Token
+    - **高级推理模型**: 约 15-30 积分/千Token
+  - 质量系数会影响最终积分消耗（1.0-3.5倍）
+  - 典型 Vue 3 项目生成消耗: 50-200 积分（取决于项目复杂度和模型选择）
+
+**💡 积分优化建议**:
+- 简单项目选择基础编码模型，节省积分
+- 复杂项目选择高级推理模型，保证质量
+- 使用两阶段生成流程，避免无效生成浪费积分
+- 项目部署和代码下载不消耗积分，完全免费
 
 **4. 积分明细**
 1. 进入"积分中心"
@@ -850,14 +1319,13 @@ npm run dev
 ### 邀请好友获得奖励
 
 **1. 获取邀请码**
-1. 登录后进入"邀请中心"
+1. 登录后进入"邀请好友"
 2. 系统自动为每个用户生成唯一邀请码
 3. 复制邀请码或邀请链接
 
 **2. 分享邀请**
 - **方式一**: 分享邀请码，好友注册时输入
 - **方式二**: 分享邀请链接，好友点击直接跳转注册页
-- **方式三**: 生成邀请海报，分享到社交媒体
 
 **3. 获得奖励**
 - 好友通过邀请码/链接完成注册
@@ -866,7 +1334,7 @@ npm run dev
 - 奖励在好友注册后24小时内自动发放
 
 **4. 邀请统计**
-1. 进入"邀请中心"
+1. 进入"邀请好友"
 2. 查看邀请数据:
    - 邀请人数
    - 成功注册人数
@@ -904,12 +1372,6 @@ npm run dev
 
 # 运行特定测试方法
 ./mvnw test -Dtest=UserServiceTest#testRegister
-```
-
-**代码生成**
-```bash
-# 生成MyBatis-Flex代码
-./mvnw compile exec:java -Dexec.mainClass="com.spring.aicodemother.generator.MyBatisCodeGenerator"
 ```
 
 **热部署**
@@ -1037,13 +1499,24 @@ throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限");
 ```
 
 **2. 错误码定义**
-- 0: 成功
-- 40000: 参数错误
-- 40100: 未登录
-- 40101: 无权限
-- 40400: 资源不存在
-- 50000: 系统错误
-- 50001: 操作失败
+
+**基础错误码**
+- `0`: 成功
+- `40000`: 请求参数错误
+- `40100`: 未登录
+- `40101`: 无权限
+- `40300`: 禁止访问
+- `40400`: 请求数据不存在
+- `42900`: 请求过于频繁
+- `50000`: 系统内部异常
+- `50001`: 操作失败
+
+**邮箱相关错误码**
+- `40001`: 验证码无效或已过期
+- `40002`: 邮箱已存在
+- `40003`: 邮箱格式不正确
+- `42901`: 邮件发送过于频繁，请稍后再试
+- `50100`: 邮件发送失败
 
 **3. 统一响应格式**
 ```json
@@ -1077,58 +1550,87 @@ throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限");
 #### 应用管理
 
 ```
-GET    /api/app/list/page          # 分页查询应用列表
-POST   /api/app/                   # 创建新应用
-GET    /api/app/{id}               # 获取应用详情
-PUT    /api/app/                   # 更新应用
-DELETE /api/app/{id}               # 删除应用
-POST   /api/app/generate/{id}      # 非流式代码生成
-GET    /api/app/generate/sse/{id}  # 流式代码生成(SSE)
+# 基础操作
+POST   /api/app/add                     # 创建新应用
+POST   /api/app/update                  # 更新应用信息
+POST   /api/app/delete                  # 删除应用
+GET    /api/app/get/vo                  # 获取应用详情（?id={appId}）
+GET    /api/app/download/{appId}        # 下载应用代码（ZIP格式）
+
+# 列表查询
+POST   /api/app/my/list/page/vo         # 分页获取当前用户的应用列表
+POST   /api/app/good/list/page/vo       # 分页获取精选应用列表（带缓存）
+
+# AI代码生成（🆕 v1.1.0）
+POST   /api/app/generatePlan/{appId}    # 生成开发计划（两阶段生成第一步）
+GET    /api/app/chat/gen/code           # AI对话生成代码（SSE流式，?appId={id}&userMessage=xxx&modelKey=xxx）
+POST   /api/app/chat/stop               # 停止当前代码生成任务
+
+# 部署
+POST   /api/app/deploy                  # 部署应用到生产环境
+
+# 管理员接口（需要ADMIN权限）
+POST   /api/app/admin/update            # 管理员更新应用
+POST   /api/app/admin/delete            # 管理员删除应用
+POST   /api/app/admin/list/page/vo      # 管理员分页获取应用列表
+GET    /api/app/admin/get/vo            # 管理员获取应用详情
 ```
 
 #### 版本管理
 
 ```
-POST   /api/app/version/list/page  # 分页查询版本列表
-GET    /api/app/version/list/{appId} # 查询应用所有版本
+POST   /api/app/version/list/page       # 分页查询版本列表
+GET    /api/app/version/list/{appId}    # 查询应用所有版本
 GET    /api/app/version/get/{versionId} # 获取版本详情
-POST   /api/app/version/rollback   # 版本回滚
+POST   /api/app/version/rollback        # 版本回滚
 ```
 
 #### 用户管理
 
 ```
-POST   /api/user/register          # 用户注册
-POST   /api/user/login             # 用户登录
-POST   /api/user/logout            # 用户登出
-GET    /api/user/current           # 获取当前用户信息
-PUT    /api/user/                  # 更新用户信息
-POST   /api/user/email/send        # 发送邮箱验证码
+# 认证相关
+POST   /api/user/email/send             # 发送邮箱验证码
+POST   /api/user/register               # 用户注册
+POST   /api/user/login                  # 用户登录
+POST   /api/user/logout                 # 用户登出
+POST   /api/user/reset-password         # 重置密码
+
+# 用户信息
+GET    /api/user/get/login              # 获取当前登录用户信息
+GET    /api/user/profile                # 获取用户主页信息（?userId={id}）
+POST   /api/user/profile/update         # 更新当前用户个人资料
+POST   /api/user/apps                   # 获取用户应用列表
+
+# 管理员接口（需要ADMIN权限）
+POST   /api/user/add                    # 创建用户
+GET    /api/user/get                    # 根据ID获取用户信息
+GET    /api/user/get/vo                 # 根据ID获取用户VO
+POST   /api/user/update                 # 更新用户信息
+POST   /api/user/delete                 # 删除用户
+POST   /api/user/list/page/vo           # 分页获取用户列表
 ```
 
 #### 积分管理
 
 ```
-GET    /api/points/                # 获取用户积分
-GET    /api/points/records         # 查询积分记录
-POST   /api/points/add             # 增加积分
-POST   /api/points/deduct          # 扣除积分
+GET    /api/points/overview             # 获取积分概览（可用、累计获得、累计消耗）
+GET    /api/points/current              # 获取当前积分状态（可用积分、冻结积分）
+GET    /api/points/records              # 查询积分明细记录（?type=SIGN_IN/REGISTER/INVITE/GENERATE）
 ```
 
 #### 邀请管理
 
 ```
-GET    /api/invite/code            # 获取邀请码
-GET    /api/invite/records         # 查询邀请记录
-GET    /api/invite/stats           # 邀请统计
+GET    /api/invite/code                 # 获取邀请码和邀请链接
+GET    /api/invite/records              # 查询邀请记录列表
 ```
 
 #### 系统监控
 
 ```
-GET    /api/health/                # 健康检查
-GET    /api/actuator/prometheus    # Prometheus指标
-GET    /api/actuator/health        # 详细健康状态
+GET    /api/health/                     # 健康检查
+GET    /api/actuator/prometheus         # Prometheus指标
+GET    /api/actuator/health             # 详细健康状态
 ```
 
 ### API调用示例
@@ -1141,6 +1643,7 @@ curl -X POST "http://localhost:8123/api/user/register" \
     "userEmail": "test@example.com",
     "emailCode": "123456",
     "userPassword": "password123",
+    "checkPassword": "password123",
     "userName": "测试用户",
     "inviteCode": "INVITE123"
   }'
@@ -1148,36 +1651,113 @@ curl -X POST "http://localhost:8123/api/user/register" \
 
 **2. 创建应用**
 ```bash
-curl -X POST "http://localhost:8123/api/app/" \
+curl -X POST "http://localhost:8123/api/app/add" \
   -H "Content-Type: application/json" \
   -H "Cookie: JSESSIONID=xxx" \
   -d '{
-    "appName": "我的应用",
-    "appDesc": "这是一个测试应用",
-    "appType": "html"
+    "appName": "我的Vue应用",
+    "appDesc": "这是一个测试应用"
   }'
 ```
 
-**3. AI代码生成(流式)**
+**3. 生成开发计划（两阶段生成第一步）**
+```bash
+curl -X POST "http://localhost:8123/api/app/generatePlan/123" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: JSESSIONID=xxx" \
+  -d '{
+    "userMessage": "做一个图片画廊应用，支持分类浏览和图片预览功能",
+    "modelKey": "gpt-5-codex-medium"
+  }'
+```
+
+**4. AI代码生成（SSE流式）**
 ```javascript
+// 前端使用EventSource接收SSE流式响应
+const appId = 123;
+const userMessage = "做一个待办事项管理应用";
+const modelKey = "gpt-5-codex-medium";
+
 const eventSource = new EventSource(
-  'http://localhost:8123/api/app/generate/sse/123'
+  `http://localhost:8123/api/app/chat/gen/code?appId=${appId}&userMessage=${encodeURIComponent(userMessage)}&modelKey=${modelKey}`
 );
 
 eventSource.onmessage = (event) => {
   console.log('收到消息:', event.data);
+  // 处理实时生成的代码片段
 };
 
 eventSource.onerror = (error) => {
   console.error('连接错误:', error);
   eventSource.close();
 };
+
+// 停止代码生成
+fetch('http://localhost:8123/api/app/chat/stop', {
+  method: 'POST',
+  credentials: 'include'
+});
 ```
 
-**4. 查询积分记录**
+**5. 部署应用**
 ```bash
+curl -X POST "http://localhost:8123/api/app/deploy" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: JSESSIONID=xxx" \
+  -d '{
+    "id": 123
+  }'
+```
+
+**6. 下载应用代码**
+```bash
+curl -X GET "http://localhost:8123/api/app/download/123" \
+  -H "Cookie: JSESSIONID=xxx" \
+  -o my-app.zip
+```
+
+**7. 查询积分概览**
+```bash
+curl -X GET "http://localhost:8123/api/points/overview" \
+  -H "Cookie: JSESSIONID=xxx"
+```
+
+**8. 查询积分明细**
+```bash
+# 查询所有积分记录
 curl -X GET "http://localhost:8123/api/points/records" \
   -H "Cookie: JSESSIONID=xxx"
+
+# 按类型筛选（SIGN_IN/REGISTER/INVITE/GENERATE）
+curl -X GET "http://localhost:8123/api/points/records?type=GENERATE" \
+  -H "Cookie: JSESSIONID=xxx"
+```
+
+**9. 获取邀请码**
+```bash
+curl -X GET "http://localhost:8123/api/invite/code" \
+  -H "Cookie: JSESSIONID=xxx"
+
+# 返回示例
+{
+  "code": 0,
+  "data": {
+    "inviteCode": "INVNJZKYSJH",
+    "inviteUrl": "http://localhost:5173/user/register?inviteCode=INVNJZKYSJH"
+  },
+  "message": "ok"
+}
+```
+
+**10. 版本回滚**
+```bash
+curl -X POST "http://localhost:8123/api/app/version/rollback" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: JSESSIONID=xxx" \
+  -d '{
+    "appId": 123,
+    "versionId": 456
+  }'
 ```
 
 ### 错误码说明
@@ -1186,12 +1766,18 @@ curl -X GET "http://localhost:8123/api/points/records" \
 |-------|------|---------|
 | 0 | 成功 | 正常处理响应数据 |
 | 40000 | 请求参数错误 | 检查请求参数格式和必填项 |
+| 40001 | 验证码无效或已过期 | 重新获取验证码 |
+| 40002 | 邮箱已存在 | 使用其他邮箱或直接登录 |
+| 40003 | 邮箱格式不正确 | 检查邮箱格式 |
 | 40100 | 未登录错误 | 跳转登录页面 |
 | 40101 | 无权限错误 | 提示用户权限不足 |
-| 40400 | 资源不存在 | 提示资源已被删除或不存在 |
 | 40300 | 禁止访问 | 检查访问权限 |
-| 50000 | 系统错误 | 联系管理员或稍后重试 |
+| 40400 | 资源不存在 | 提示资源已被删除或不存在 |
+| 42900 | 请求过于频繁 | 稍后重试，建议添加防抖限流 |
+| 42901 | 邮件发送过于频繁 | 等待60秒后重试 |
+| 50000 | 系统内部异常 | 联系管理员或稍后重试 |
 | 50001 | 操作失败 | 查看错误消息并重试 |
+| 50100 | 邮件发送失败 | 检查邮件配置或稍后重试 |
 
 ## 🚢 部署指南
 
@@ -1199,135 +1785,290 @@ curl -X GET "http://localhost:8123/api/points/records" \
 
 项目提供完整的生产环境部署方案，支持 Ubuntu 20.04/22.04 LTS 服务器。
 
-**1. 部署包结构**
+#### 📋 部署前准备
+
+**1. 服务器要求**
+- **操作系统**: Ubuntu 20.04 LTS 或 22.04 LTS
+- **CPU**: 2核心以上
+- **内存**: 4GB 以上（推荐 8GB）
+- **磁盘**: 20GB 可用空间以上
+- **网络**: 公网 IP，80/443 端口可访问
+
+**2. 必需的外部服务**
+
+确保以下服务可用：
+- **MySQL 8.0+**: 数据库服务
+- **Redis 6.0+**: 缓存和会话存储
+- **AI API 服务**: GPT API Key（从 https://204992.xyz 获取）
+- **腾讯云 COS**: 对象存储服务（需要 SecretId/SecretKey）
+- **SMTP 邮件服务**: 邮件发送（如 QQ 邮箱、Gmail）
+
+**3. 环境依赖清单**
+
+| 软件 | 版本要求 | 用途 |
+|------|---------|------|
+| Java | 21 | 运行 Spring Boot 应用 |
+| MySQL | 8.0+ | 主数据库 |
+| Redis | 6.0+ | 会话存储和缓存 |
+| Nginx | 1.18+ | 反向代理和静态文件服务 |
+| Chrome/Chromium | 最新版 | 网页截图功能 |
+
+#### 🚀 快速部署步骤
+
+**步骤 1: 上传部署包**
+```bash
+# 将部署包上传到服务器
+scp -r deployment/ user@your-server:/tmp/
 ```
-deployment/
+
+**步骤 2: 连接服务器**
+```bash
+ssh user@your-server
+```
+
+**步骤 3: 环境检查**
+```bash
+cd /tmp/deployment/scripts
+chmod +x *.sh
+bash check_env.sh
+```
+
+环境检查会验证：
+- ✓ 操作系统版本
+- ✓ 必需软件是否安装
+- ✓ 端口是否可用（80, 443, 8123, 3306, 6379）
+- ✓ 磁盘空间是否充足
+- ✓ 必需目录权限
+
+**步骤 4: 配置环境变量**
+
+复制并编辑环境变量文件：
+```bash
+cp /tmp/deployment/.env.prod.example /tmp/deployment/.env.prod
+nano /tmp/deployment/.env.prod
+```
+
+**必须配置的关键参数**（80+ 配置项，以下为核心配置）：
+
+```bash
+# 数据库配置
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=ai_code_mother
+DB_USERNAME=root
+DB_PASSWORD=your_secure_password  # 修改为你的 MySQL 密码
+
+# Redis 配置
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=                   # 如有密码请填写
+
+# AI API 配置（核心配置）
+OPENAI_API_BASE_URL=https://204992.xyz/v1
+OPENAI_API_KEY=sk-your-api-key-here  # 替换为你的 API Key
+OPENAI_MODEL_REASONING=gpt-5-codex-medium
+OPENAI_MODEL_ROUTING=gpt-5-low
+
+# 邮件配置
+MAIL_HOST=smtp.qq.com             # SMTP 服务器地址
+MAIL_PORT=587                     # SMTP 端口
+MAIL_USERNAME=your-email@qq.com   # 发件邮箱
+MAIL_PASSWORD=your-smtp-auth-code # SMTP 授权码（不是密码）
+
+# 腾讯云 COS 配置
+COS_SECRET_ID=your-secret-id      # 腾讯云 SecretId
+COS_SECRET_KEY=your-secret-key    # 腾讯云 SecretKey
+COS_REGION=ap-shanghai            # COS 地域
+COS_BUCKET=your-bucket-name       # 存储桶名称
+```
+
+**步骤 5: 一键部署**
+```bash
+sudo bash deploy.sh
+```
+
+部署脚本会自动完成（预计 10-15 分钟）：
+- ✓ 安装所有依赖软件（Java 21, MySQL, Redis, Nginx）
+- ✓ 创建应用用户和目录（aicode 用户, /var/app/aicodehub）
+- ✓ 初始化数据库（导入 SQL 表结构和初始数据）
+- ✓ 部署后端应用（JAR 包 + Systemd 服务）
+- ✓ 部署前端文件（Vue 构建产物到 /var/www/aicodehub）
+- ✓ 配置 Nginx（反向代理 + SSL 支持）
+- ✓ 配置日志轮转（自动清理旧日志）
+- ✓ 启动所有服务
+- ✓ 执行健康检查
+
+**步骤 6: 验证部署**
+
+```bash
+# 检查后端健康状态
+curl http://localhost:8123/api/health/
+
+# 预期输出: {"status":"UP"}
+
+# 检查前端访问
+curl http://localhost/
+
+# 预期输出: HTML 页面内容
+
+# 完整健康检查
+bash service_manager.sh health
+```
+
+**步骤 7: 访问应用**
+
+部署成功后，在浏览器访问：
+- **HTTP**: `http://你的服务器IP`
+- **HTTPS**: `https://你的域名`（需要配置 SSL 证书）
+
+#### 📦 部署包结构说明
+
+```
+deployment/ (总大小: 147 MB)
 ├── backend/                     # 后端应用（143MB JAR包）
-├── frontend/                    # 前端应用（Vue 3 构建产物）
-├── config/                      # 配置文件
+│   └── ai-code-mother-0.0.1-SNAPSHOT.jar
+├── frontend/                    # 前端应用（Vue 3 构建产物, 3.3MB）
+│   ├── index.html
+│   ├── assets/                  # JS/CSS/图标
+│   └── favicon.ico
+├── config/                      # 配置文件（8KB）
 │   ├── nginx.conf              # Nginx 配置
-│   ├── openresty.conf          # OpenResty 配置（支持限流、WAF）
+│   ├── openresty.conf          # OpenResty 配置（限流、WAF）
 │   ├── aicodehub.service       # Systemd 服务配置
 │   └── logrotate-aicodehub     # 日志轮转配置
-├── scripts/                     # 部署脚本
-│   ├── deploy.sh               # 一键部署脚本
-│   ├── check_env.sh            # 环境检查脚本
+├── scripts/                     # 部署脚本（32KB）
+│   ├── deploy.sh               # 一键部署脚本（8.2KB）
+│   ├── check_env.sh            # 环境检查脚本（7.4KB）
 │   ├── init_database.sh        # 数据库初始化脚本
 │   ├── service_manager.sh      # 服务管理脚本
 │   ├── backup.sh               # 备份脚本
 │   └── rollback.sh             # 回滚脚本
-├── sql/                         # 数据库脚本
-├── docs/                        # 完整文档
+├── sql/                         # 数据库脚本（143KB, 20+ 个）
+│   ├── create_table.sql        # 建表脚本
+│   ├── ai_model_config.sql     # AI 模型配置
+│   ├── v1.1.0_ai_model_tier_system.sql  # 模型等级系统
+│   └── migration_*.sql         # 迁移脚本
+├── docs/                        # 完整文档（1281 行）
 │   ├── DEPLOYMENT.md           # 完整部署指南（677 行）
-│   ├── DEPLOYMENT_CHECKLIST.md # 部署检查清单
-│   └── QUICK_REFERENCE.md      # 快速参考手册
-├── .env.prod.example           # 环境变量模板（40+ 配置项）
+│   ├── DEPLOYMENT_CHECKLIST.md # 部署检查清单（250 行）
+│   └── QUICK_REFERENCE.md      # 快速参考手册（354 行）
+├── .env.prod.example           # 环境变量模板（80+ 配置项）
 ├── README.md                   # 部署包说明
 └── REVIEW_REPORT.md            # 部署包审查报告
 ```
 
-**2. 快速开始**
+#### 🛠️ 服务管理
+
+**使用服务管理脚本：**
 ```bash
-# 上传部署包到服务器
-scp -r deployment/ user@your-server:/tmp/
-
-# 连接到服务器
-ssh user@your-server
-
-# 环境检查
-cd /tmp/deployment/scripts
-chmod +x *.sh
-bash check_env.sh
-
-# 一键部署
-sudo bash deploy.sh
-```
-
-**3. 部署成功**
-部署完成后，访问 `http://你的服务器IP` 即可使用！
-
-详细部署文档请查看：`deployment/docs/DEPLOYMENT.md`
-
-**4. 服务管理**
-```bash
-# 使用服务管理脚本
 cd /tmp/deployment/scripts
 
-# 启动/停止/重启服务
-bash service_manager.sh start|stop|restart
+# 启动服务
+bash service_manager.sh start
 
-# 查看状态和日志
-bash service_manager.sh status|logs
+# 停止服务
+bash service_manager.sh stop
+
+# 重启服务
+bash service_manager.sh restart
+
+# 查看服务状态
+bash service_manager.sh status
+
+# 查看实时日志
+bash service_manager.sh logs
 
 # 健康检查
 bash service_manager.sh health
-
-# 备份和回滚
-bash backup.sh daily          # 每日备份
-bash rollback.sh              # 交互式回滚
 ```
 
-### Docker 部署
-
-**1. 构建镜像**
+**使用 systemctl 命令：**
 ```bash
-# 构建后端镜像
-docker build -t ai-code-mother-backend:latest .
+# 启动后端服务
+sudo systemctl start aicodehub
 
-# 构建前端镜像
-cd ai-code-mother-frontend
-docker build -t ai-code-mother-frontend:latest .
+# 停止后端服务
+sudo systemctl stop aicodehub
+
+# 重启后端服务
+sudo systemctl restart aicodehub
+
+# 查看服务状态
+sudo systemctl status aicodehub
+
+# 查看服务日志
+sudo journalctl -u aicodehub -f
 ```
 
-**2. 使用Docker Compose**
-```yaml
-version: '3.8'
-services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: your_password
-      MYSQL_DATABASE: ai_code_mother
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./sql/create_table.sql:/docker-entrypoint-initdb.d/init.sql
+#### 💾 备份和回滚
 
-  redis:
-    image: redis:6.0
-    ports:
-      - "6379:6379"
-
-  backend:
-    image: ai-code-mother-backend:latest
-    ports:
-      - "8123:8123"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ai_code_mother
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: your_password
-      SPRING_REDIS_HOST: redis
-      DEEPSEEK_API_KEY: your-api-key
-    depends_on:
-      - mysql
-      - redis
-
-  frontend:
-    image: ai-code-mother-frontend:latest
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-
-volumes:
-  mysql_data:
-```
-
-**3. 启动服务**
+**创建备份：**
 ```bash
-docker-compose up -d
+cd /tmp/deployment/scripts
+
+# 每日备份
+bash backup.sh daily
+
+# 每周备份
+bash backup.sh weekly
+
+# 手动备份
+bash backup.sh manual
 ```
+
+备份内容包括：
+- 数据库完整备份
+- 应用配置文件
+- 前端静态文件
+- Nginx 配置
+- 日志文件
+
+**执行回滚：**
+```bash
+# 交互式选择备份版本
+bash rollback.sh
+
+# 按提示选择要回滚的备份
+# 系统会自动：
+# 1. 停止服务
+# 2. 恢复数据库
+# 3. 恢复应用文件
+# 4. 恢复配置
+# 5. 重启服务
+# 6. 健康检查
+```
+
+#### 📊 监控和维护
+
+**日志位置：**
+```bash
+# 应用日志
+/var/app/aicodehub/logs/application.log
+
+# Nginx 访问日志
+/var/log/nginx/access.log
+
+# Nginx 错误日志
+/var/log/nginx/error.log
+
+# Systemd 服务日志
+sudo journalctl -u aicodehub
+```
+
+**Prometheus 监控：**
+```bash
+# 访问监控指标端点
+curl http://localhost:8123/api/actuator/prometheus
+
+# 可监控指标包括：
+# - HTTP 请求统计
+# - AI 模型调用次数和 Token 使用量
+# - 数据库查询性能
+# - 缓存命中率
+# - 积分系统指标
+```
+
+**完整部署文档**：`deployment/docs/DEPLOYMENT.md` (677 行详细指南)
 
 ### 传统部署
 
@@ -1384,34 +2125,134 @@ server {
 ### 生产环境配置
 
 **1. 环境变量配置**
+
+完整的环境变量配置清单（80+ 配置项）：
+
 ```bash
-# 数据库配置
-export DB_HOST=your-db-host
-export DB_PORT=3306
-export DB_NAME=ai_code_mother
-export DB_USERNAME=your-username
-export DB_PASSWORD=your-password
+# ==================== 数据库配置 ====================
+export DB_HOST=localhost                    # 数据库主机地址
+export DB_PORT=3306                         # 数据库端口
+export DB_NAME=ai_code_mother               # 数据库名称
+export DB_USERNAME=root                     # 数据库用户名
+export DB_PASSWORD=your_secure_password     # 数据库密码
+export DB_DRIVER=com.mysql.cj.jdbc.Driver   # 数据库驱动
+export DB_URL="jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai"
 
-# Redis配置
-export REDIS_HOST=your-redis-host
-export REDIS_PORT=6379
+# HikariCP 连接池配置
+export DB_POOL_MAX_SIZE=20                  # 最大连接数
+export DB_POOL_MIN_IDLE=5                   # 最小空闲连接数
+export DB_POOL_TIMEOUT=30000                # 连接超时时间（毫秒）
+export DB_POOL_IDLE_TIMEOUT=600000          # 空闲超时时间（毫秒）
+export DB_POOL_MAX_LIFETIME=1800000         # 连接最大生命周期（毫秒）
 
-# AI API密钥
-export DEEPSEEK_API_KEY=your-deepseek-api-key
+# ==================== Redis 配置 ====================
+export REDIS_HOST=127.0.0.1                 # Redis 服务器地址
+export REDIS_PORT=6379                      # Redis 端口
+export REDIS_PASSWORD=                      # Redis 密码（如无密码留空）
+export REDIS_DATABASE=0                     # Redis 数据库索引（0-15）
+export REDIS_TTL=3600                       # 缓存存活时间（秒）
+
+# Redis Lettuce 连接池配置
+export REDIS_POOL_MAX_ACTIVE=8              # 最大活跃连接数
+export REDIS_POOL_MAX_IDLE=8                # 最大空闲连接数
+export REDIS_POOL_MIN_IDLE=2                # 最小空闲连接数
+export REDIS_POOL_MAX_WAIT=-1               # 最大等待时间（-1 表示无限等待）
+
+# ==================== Session 配置 ====================
+export SESSION_STORE_TYPE=redis             # Session 存储类型
+export SESSION_TIMEOUT=2592000              # Session 过期时间（秒，30天）
+export SESSION_COOKIE_MAX_AGE=2592000       # Cookie 过期时间（秒，30天）
+export SESSION_COOKIE_HTTP_ONLY=true        # 仅HTTP访问，防止XSS
+export SESSION_COOKIE_SECURE=false          # 开发环境使用HTTP（生产环境改为true）
+
+# ==================== AI API 配置（核心配置） ====================
+# OpenAI 兼容 API 配置
+export OPENAI_API_BASE_URL=https://204992.xyz/v1  # API 基础URL
+export OPENAI_API_KEY=sk-your-api-key-here         # API 密钥
+
+# 推理模型配置（用于复杂代码生成）
+export OPENAI_MODEL_REASONING=gpt-5-codex-medium   # 高级编码模型
+export OPENAI_REASONING_MAX_TOKENS=4000            # 最大生成Token数
+export OPENAI_REASONING_TEMPERATURE=0.7            # 生成温度（0-2）
+export OPENAI_REASONING_TIMEOUT=300                # 超时时间（秒，5分钟）
+
+# 路由模型配置（用于简单分类任务）
+export OPENAI_MODEL_ROUTING=gpt-5-low              # 基础编码模型
+export OPENAI_ROUTING_MAX_TOKENS=50                # 路由任务Token数
+export OPENAI_ROUTING_TEMPERATURE=0.3              # 较低温度确保稳定性
+export OPENAI_ROUTING_TIMEOUT=30                   # 超时时间（秒）
+
+# 流式模型配置（用于动态模型选择）
+export OPENAI_MODEL_STREAMING=gpt-5-low            # 默认流式模型
+export OPENAI_STREAMING_MAX_TOKENS=8192            # 支持长文本生成
+export OPENAI_STREAMING_TEMPERATURE=0.7            # 生成温度
+export OPENAI_STREAMING_TIMEOUT=300                # 超时时间（秒，5分钟）
+
+# 模型日志配置
+export OPENAI_LOG_REQUESTS=true                    # 记录请求日志（开发环境）
+export OPENAI_LOG_RESPONSES=true                   # 记录响应日志（开发环境）
+
+# ==================== 腾讯云 COS 配置 ====================
+export COS_HOST=your-custom-domain.com      # 自定义域名（可选）
+export COS_SECRET_ID=your-secret-id         # 腾讯云 SecretId
+export COS_SECRET_KEY=your-secret-key       # 腾讯云 SecretKey
+export COS_REGION=ap-shanghai               # COS 地域（ap-beijing/ap-shanghai/ap-guangzhou等）
+export COS_BUCKET=your-bucket-name          # 存储桶名称
+# 获取方式：登录腾讯云控制台 > 访问管理 > API密钥管理
+
+# ==================== 邮件服务配置 ====================
+export MAIL_HOST=smtp.qq.com                # SMTP 服务器地址（QQ邮箱示例）
+export MAIL_PORT=587                        # SMTP 端口（587为TLS加密端口）
+export MAIL_USERNAME=your-email@qq.com      # 发件邮箱地址
+export MAIL_PASSWORD=your-smtp-auth-code    # SMTP 授权码（不是邮箱密码）
+export MAIL_PROTOCOL=smtp                   # 邮件协议
+export MAIL_DEFAULT_ENCODING=UTF-8          # 默认编码
+export MAIL_SMTP_AUTH=true                  # 启用SMTP认证
+export MAIL_SMTP_STARTTLS_ENABLE=true       # 启用TLS加密
+export MAIL_SMTP_STARTTLS_REQUIRED=true     # TLS加密必需
+export MAIL_SMTP_SSL_TRUST=smtp.qq.com      # 信任的SMTP服务器
+
+# 其他常用邮箱配置：
+# Gmail: smtp.gmail.com:587
+# 163邮箱: smtp.163.com:465 (SSL)
+# 阿里云邮箱: smtp.aliyun.com:465
+
+# ==================== 可选服务配置 ====================
+# Pexels 图片搜索配置（可选）
+export PEXELS_API_KEY=your-pexels-api-key
+# 获取方式：https://www.pexels.com/api/
+
+# Pixabay 插画搜索配置（可选）
+export PIXABAY_API_KEY=your-pixabay-api-key
+# 获取方式：https://pixabay.com/api/docs/
+
+# 阿里云 DashScope 配置（可选）
 export DASHSCOPE_API_KEY=your-dashscope-api-key
+export DASHSCOPE_IMAGE_MODEL=wan2.2-t2i-flash
+# 获取方式：https://dashscope.console.aliyun.com/
 
-# 邮件配置
-export MAIL_HOST=smtp.example.com
-export MAIL_PORT=587
-export MAIL_USERNAME=your-email@example.com
-export MAIL_PASSWORD=your-email-password
+# ==================== 应用配置 ====================
+export SPRING_PROFILES_ACTIVE=prod          # 激活的配置文件
+export SERVER_PORT=8123                     # 后端服务端口
+export SERVER_CONTEXT_PATH=/api            # API 上下文路径
 
-# COS配置
-export COS_SECRET_ID=your-secret-id
-export COS_SECRET_KEY=your-secret-key
-export COS_REGION=ap-beijing
-export COS_BUCKET=your-bucket
+# ==================== 监控配置 ====================
+export MANAGEMENT_ENDPOINTS_INCLUDE=health,info,prometheus  # 暴露的端点
+export MANAGEMENT_HEALTH_SHOW_DETAILS=always                # 显示详细健康信息
+
+# ==================== 日志配置 ====================
+export LOGGING_LEVEL_ROOT=INFO                              # 根日志级别
+export LOGGING_LEVEL_APP=DEBUG                              # 应用日志级别
+export LOGGING_FILE_NAME=logs/application.log               # 日志文件路径
+export LOGGING_FILE_MAX_SIZE=100MB                          # 单个日志文件最大大小
+export LOGGING_FILE_MAX_HISTORY=30                          # 保留30天的日志
 ```
+
+**配置说明**：
+- **必需配置**：数据库、Redis、AI API、邮件、COS 配置
+- **可选配置**：Pexels、Pixabay、DashScope 配置（不配置不影响核心功能）
+- **生产环境**：请将所有 `your-*` 占位符替换为实际值
+- **安全建议**：敏感信息（密码、密钥）使用环境变量，不要硬编码到代码中
 
 **2. 性能调优**
 ```yaml
@@ -1664,6 +2505,343 @@ redis-cli ping
 curl http://localhost:8123/api/health
 ```
 
+### 一键部署问题
+
+**Q: 一键部署脚本执行失败，提示权限不足**
+A:
+1. 确保使用 `sudo` 执行部署脚本
+2. 检查当前用户是否有管理员权限
+3. 验证脚本是否有执行权限: `chmod +x deploy.sh`
+4. 查看部署日志: `cat /tmp/deployment/logs/deploy.log`
+
+**Q: 部署过程中提示端口被占用（8123/80/3306/6379）**
+A:
+```bash
+# 查看端口占用情况
+sudo netstat -tulpn | grep 8123
+sudo netstat -tulpn | grep 80
+sudo netstat -tulpn | grep 3306
+sudo netstat -tulpn | grep 6379
+
+# 停止占用端口的进程
+sudo kill -9 <PID>
+
+# 或修改配置文件使用其他端口
+```
+
+**Q: 环境检查脚本提示缺少依赖**
+A:
+```bash
+# Ubuntu 手动安装依赖
+sudo apt update
+sudo apt install -y openjdk-21-jdk mysql-server redis-server nginx chromium-browser
+
+# 验证安装
+java -version
+mysql --version
+redis-server --version
+nginx -v
+```
+
+**Q: 数据库初始化失败**
+A:
+1. 检查 MySQL 服务是否启动: `sudo systemctl status mysql`
+2. 验证 root 密码是否正确
+3. 手动执行 SQL 脚本:
+   ```bash
+   mysql -u root -p < deployment/sql/create_table.sql
+   mysql -u root -p < deployment/sql/v1.1.0_ai_model_tier_system.sql
+   ```
+4. 检查 SQL 脚本是否有语法错误
+
+**Q: 部署完成后无法访问（显示 502/504）**
+A:
+1. 检查后端服务状态: `sudo systemctl status aicodehub`
+2. 查看后端日志: `sudo journalctl -u aicodehub -n 100`
+3. 验证 Nginx 配置: `sudo nginx -t`
+4. 检查防火墙规则: `sudo ufw status`
+5. 确认端口 8123 正在监听: `sudo netstat -tulpn | grep 8123`
+
+**Q: SSL 证书配置失败**
+A:
+```bash
+# 使用 Let's Encrypt 免费证书
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com
+
+# 手动配置证书
+# 编辑 /etc/nginx/sites-available/aicodehub
+# 添加 SSL 配置
+ssl_certificate /path/to/cert.pem;
+ssl_certificate_key /path/to/key.pem;
+```
+
+### AI 模型选择问题
+
+**Q: 不知道该选择哪个 AI 模型？**
+A:
+根据项目复杂度选择：
+
+| 项目类型 | 推荐模型 | 质量系数 | 积分消耗 |
+|---------|---------|----------|---------|
+| 简单页面（5个文件以内） | gpt-5-low | 1.0x | 低 |
+| 标准项目（5-10个文件） | qwen-turbo | 1.5x | 中 |
+| 复杂应用（10+个文件） | gpt-5-codex-medium | 2.0x | 高 |
+| 企业级项目 | gpt-5-codex-high | 2.5x | 很高 |
+
+**Q: AI 模型调用超时**
+A:
+1. 检查网络连接是否稳定
+2. 验证 API Key 是否有效
+3. 尝试使用更快的模型（如 gpt-5-low）
+4. 检查后端配置中的超时时间设置（默认 5 分钟）
+5. 查看是否有大量并发请求导致 API 限流
+
+**Q: 生成的代码质量不好**
+A:
+1. **使用更高级的模型**: 如 gpt-5-codex-high
+2. **优化提示词**: 提供更详细的需求描述
+3. **使用两阶段生成**: 先生成计划，确认后再生成代码
+4. **启用代码验证**: 自动检查代码质量
+5. **提供示例**: 在需求中包含期望的代码风格示例
+
+**Q: Token 消耗太快，积分不够用**
+A:
+1. **选择合适的模型**: 简单项目不要用高级模型
+2. **使用两阶段生成**: 避免无效生成浪费积分
+3. **优化提示词**: 简洁明确，避免冗余
+4. **邀请好友**: 邀请双方各得 50 积分
+5. **查看积分明细**: 了解积分消耗情况，优化使用策略
+
+### Vue 项目生成问题
+
+**Q: 生成的 Vue 项目无法运行**
+A:
+```bash
+# 1. 检查 Node.js 版本（需要 18+）
+node -v
+
+# 2. 清除缓存并重新安装依赖
+cd your-project
+rm -rf node_modules package-lock.json
+npm install
+
+# 3. 检查是否有依赖冲突
+npm ls
+
+# 4. 尝试使用其他包管理器
+pnpm install  # 或 yarn install
+```
+
+**Q: Vue 项目构建失败**
+A:
+1. 查看构建错误信息
+2. 检查代码验证报告中的错误
+3. 常见问题修复:
+   ```bash
+   # TypeScript 类型错误
+   npm run type-check
+
+   # ESLint 错误
+   npm run lint --fix
+
+   # 依赖版本冲突
+   npm update
+   ```
+
+**Q: 部署后页面显示 404**
+A:
+1. 检查 Nginx 配置中的 `root` 路径是否正确
+2. 确认前端文件已正确部署到 `/var/www/aicodehub`
+3. 检查 `index.html` 是否存在
+4. Nginx 配置需要添加:
+   ```nginx
+   location / {
+       try_files $uri $uri/ /index.html;
+   }
+   ```
+
+**Q: Vue 项目依赖安装失败**
+A:
+```bash
+# 使用国内镜像加速
+npm config set registry https://registry.npmmirror.com
+
+# 清除 npm 缓存
+npm cache clean --force
+
+# 使用 pnpm（更快更稳定）
+npm install -g pnpm
+pnpm install
+
+# 跳过可选依赖
+npm install --no-optional
+```
+
+### 环境配置问题
+
+**Q: Java 版本不对，提示需要 Java 21**
+A:
+```bash
+# Ubuntu 安装 Java 21
+sudo apt install openjdk-21-jdk
+
+# 切换 Java 版本
+sudo update-alternatives --config java
+
+# 验证版本
+java -version
+```
+
+**Q: Node.js 版本太低**
+A:
+```bash
+# 使用 nvm 管理 Node.js 版本
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+
+# 安装 Node.js 18
+nvm install 18
+nvm use 18
+
+# 验证版本
+node -v  # 应显示 v18.x.x
+```
+
+**Q: 环境变量配置不生效**
+A:
+```bash
+# 方法1: 添加到 ~/.bashrc（当前用户）
+echo 'export OPENAI_API_KEY=your-key' >> ~/.bashrc
+source ~/.bashrc
+
+# 方法2: 添加到 /etc/environment（全局）
+sudo nano /etc/environment
+# 添加: OPENAI_API_KEY=your-key
+
+# 方法3: 使用 .env 文件
+cp deployment/.env.prod.example deployment/.env.prod
+nano deployment/.env.prod
+# 在部署脚本中加载: source deployment/.env.prod
+```
+
+**Q: Chrome/Chromium 未安装，截图功能失败**
+A:
+```bash
+# Ubuntu 安装 Chromium
+sudo apt install chromium-browser chromium-chromedriver
+
+# 验证安装
+chromium-browser --version
+
+# 如果无法安装，使用 Chrome
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo dpkg -i google-chrome-stable_current_amd64.deb
+sudo apt-get install -f
+```
+
+### 积分系统详细问题
+
+**Q: 积分计算方式是什么？**
+A:
+积分消耗 = (Token 数量 / 1000) × 模型积分消耗率 × 质量系数
+
+示例：
+- 使用 gpt-5-low（3积分/1K tokens，质量系数1.0）
+- 生成消耗了 10,000 tokens
+- 积分消耗 = (10000 / 1000) × 3 × 1.0 = 30 积分
+
+**Q: 如何获取更多积分？**
+A:
+1. **注册奖励**: 新用户注册赠送 100 积分
+2. **邀请好友**: 邀请双方各得 50 积分（无上限）
+3. **每日签到**: 每日首次登录获得 10 积分（可扩展）
+4. **参与活动**: 关注官方活动获得额外积分
+
+**Q: 积分有效期多久？**
+A:
+- 积分有效期为 **180 天**（6个月）
+- 即将过期的积分会提前 30 天通知
+- 过期积分自动扣除
+- 建议定期使用，避免浪费
+
+**Q: 积分扣除有误如何处理？**
+A:
+1. 查看积分明细记录，确认扣除情况
+2. 检查是否是生成失败后已自动退还
+3. 联系管理员提供以下信息:
+   - 用户 ID
+   - 积分记录 ID
+   - 操作时间
+   - 预期积分 vs 实际积分
+4. 系统会进行一致性检查并自动修复
+
+### 前端问题
+
+**Q: 登录后立即退出，无法保持登录状态**
+A:
+1. 检查浏览器是否禁用 Cookie
+2. 清除浏览器缓存和 Cookie
+3. 检查后端 Session 配置是否正确
+4. 验证 Redis 连接是否正常: `redis-cli ping`
+5. 检查跨域配置: CORS 和 credentials
+
+**Q: 页面白屏，控制台报错**
+A:
+```javascript
+// 常见错误修复
+// 1. 检查是否有 JavaScript 错误
+// 打开浏览器控制台查看错误详情
+
+// 2. 检查 API 基础 URL 是否正确
+// .env.development 或 .env.production
+
+// 3. 清除缓存并刷新
+Ctrl + Shift + Delete (Chrome)
+Ctrl + F5 (强制刷新)
+
+// 4. 检查路由配置
+// router/index.ts
+```
+
+**Q: 文件上传失败**
+A:
+1. 检查文件大小是否超过限制（默认 10MB）
+2. 验证 COS 配置是否正确
+3. 查看浏览器网络请求的错误信息
+4. 检查后端日志: `tail -f logs/application.log | grep COS`
+
+### 性能优化建议
+
+**Q: 如何提升代码生成速度？**
+A:
+1. **选择更快的模型**: gpt-5-low 响应速度最快
+2. **优化提示词**: 简洁明确，减少 Token 消耗
+3. **使用 ChatMemory 优化**: 系统已自动优化，限制 30 条消息
+4. **避免生成过大项目**: 建议单次生成不超过 20 个文件
+
+**Q: 如何减少服务器内存占用？**
+A:
+```bash
+# 调整 JVM 内存参数
+# 编辑 /etc/systemd/system/aicodehub.service
+Environment="JAVA_OPTS=-Xms1G -Xmx2G -XX:+UseG1GC"
+
+# 优化数据库连接池
+# application-prod.yml
+hikari:
+  maximum-pool-size: 10  # 从 20 降低到 10
+  minimum-idle: 2        # 从 5 降低到 2
+```
+
+**Q: 如何提升并发处理能力？**
+A:
+1. **增加连接池大小**: 数据库和 Redis 连接池
+2. **启用缓存**: Caffeine 本地缓存 + Redis 分布式缓存
+3. **使用负载均衡**: Nginx upstream 配置多个后端实例
+4. **优化数据库查询**: 添加索引，使用分页查询
+5. **启用 CDN**: 静态资源使用 CDN 加速
+
 ## 🤝 贡献指南
 
 我们欢迎所有形式的贡献！
@@ -1754,7 +2932,7 @@ Closes #123
 - [Ant Design Vue](https://antdv.com/) - 优秀的Vue UI组件库
 - [LangChain4j](https://github.com/langchain4j/langchain4j) - Java AI应用框架
 - [MyBatis-Flex](https://mybatis-flex.com/) - 灵活的MyBatis增强框架
-- [DeepSeek](https://www.deepseek.com/) - 先进的AI模型服务
+- [OpenAI](https://openai.com/) - AI 模型服务提供商
 - [Vite](https://vitejs.dev/) - 快速的前端构建工具
 - [Redis](https://redis.io/) - 高性能内存数据库
 - [Prometheus](https://prometheus.io/) - 开源监控系统
@@ -1786,7 +2964,7 @@ Closes #123
 ### 🆕 v1.1.0 (2025-11-15)
 
 #### 重大更新
-- **动态 AI 模型选择系统**: 支持 24+ 个 AI 模型，5 级模型分类
+- **动态 AI 模型选择系统**: 支持 20+ 个 AI 模型，4 级模型分类
 - **两阶段代码生成流程**: 计划生成 → 用户确认 → 代码生成
 - **代码自动验证**: ESLint 集成，自动生成代码审查报告
 - **企业级部署方案**: 完整的 deployment/ 目录，支持一键部署
@@ -1818,7 +2996,7 @@ Closes #123
 #### 文档完善
 - 新增 677 行完整部署文档
 - 新增部署检查清单和快速参考手册
-- 新增环境变量模板（40+ 配置项）
+- 新增环境变量模板（80+ 配置项）
 
 ### v1.0.1 (2025-10-04)
 
