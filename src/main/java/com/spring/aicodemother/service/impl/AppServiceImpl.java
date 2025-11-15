@@ -696,6 +696,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败：" + e.getMessage());
         }
+
+        // 8.1. 同时复制到 code_output 目录（Nginx 访问路径）
+        String outputDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + deployKey;
+        try {
+            FileUtil.copyContent(sourceDir, new File(outputDirPath), true);
+            log.info("部署文件已同步到 code_output 目录: {}", outputDirPath);
+        } catch (Exception e) {
+            log.error("同步到 code_output 目录失败: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败（同步到访问目录失败）：" + e.getMessage());
+        }
+
         // 9. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
