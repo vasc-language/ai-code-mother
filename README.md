@@ -5,27 +5,47 @@
   <img src="https://img.shields.io/badge/Vue-3.5.17-blue" alt="Vue">
   <img src="https://img.shields.io/badge/Java-21-orange" alt="Java">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
+  <img src="https://img.shields.io/badge/Version-1.1.0-blue" alt="Version">
 </p>
 
-一个功能强大的全栈AI代码生成平台，基于Spring Boot 3.5.4和Vue 3构建，集成DeepSeek AI模型，提供智能化的HTML、多文件项目和Vue应用生成服务。
+<p align="center">
+  <a href="https://joinoai.cloud/user/register?inviteCode=INVNJZKYSJH">🌐 在线预览</a> •
+  <a href="https://github.com/vasc-language/ai-code-mother">📦 GitHub</a> •
+  <a href="https://gitee.com/vasc-language/ai-code-mother">📦 Gitee</a> •
+  <a href="deployment/docs/DEPLOYMENT.md">📖 部署文档</a>
+</p>
+
+一个功能强大的全栈 AI 代码生成平台，基于 Spring Boot 3.5.4 和 Vue 3 构建，集成 DeepSeek、Qwen 等多种 AI 模型，专注于 Vue 3 项目的智能化生成服务。支持 AI 模型动态选择、两阶段代码生成、代码自动验证等先进功能。
 
 ## 🚀 项目概述
 
-AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人工智能技术简化和加速软件开发流程。系统支持多种代码生成场景，从简单的HTML页面到复杂的多文件项目结构，为开发者提供高效、智能的代码生成解决方案。
+AI Code Mother 是一个现代化的 AI 驱动代码生成平台，旨在通过人工智能技术简化和加速 Vue 3 应用开发流程。系统专注于 Vue 3 项目的智能化生成，通过动态模型选择、两阶段代码生成、自动代码验证等先进功能，为开发者提供高效、智能、可靠的代码生成解决方案。
 
 ### ✨ 核心特性
 
-- **🤖 AI驱动生成**: 集成DeepSeek Reasoner和Qwen Turbo模型，提供高质量代码生成
-- **🔄 实时流式输出**: 基于SSE(Server-Sent Events)的实时代码生成进度展示
-- **📱 全栈架构**: Spring Boot后端 + Vue 3前端的现代化全栈解决方案
-- **🎯 多场景支持**: HTML页面、多文件项目、Vue应用等多种生成类型
-- **📊 监控系统**: 集成Prometheus指标监控和Grafana可视化
-- **☁️ 云端集成**: 腾讯云COS存储支持，支持生成文件的云端存储和部署
-- **🔧 智能工具**: 网页截图、项目下载、代码预览等实用功能
-- **📧 邮箱认证**: 支持邮箱注册登录，邮件验证码验证，提升账户安全性
-- **📦 版本管理**: 完整的应用版本历史记录、版本回滚功能
-- **🎁 积分系统**: 用户积分获取、消耗、过期机制，激励用户活跃
-- **👥 邀请机制**: 邀请码系统，邀请双方均可获得积分奖励
+#### AI 智能生成
+- **🤖 动态模型选择**: 支持 DeepSeek、Qwen、OpenAI 等 24+ 个 AI 模型，根据任务复杂度智能选择
+- **📋 两阶段生成**: 计划生成 → 用户确认 → 代码生成，避免无效生成节省成本
+- **✅ 代码自动验证**: 集成 ESLint 代码质量检查，自动生成代码审查报告
+- **🎯 Vue 3 专注**: 专为 Vue 3 项目优化，支持 Composition API、TypeScript、Pinia 等现代特性
+- **🔄 实时流式输出**: 基于 SSE (Server-Sent Events) 的实时代码生成进度展示
+
+#### 完善的用户体系
+- **📧 邮箱认证**: 支持邮箱注册登录，邮件验证码双因素认证，提升账户安全性
+- **🎁 积分系统**: 完善的积分获取、消耗、过期机制（已修复 8 个 P0-P3 级别缺陷）
+- **👥 邀请机制**: 邀请码系统，邀请双方均可获得积分奖励，配套防刷机制
+- **📦 版本管理**: 完整的应用版本历史记录、版本对比、一键回滚功能
+
+#### 企业级运维
+- **🚀 一键部署**: 规范的 deployment/ 目录，支持 Ubuntu 服务器一键部署
+- **🔄 备份回滚**: 自动备份数据库、应用、配置，支持交互式回滚
+- **📊 监控系统**: 集成 Prometheus 指标监控，支持 Grafana 可视化
+- **🛡️ 安全加固**: 支持 OpenResty 限流、WAF 防护、日志轮转
+
+#### 云端集成
+- **☁️ 腾讯云 COS**: 生成文件自动上传云端，CDN 加速访问
+- **🔧 智能工具**: 网页截图、项目下载、代码预览、差异对比等实用功能
+- **📱 全栈架构**: Spring Boot 后端 + Vue 3 前端的现代化全栈解决方案
 
 ## 📑 目录
 
@@ -52,11 +72,15 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 - **Spring Session**: 分布式会话管理，支持Redis存储
 
 **AI集成**
-- **LangChain4j 1.1.0**: Java AI应用开发框架
-- **LangGraph4j 1.6.0**: AI工作流编排引擎
-- **DeepSeek API**: DeepSeek Reasoner模型，用于复杂代码生成
-- **阿里云DashScope 2.21.1**: Qwen Turbo模型，用于快速分类路由
-- **Reactor**: 响应式编程支持Server-Sent Events流式输出
+- **LangChain4j 1.1.0**: Java AI 应用开发框架，支持工具调用和流式输出
+- **LangGraph4j 1.6.0**: AI 工作流编排引擎，支持复杂任务编排
+- **动态模型工厂**: 支持 24+ 个 AI 模型的动态选择和配置
+  - **DeepSeek Reasoner**: 高级推理模型，用于复杂代码生成
+  - **DeepSeek Chat**: 标准编码模型，快速响应
+  - **Qwen Turbo**: 快速分类和简单任务处理
+  - **OpenAI GPT-4/3.5**: 备选模型支持
+- **AI 模型等级系统**: 基础编码、标准编码、高级编码、基础推理、高级推理 5 个等级
+- **Reactor**: 响应式编程支持 Server-Sent Events 流式输出
 
 **数据层**
 - **MyBatis-Flex 1.11.0**: 灵活的MyBatis增强ORM框架
@@ -116,17 +140,18 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 
 ### 数据库设计
 
-系统包含9个核心数据表：
+系统包含 10 个核心数据表：
 
 - **user**: 用户信息表，支持邮箱注册、邮箱验证
 - **user_points**: 用户积分表，记录累计积分和可用积分
-- **points_record**: 积分记录表，记录积分获取和消耗明细
+- **points_record**: 积分记录表，记录积分获取和消耗明细（新增 status 字段支持积分状态管理）
 - **invite_record**: 邀请关系表，记录邀请人、被邀请人及奖励状态
-- **app**: 应用信息表，存储用户创建的应用配置
-- **app_version**: 应用版本表，记录每次应用修改的版本历史
-- **chat**: 聊天记录表，存储用户与AI的对话历史
-- **email_verification**: 邮箱验证码表，临时存储验证码用于注册登录
-- **deployed_app**: 部署应用表，记录已部署项目的访问信息
+- **sign_in_record**: 签到记录表，记录用户签到历史
+- **app**: 应用信息表，存储用户创建的应用配置（新增 modelKey 字段支持动态模型选择）
+- **app_version**: 应用版本表，记录每次应用修改的版本历史（新增 codeContentUrl 字段）
+- **chat_history**: 聊天记录表，存储用户与 AI 的对话历史
+- **email_verification_code**: 邮箱验证码表，临时存储验证码用于注册登录
+- **ai_model_config**: AI 模型配置表，存储所有可用 AI 模型的配置信息（🆕 v1.1.0）
 
 **技术特性**
 - 雪花算法ID生成策略
@@ -136,29 +161,50 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 
 ## 🎯 核心功能
 
-### 1. AI代码生成引擎
+### 1. AI 代码生成引擎
 
-**智能模型调度**
-- **DeepSeek Reasoner**: 处理复杂的代码生成任务，支持深度推理
-- **Qwen Turbo**: 快速分类和简单任务处理
-- **自动路由**: 根据任务复杂度自动选择合适的模型
+**🆕 动态模型选择系统**
+- **24+ AI 模型支持**: DeepSeek、Qwen、OpenAI 等主流模型
+- **5 级模型分类**: 基础编码、标准编码、高级编码、基础推理、高级推理
+- **智能模型推荐**: 根据项目复杂度自动推荐合适的模型
+- **质量系数显示**: 前端显示模型质量系数（替代倍率），帮助用户选择
+- **实时成本预估**: 根据选择的模型预估积分消耗
+
+**🆕 两阶段代码生成流程**
+1. **阶段一：计划生成**
+   - AI 分析需求，生成详细的开发计划
+   - 包含文件列表、功能模块、技术选型等
+   - 用户可预览和修改计划
+2. **阶段二：代码生成**
+   - 用户确认计划后开始生成代码
+   - 支持基于计划的增量生成
+   - 避免无效生成，节省 Token 成本
+
+**🆕 代码自动验证**
+- **ESLint 集成**: 自动执行 ESLint 代码质量检查
+- **Vue 项目结构验证**: 验证项目结构是否符合 Vue 3 规范
+- **自动生成审查报告**: 包含代码质量评分、错误列表、修复建议
+- **构建前验证**: 在项目构建前发现潜在问题
 
 **生成类型支持**
-- **HTML页面生成**: 单页面HTML+CSS+JS代码
-- **多文件项目生成**: 完整的项目目录结构和多文件代码
-- **Vue应用生成**: 基于Vue 3的完整前端应用
+- **Vue 3 项目生成**: 专注于 Vue 3 完整前端应用（已移除 HTML 和多文件项目支持）
+  - 支持 Composition API、TypeScript、Pinia
+  - 自动配置路由、状态管理、UI 组件库
+  - 优化的项目结构和代码组织
 
 **实时流式输出**
-- 基于Server-Sent Events(SSE)的实时推送
-- 实时展示AI思考过程和代码生成进度
+- 基于 Server-Sent Events (SSE) 的实时推送
+- 实时展示 AI 思考过程和代码生成进度
 - 支持生成过程中的取消操作
 - 断线自动重连机制
+- 🆕 优化 ChatMemory 管理，避免上下文过长（性能提升 50%+）
 
 **代码优化**
 - 自动代码格式化
 - 语法检查和修正
 - 最佳实践建议
 - 性能优化提示
+- 🆕 重复写入检测和警告
 
 ### 2. 版本管理系统
 
@@ -184,18 +230,30 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 - 仅应用创建者可执行版本回滚
 - 版本数据逻辑删除，可恢复
 
-### 3. 积分系统
+### 3. 积分系统（已修复 8 个 P0-P3 级别缺陷）
 
 **积分获取机制**
 - **注册奖励**: 新用户注册赠送初始积分
 - **邀请奖励**: 成功邀请好友注册，邀请双方均获得积分
-- **每日签到**: 每日首次登录获得签到积分(可扩展)
-- **活动奖励**: 参与平台活动获得额外积分(可扩展)
+- **每日签到**: 每日首次登录获得签到积分（可扩展）
+- **活动奖励**: 参与平台活动获得额外积分（可扩展）
 
 **积分消耗场景**
-- **AI代码生成**: 每次调用AI生成消耗相应积分
-- **高级功能**: 使用高级功能(如大规模项目生成)消耗更多积分
+- **AI 代码生成**: 根据选择的 AI 模型消耗相应积分（支持质量系数计费）
+- **高级功能**: 使用高级功能（如大规模项目生成）消耗更多积分
 - **项目部署**: 部署生成的项目到云端消耗积分
+
+**🆕 积分状态管理**
+- **PENDING**: 待处理 - 积分操作已创建但未确认
+- **COMPLETED**: 已完成 - 积分成功增加或扣除
+- **FAILED**: 已失败 - 积分操作失败，需要回滚
+- **REFUNDED**: 已退款 - 失败任务的积分已退还
+
+**🆕 积分一致性保障**
+- **一致性检查器**: 定期检查积分记录与用户积分余额是否一致
+- **自动修复机制**: 发现不一致时自动修复或报警
+- **防重复扣费**: 使用分布式锁防止并发扣费
+- **事务保障**: 积分操作使用数据库事务确保原子性
 
 **积分管理**
 - **累计积分**: 记录用户历史获得的总积分
@@ -205,15 +263,16 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 
 **积分过期机制**
 - 定时任务自动检查过期积分
-- 支持设置积分有效期(如180天)
+- 支持设置积分有效期（如 180 天）
 - 过期积分自动扣除
-- 过期通知提醒(可扩展)
+- 过期通知提醒（可扩展）
 
-**积分监控**
-- Prometheus指标收集
+**🆕 积分监控优化**
+- Prometheus 指标收集（已修复跨线程问题）
 - 积分获取/消耗趋势统计
 - 用户积分分布分析
 - 异常积分变动预警
+- Token 使用量监控
 
 ### 4. 邀请机制
 
@@ -276,9 +335,10 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 - 删除应用(逻辑删除)
 
 **生成类型**
-- HTML页面生成
-- 多文件项目生成
-- Vue 3应用生成
+- **Vue 3 项目生成**: 专注于 Vue 3 完整前端应用（v1.1.0+ 已聚焦 Vue 项目）
+  - 支持 Composition API、TypeScript、Pinia
+  - 自动配置路由、状态管理、UI 组件库
+  - 优化的项目结构和代码组织
 
 **应用部署**
 - 生成的项目自动上传到腾讯云COS
@@ -357,16 +417,22 @@ AI Code Mother 是一个现代化的AI驱动代码生成平台，旨在通过人
 ```
 ai-code-mother/
 ├── src/main/java/com/spring/aicodemother/    # 后端源码
-│   ├── ai/                                   # AI模型集成和服务
-│   │   ├── AiManager.java                    # AI模型管理器
+│   ├── ai/                                   # AI 模型集成和服务
+│   │   ├── AiManager.java                    # AI 模型管理器
+│   │   ├── DynamicAiModelFactory.java        # 🆕 动态模型工厂
+│   │   ├── AiCodeGeneratorServiceFactory.java # 🆕 AI 服务工厂
 │   │   ├── MessageStreamHandler.java         # 流式消息处理
-│   │   └── model/                            # AI请求响应模型
-│   ├── controller/                           # REST API控制器
+│   │   ├── model/                            # AI 请求响应模型
+│   │   └── tools/                            # 🆕 AI 工具调用
+│   │       ├── CodeValidationTool.java       # 🆕 代码验证工具
+│   │       └── VueProjectStructureValidationTool.java  # 🆕 结构验证工具
+│   ├── controller/                           # REST API 控制器
 │   │   ├── AppController.java                # 应用管理
 │   │   ├── AppVersionController.java         # 版本管理
 │   │   ├── UserController.java               # 用户管理
 │   │   ├── PointsController.java             # 积分管理
 │   │   ├── InviteController.java             # 邀请管理
+│   │   ├── AiModelController.java            # 🆕 AI 模型管理
 │   │   └── HealthController.java             # 健康检查
 │   ├── service/                              # 业务逻辑层
 │   │   ├── AppService.java                   # 应用服务
@@ -375,7 +441,11 @@ ai-code-mother/
 │   │   ├── UserPointsService.java            # 积分服务
 │   │   ├── PointsRecordService.java          # 积分记录服务
 │   │   ├── InviteRecordService.java          # 邀请服务
-│   │   └── ChatService.java                  # 聊天服务
+│   │   ├── ChatService.java                  # 聊天服务
+│   │   ├── AiModelConfigService.java         # 🆕 AI 模型配置服务
+│   │   ├── AiPlanningService.java            # 🆕 AI 计划生成服务
+│   │   ├── PlanCacheService.java             # 🆕 计划缓存服务
+│   │   └── GenerationValidationService.java  # 🆕 生成验证服务
 │   ├── mapper/                               # 数据访问层
 │   │   └── *.java                            # MyBatis-Flex Mapper
 │   ├── model/                                # 数据模型
@@ -397,9 +467,13 @@ ai-code-mother/
 │   │   └── CosManager.java                   # COS管理器
 │   ├── schedule/                             # 定时任务
 │   │   ├── PointsExpireScheduler.java        # 积分过期任务
+│   │   ├── PointsConsistencyChecker.java     # 🆕 积分一致性检查
 │   │   └── InviteRewardScheduler.java        # 邀请奖励任务
 │   ├── monitor/                              # 监控指标
-│   │   └── PointsMetricsCollector.java       # 积分指标收集
+│   │   ├── PointsMetricsCollector.java       # 积分指标收集
+│   │   ├── AiModelMetricsCollector.java      # 🆕 AI 模型监控
+│   │   ├── MonitorContext.java               # 🆕 监控上下文
+│   │   └── MonitorContextHolder.java         # 🆕 上下文持有者（修复跨线程问题）
 │   ├── exception/                            # 异常处理
 │   │   ├── GlobalExceptionHandler.java       # 全局异常处理器
 │   │   ├── BusinessException.java            # 业务异常
@@ -428,13 +502,31 @@ ai-code-mother/
 │   │   │   └── BasicLayout.vue               # 基础布局
 │   │   ├── components/                       # 可复用组件
 │   │   │   ├── GlobalHeader.vue              # 全局头部
-│   │   │   └── GlobalFooter.vue              # 全局底部
+│   │   │   ├── GlobalFooter.vue              # 全局底部
+│   │   │   ├── AiModelSelector.vue           # 🆕 AI 模型选择器（544 行）
+│   │   │   ├── DeployingModal.vue            # 🆕 部署中弹窗
+│   │   │   ├── DeploySuccessModal.vue        # 部署成功弹窗
+│   │   │   ├── PreviewLoading.vue            # 🆕 预览加载组件
+│   │   │   ├── DiffViewer.vue                # 🆕 差异查看器
+│   │   │   ├── CodeHighlight.vue             # 代码高亮组件
+│   │   │   └── MarkdownRenderer.vue          # Markdown 渲染器
 │   │   ├── pages/                            # 页面组件
-│   │   │   ├── HomeView.vue                  # 首页
+│   │   │   ├── HomePage.vue                  # 首页
 │   │   │   ├── app/                          # 应用管理页面
-│   │   │   │   ├── AppManagePage.vue         # 应用列表
-│   │   │   │   ├── AppDetailPage.vue         # 应用详情
-│   │   │   │   └── AppVersionPage.vue        # 版本管理
+│   │   │   │   ├── AppChatPage.vue           # 🆕 应用聊天页（重构为模块化）
+│   │   │   │   ├── components/               # 🆕 应用组件
+│   │   │   │   │   ├── AppHeaderBar.vue      # 应用头部
+│   │   │   │   │   ├── ChatPanel.vue         # 聊天面板
+│   │   │   │   │   └── CodePreviewPanel.vue  # 代码预览面板
+│   │   │   │   ├── composables/              # 🆕 组合式函数
+│   │   │   │   │   ├── useAppDeployment.ts   # 部署逻辑
+│   │   │   │   │   ├── useAppInfo.ts         # 应用信息
+│   │   │   │   │   ├── useChatMessages.ts    # 消息管理
+│   │   │   │   │   ├── useCodeGeneration.ts  # 代码生成（605 行）
+│   │   │   │   │   ├── useVersionManagement.ts # 版本管理
+│   │   │   │   │   └── useVisualEditor.ts    # 可视化编辑
+│   │   │   │   └── utils/                    # 工具函数
+│   │   │   │       └── contentFilters.ts     # 🆕 内容过滤器
 │   │   │   ├── user/                         # 用户相关页面
 │   │   │   │   ├── LoginPage.vue             # 登录页
 │   │   │   │   ├── RegisterPage.vue          # 注册页
@@ -442,28 +534,66 @@ ai-code-mother/
 │   │   │   ├── points/                       # 积分相关页面
 │   │   │   │   ├── PointsPage.vue            # 积分中心
 │   │   │   │   └── InvitePage.vue            # 邀请页面
-│   │   │   └── chat/                         # 聊天页面
-│   │   │       └── ChatPage.vue              # AI对话
+│   │   │   └── docs/                         # 文档页面
+│   │   │       ├── QuickStartDoc.vue         # 快速开始
+│   │   │       ├── APIDoc.vue                # API 文档
+│   │   │       ├── FAQDoc.vue                # 常见问题
+│   │   │       ├── features/                 # 功能文档
+│   │   │       │   ├── AIGenerationDoc.vue   # AI 生成文档
+│   │   │       │   └── PointsSystemDoc.vue   # 积分系统文档
+│   │   │       └── tutorial/                 # 教程目录
 │   │   ├── router/                           # 路由配置
 │   │   │   └── index.ts                      # 路由定义
-│   │   ├── stores/                           # Pinia状态管理
+│   │   ├── stores/                           # Pinia 状态管理
 │   │   │   ├── user.ts                       # 用户状态
 │   │   │   └── app.ts                        # 应用状态
-│   │   ├── api/                              # API客户端(自动生成)
-│   │   └── assets/                           # 静态资源
+│   │   ├── api/                              # API 客户端（自动生成）
+│   │   │   ├── aImoxingpeizhi.ts            # 🆕 AI 模型配置 API
+│   │   │   └── appController.ts              # 应用控制器 API
+│   │   ├── assets/                           # 静态资源
+│   │   │   ├── Deploy.svg                    # 🆕 部署图标
+│   │   │   ├── Online search.svg             # 🆕 在线搜索图标
+│   │   │   ├── ToolsCall.svg                 # 🆕 工具调用图标
+│   │   │   ├── refresh.svg                   # 🆕 刷新图标
+│   │   │   └── (共 18 个 SVG 图标)           # Deploy、ToolsCall、thinking 等
+│   │   └── styles/                           # 🆕 样式文件
+│   │       ├── lovable-theme.css             # Lovable 主题
+│   │       └── lovable-theme-override.css    # 主题覆盖
 │   ├── public/                               # 公共资源
 │   ├── .env.development                      # 开发环境变量
 │   ├── .env.production                       # 生产环境变量
 │   └── package.json                          # 依赖配置
 │
+├── deployment/                               # 🆕 部署包目录
+│   ├── backend/                              # 后端 JAR 包
+│   ├── frontend/                             # 前端构建产物
+│   ├── config/                               # 配置文件
+│   │   ├── nginx.conf                        # Nginx 配置
+│   │   ├── openresty.conf                    # OpenResty 配置
+│   │   ├── aicodehub.service                 # Systemd 服务
+│   │   └── logrotate-aicodehub               # 日志轮转
+│   ├── scripts/                              # 部署脚本
+│   │   ├── deploy.sh                         # 一键部署
+│   │   ├── check_env.sh                      # 环境检查
+│   │   ├── backup.sh                         # 备份脚本
+│   │   ├── rollback.sh                       # 回滚脚本
+│   │   └── service_manager.sh                # 服务管理
+│   ├── sql/                                  # 数据库迁移脚本
+│   ├── docs/                                 # 部署文档
+│   ├── .env.prod.example                     # 环境变量模板
+│   └── README.md                             # 部署说明
 ├── sql/                                      # 数据库脚本
-│   └── create_table.sql                      # 建表脚本
+│   ├── create_table.sql                      # 建表脚本
+│   ├── add_24_models.sql                     # 🆕 新增 24 个模型
+│   ├── fix_model_config_pricing_v2.sql       # 🆕 修复模型定价
+│   └── v1.1.0_ai_model_tier_system.sql       # 🆕 模型等级系统
 ├── tmp/                                      # 临时文件目录
 │   ├── code_output/                          # 生成代码输出
 │   └── screenshots/                          # 截图输出
-├── docs/                                     # 项目文档
-├── prometheus.yml                            # Prometheus配置
-├── pom.xml                                   # Maven配置
+├── tasks/                                    # 🆕 任务和计划
+│   └── todo.md                               # 任务清单
+├── prometheus.yml                            # Prometheus 配置
+├── pom.xml                                   # Maven 配置
 ├── mvnw / mvnw.cmd                          # Maven Wrapper
 └── README.md                                 # 项目说明文档
 ```
@@ -1065,7 +1195,79 @@ curl -X GET "http://localhost:8123/api/points/records" \
 
 ## 🚢 部署指南
 
-### Docker部署
+### 🆕 一键部署（推荐）
+
+项目提供完整的生产环境部署方案，支持 Ubuntu 20.04/22.04 LTS 服务器。
+
+**1. 部署包结构**
+```
+deployment/
+├── backend/                     # 后端应用（143MB JAR包）
+├── frontend/                    # 前端应用（Vue 3 构建产物）
+├── config/                      # 配置文件
+│   ├── nginx.conf              # Nginx 配置
+│   ├── openresty.conf          # OpenResty 配置（支持限流、WAF）
+│   ├── aicodehub.service       # Systemd 服务配置
+│   └── logrotate-aicodehub     # 日志轮转配置
+├── scripts/                     # 部署脚本
+│   ├── deploy.sh               # 一键部署脚本
+│   ├── check_env.sh            # 环境检查脚本
+│   ├── init_database.sh        # 数据库初始化脚本
+│   ├── service_manager.sh      # 服务管理脚本
+│   ├── backup.sh               # 备份脚本
+│   └── rollback.sh             # 回滚脚本
+├── sql/                         # 数据库脚本
+├── docs/                        # 完整文档
+│   ├── DEPLOYMENT.md           # 完整部署指南（677 行）
+│   ├── DEPLOYMENT_CHECKLIST.md # 部署检查清单
+│   └── QUICK_REFERENCE.md      # 快速参考手册
+├── .env.prod.example           # 环境变量模板（40+ 配置项）
+├── README.md                   # 部署包说明
+└── REVIEW_REPORT.md            # 部署包审查报告
+```
+
+**2. 快速开始**
+```bash
+# 上传部署包到服务器
+scp -r deployment/ user@your-server:/tmp/
+
+# 连接到服务器
+ssh user@your-server
+
+# 环境检查
+cd /tmp/deployment/scripts
+chmod +x *.sh
+bash check_env.sh
+
+# 一键部署
+sudo bash deploy.sh
+```
+
+**3. 部署成功**
+部署完成后，访问 `http://你的服务器IP` 即可使用！
+
+详细部署文档请查看：`deployment/docs/DEPLOYMENT.md`
+
+**4. 服务管理**
+```bash
+# 使用服务管理脚本
+cd /tmp/deployment/scripts
+
+# 启动/停止/重启服务
+bash service_manager.sh start|stop|restart
+
+# 查看状态和日志
+bash service_manager.sh status|logs
+
+# 健康检查
+bash service_manager.sh health
+
+# 备份和回滚
+bash backup.sh daily          # 每日备份
+bash rollback.sh              # 交互式回滚
+```
+
+### Docker 部署
 
 **1. 构建镜像**
 ```bash
@@ -1579,6 +1781,60 @@ Closes #123
 
 ---
 
+## 📋 更新日志
+
+### 🆕 v1.1.0 (2025-11-15)
+
+#### 重大更新
+- **动态 AI 模型选择系统**: 支持 24+ 个 AI 模型，5 级模型分类
+- **两阶段代码生成流程**: 计划生成 → 用户确认 → 代码生成
+- **代码自动验证**: ESLint 集成，自动生成代码审查报告
+- **企业级部署方案**: 完整的 deployment/ 目录，支持一键部署
+
+#### 功能增强
+- 修复积分系统 8 个 P0-P3 级别缺陷
+- 新增积分状态管理和一致性检查器
+- 新增备份和回滚机制
+- 新增 OpenResty 支持（限流、WAF）
+- 新增日志轮转配置
+
+#### 性能优化
+- 优化 ChatMemory 管理，Vue 项目生成速度提升 50%+
+- 修复 Token 监控跨线程问题
+- 增加流式 AI 模型超时时间到 5 分钟
+
+#### UI/UX 优化
+- 集成 Lovable 主题系统
+- 新增 AI 模型选择器组件（544 行）
+- 新增部署中弹窗、预览加载、差异查看器等组件
+- 重构聊天页面为模块化组件
+- 新增 18 个 SVG 图标（Deploy、ToolsCall、Online search、refresh、thinking 等）
+
+#### 代码重构
+- 前端聊天页面模块化（从 5844 行重构为多个组件）
+- 新增 composables 目录，提取复用逻辑
+- 优化项目结构和代码组织
+
+#### 文档完善
+- 新增 677 行完整部署文档
+- 新增部署检查清单和快速参考手册
+- 新增环境变量模板（40+ 配置项）
+
+### v1.0.1 (2025-10-04)
+
+#### 性能优化
+- **修复 ChatMemory 无限增长问题**: 限制临时记忆最大消息数为 30
+- Vue 项目生成中后期速度显著提升（从 30-40 秒/文件优化到 10-15 秒/文件）
+
+#### 新增功能
+- 邮箱认证体系
+- 版本管理系统
+- 积分激励系统
+- 邀请裂变机制
+- 内置模板库
+
+---
+
 <div align="center">
 
 ### ⭐ Star History ⭐
@@ -1595,10 +1851,10 @@ Closes #123
 
 ### 🎯 项目愿景
 
-**让AI为您的代码生成插上翅膀！**
+**让 AI 为您的代码生成插上翅膀！**
 
-我们致力于打造最易用、最智能的AI代码生成平台
-为开发者提供高效、优质的代码生成服务
+我们致力于打造最易用、最智能的 AI 代码生成平台
+专注于 Vue 3 项目的智能化生成，为开发者提供高效、优质的代码生成服务
 
 <br>
 
