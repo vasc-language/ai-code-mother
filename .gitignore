@@ -176,3 +176,7 @@ build/
 /面试题答案.md
 nul
 ai-code-mother-frontend/nul
+
+# 排除部署包中的大文件
+deployment/backend/*.jar
+deployment/frontend/dist/

@@ -31,6 +31,16 @@ public class MonitorContext implements Serializable {
      */
     private Long totalTokens;
 
+    /**
+     * 积分扣费是否失败（用于异常处理）
+     */
+    private Boolean pointsDeductionFailed;
+
+    /**
+     * 积分扣费失败原因
+     */
+    private String pointsDeductionFailureReason;
+
     @Serial
     private static final long serialVersionUID = 1L;
 }

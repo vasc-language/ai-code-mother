@@ -1,0 +1,48 @@
+[Unit]
+Description=AICodeHub Backend Service
+After=network.target mysql.service redis.service
+Wants=mysql.service redis.service
+
+[Service]
+Type=simple
+User=aicode
+Group=aicode
+WorkingDirectory=/var/app/aicodehub
+
+# Java 环境变量
+Environment="JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64"
+Environment="PATH=/usr/lib/jvm/java-21-openjdk-amd64/bin:/usr/bin:/bin"
+
+# Spring Boot 配置
+Environment="SPRING_PROFILES_ACTIVE=prod"
+
+# JVM 参数
+Environment="JAVA_OPTS=-Xms2G -Xmx4G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.awt.headless=true"
+
+# 启动命令
+ExecStart=/usr/bin/java $JAVA_OPTS \
+    -jar /var/app/aicodehub/ai-code-mother-0.0.1-SNAPSHOT.jar \
+    --spring.profiles.active=${SPRING_PROFILES_ACTIVE}
+
+# 重启策略
+Restart=always
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# 日志配置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aicodehub
+
+# 安全配置
+NoNewPrivileges=true
+PrivateTmp=true
+
+# 资源限制
+LimitNOFILE=65536
+TimeoutStartSec=180
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

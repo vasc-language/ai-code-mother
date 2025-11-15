@@ -171,41 +171,42 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
 
         // 4.0 防刷检测
-        // 检查用户今日是否被禁止生成
-        if (generationValidationService.isUserBannedToday(loginUser.getId())) {
+        // 检查用户身份（管理员豁免所有限制）
+        boolean isAdmin = com.spring.aicodemother.constant.UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
+
+        // 检查用户今日是否被禁止生成（管理员免检）
+        if (!isAdmin && generationValidationService.isUserBannedToday(loginUser.getId())) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "您今日已达到最大警告次数，暂时无法生成应用");
         }
 
-        // 检查用户今日生成次数是否超限
-        if (generationValidationService.isGenerationCountExceeded(loginUser.getId())) {
+        // 检查用户今日生成次数是否超限（管理员免检）
+        if (!isAdmin && generationValidationService.isGenerationCountExceeded(loginUser.getId())) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR,
                     String.format("您今日生成次数已达上限（%d次），请明天再试",
                             com.spring.aicodemother.constants.PointsConstants.DAILY_GENERATION_LIMIT));
         }
 
-        // 检查用户今日Token消耗是否超限
-        if (generationValidationService.isTokenLimitExceeded(loginUser.getId())) {
+        // 检查用户今日Token消耗是否超限（管理员免检）
+        if (!isAdmin && generationValidationService.isTokenLimitExceeded(loginUser.getId())) {
             int usage = generationValidationService.getTodayTokenUsage(loginUser.getId());
             throw new BusinessException(ErrorCode.OPERATION_ERROR,
                     String.format("您今日Token消耗已达上限（%d/%d），请明天再试",
                             usage, com.spring.aicodemother.constants.PointsConstants.DAILY_TOKEN_LIMIT));
         }
 
-        // [已禁用] 检查24小时内是否重复生成相同需求（简化开发，用户在同一对话中反复修改需求是正常的）
-        /*
-        if (generationValidationService.isDuplicateGeneration(loginUser.getId(), message)) {
+        // 检查24小时内是否重复生成相同需求（管理员免检）
+        if (!isAdmin && generationValidationService.isDuplicateGeneration(loginUser.getId(), message)) {
             int warningCount = generationValidationService.recordWarningAndPunish(loginUser.getId(), "24小时内重复生成相同需求");
             String msg = String.format("检测到重复生成，已记录警告（今日第%d次），并扣除%d积分",
                     warningCount, com.spring.aicodemother.constants.PointsConstants.INVALID_GENERATION_PENALTY);
             throw new BusinessException(ErrorCode.OPERATION_ERROR, msg);
         }
-        */
 
-        // 增加今日生成次数
-        generationValidationService.incrementGenerationCount(loginUser.getId());
+        // 增加今日生成次数（管理员免计数）
+        if (!isAdmin) {
+            generationValidationService.incrementGenerationCount(loginUser.getId());
+        }
 
-        // ⚠️ 临时禁用积分检查（测试期间）- 测试完成后请取消注释
-        /*
         // 4.1 检查用户积分最低门槛（不再预扣，由监听器实时扣费）
         int minPoints = 50; // 最低积分门槛，确保基本使用能力
         if (!userPointsService.checkPointsSufficient(loginUser.getId(), minPoints)) {
@@ -213,14 +214,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 String.format("积分不足，至少需要 %d 积分才能生成，请先签到或邀请好友获取积分", minPoints));
         }
         log.info("用户 {} 开始生成应用 {}，当前积分充足（>= {}）", loginUser.getId(), appId, minPoints);
-        */
-        log.info("[测试模式] 用户 {} 开始生成应用 {}，已跳过积分检查", loginUser.getId(), appId);
 
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
 
-        // [已禁用] 记录本次生成（用于后续重复检测）
-        // generationValidationService.recordGeneration(loginUser.getId(), message);
+        // 记录本次生成（用于后续重复检测，管理员免记录）
+        if (!isAdmin) {
+            generationValidationService.recordGeneration(loginUser.getId(), message);
+        }
 
         // 5.1 若为 Vue 工程模式，尝试命中预置模板并进行首次目录拷贝，同时为当前轮拼接模板说明
         // [已禁用] VUE模板功能暂时不使用
@@ -276,23 +277,43 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                             if (!valid) {
                                 log.warn("用户 {} 生成应用 {} 的结果未通过有效性校验（内容为空或未生成代码文件）", loginUser.getId(), appId);
                                 pointsMetricsCollector.recordInvalidGeneration(loginUser.getId().toString(), "no_code_files");
-                                // [已禁用] 惩罚机制：AI只输出计划未生成实际代码时不扣额外积分
-                                // generationValidationService.recordWarningAndPunish(loginUser.getId(), "AI只输出计划未生成实际代码");
-                                // 注意：监听器已扣费，但不额外惩罚扣分
+                                // 惩罚机制：AI只输出计划未生成实际代码时扣除额外积分（管理员免罚）
+                                if (!isAdmin) {
+                                    generationValidationService.recordWarningAndPunish(loginUser.getId(), "AI只输出计划未生成实际代码");
+                                }
+                                // 注意：监听器已扣费，此处额外扣除惩罚积分
                                 return;
                             }
 
-                            // 记录Token消耗（用于统计）
+                            // 记录Token消耗（用于统计，管理员免统计）
                             com.spring.aicodemother.monitor.MonitorContext monitorContext = com.spring.aicodemother.monitor.MonitorContextHolder.getContext();
                             if (monitorContext != null && monitorContext.getTotalTokens() != null) {
                                 int tokenToRecord = monitorContext.getTotalTokens().intValue();
-                                generationValidationService.recordTokenUsage(loginUser.getId(), tokenToRecord);
-                                log.info("用户 {} 生成应用 {} 消耗 {} tokens，监听器已实时扣费", 
+
+                                // 管理员也要检查积分扣费失败（虽然管理员积分无限，但监听器仍然执行扣费逻辑）
+                                if (Boolean.TRUE.equals(monitorContext.getPointsDeductionFailed())) {
+                                    log.error("[积分扣费失败] 用户 {} 生成应用 {} 完成，但积分扣费失败: {}",
+                                            loginUser.getId(), appId, monitorContext.getPointsDeductionFailureReason());
+                                    log.error("[积分扣费失败] 用户已获得生成结果但未扣费，需要人工对账！userId={}, appId={}, tokens={}",
+                                            loginUser.getId(), appId, tokenToRecord);
+                                    // 注意：此时用户已看到生成结果，无法撤回，需要事后对账
+                                    // 监控指标已在监听器中记录，此处仅记录警告日志
+                                    return; // 不发放首次生成奖励
+                                }
+
+                                // 记录Token消耗到Redis统计（管理员免统计）
+                                if (!isAdmin) {
+                                    generationValidationService.recordTokenUsage(loginUser.getId(), tokenToRecord);
+                                }
+
+                                log.info("用户 {} 生成应用 {} 消耗 {} tokens，监听器已实时扣费",
                                         loginUser.getId(), appId, tokenToRecord);
                             }
 
-                            // 检查是否是用户首次生成，发放首次生成奖励
-                            checkAndRewardFirstGenerate(loginUser.getId(), appId);
+                            // 检查是否是用户首次生成，发放首次生成奖励（管理员免奖励）
+                            if (!isAdmin) {
+                                checkAndRewardFirstGenerate(loginUser.getId(), appId);
+                            }
                         } else {
                             // 生成失败或取消（监听器未触发扣费，无需返还）
                             log.info("用户 {} 生成应用 {} 失败或取消，监听器未扣费", loginUser.getId(), appId);

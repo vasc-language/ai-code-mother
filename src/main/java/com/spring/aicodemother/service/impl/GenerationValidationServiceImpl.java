@@ -29,6 +29,9 @@ public class GenerationValidationServiceImpl implements GenerationValidationServ
     @Resource
     private com.spring.aicodemother.monitor.PointsMetricsCollector pointsMetricsCollector;
 
+    @Resource
+    private com.spring.aicodemother.service.UserService userService;
+
     // Redis key前缀
     private static final String KEY_WARNING_COUNT = "generation:warning:count:"; // 每日警告次数
     private static final String KEY_GENERATION_HASH = "generation:hash:"; // 24小时内生成记录
@@ -268,6 +271,12 @@ public class GenerationValidationServiceImpl implements GenerationValidationServ
 
     @Override
     public int recordWarningAndPunish(Long userId, String reason) {
+        // 管理员免于惩罚机制（双重保护：调用方+方法内部）
+        if (isAdmin(userId)) {
+            log.info("[管理员免罚] 用户={} 为管理员，跳过警告和惩罚", userId);
+            return 0;
+        }
+
         String today = LocalDate.now().toString();
         String countKey = KEY_WARNING_COUNT + today + ":" + userId;
 
@@ -398,5 +407,24 @@ public class GenerationValidationServiceImpl implements GenerationValidationServ
                 java.time.LocalDateTime.now(),
                 java.time.LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0)
         ).getSeconds();
+    }
+
+    /**
+     * 检查用户是否为管理员
+     *
+     * @param userId 用户ID
+     * @return true表示是管理员
+     */
+    private boolean isAdmin(Long userId) {
+        if (userId == null || userId <= 0) {
+            return false;
+        }
+        try {
+            com.spring.aicodemother.model.entity.User user = userService.getById(userId);
+            return user != null && com.spring.aicodemother.constant.UserConstant.ADMIN_ROLE.equals(user.getUserRole());
+        } catch (Exception e) {
+            log.error("检查用户管理员身份失败: userId={}", userId, e);
+            return false;
+        }
     }
 }

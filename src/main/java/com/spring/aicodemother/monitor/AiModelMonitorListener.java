@@ -37,6 +37,9 @@ public class AiModelMonitorListener implements ChatModelListener {
     @Resource
     private com.spring.aicodemother.service.AiModelConfigService aiModelConfigService;
 
+    @Resource
+    private PointsMetricsCollector pointsMetricsCollector;
+
     @Autowired
     private View error;
 
@@ -195,8 +198,7 @@ public class AiModelMonitorListener implements ChatModelListener {
                         // 计算需要扣除的积分
                         Integer points = aiModelConfigService.calculatePoints(modelKey, totalTokens);
                         if (points != null && points > 0) {
-                            // ⚠️ 临时禁用积分扣除（测试期间）- 测试完成后请取消注释
-                            /*
+                            // 根据Token消耗实时扣除积分
                             userPointsService.deductPointsWithModel(
                                 Long.valueOf(userId),
                                 points,
@@ -206,13 +208,24 @@ public class AiModelMonitorListener implements ChatModelListener {
                                 modelKey,
                                 totalTokens
                             );
-                            */
-                            log.info("[积分扣除-测试模式] userId:{}, modelKey:{}, tokens:{}, points:{} (未实际扣除)", 
+                            log.info("[积分扣除] userId:{}, modelKey:{}, tokens:{}, points:{}",
                                     userId, modelKey, totalTokens, points);
                         }
                     } catch (Exception e) {
-                        log.error("[积分扣除失败] userId:{}, modelKey:{}, tokens:{}, error:{}", 
+                        // 积分扣费失败：记录标记到 MonitorContext，用于后续处理
+                        log.error("[积分扣除失败] userId:{}, modelKey:{}, tokens:{}, error:{}",
                                 userId, modelKey, totalTokens, e.getMessage(), e);
+
+                        // 设置扣费失败标记
+                        if (context != null) {
+                            context.setPointsDeductionFailed(true);
+                            context.setPointsDeductionFailureReason(e.getMessage());
+                            // 更新全局缓存中的标记
+                            MonitorContextHolder.updateContext(userId, appId, context);
+                        }
+
+                        // 记录监控指标（用于告警）
+                        pointsMetricsCollector.recordPointsDeductionFailure(userId, appId);
                     }
                 } else {
                     log.warn("[跳过积分扣除] modelKey:{}, totalTokens:{}", modelKey, totalTokens);

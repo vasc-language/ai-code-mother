@@ -1,0 +1,89 @@
+# AICodeHub 日志轮转配置
+# 位置: /etc/logrotate.d/aicodehub
+# 功能: 自动轮转应用日志，防止磁盘占满
+
+# 应用日志
+/var/app/aicodehub/logs/*.log {
+    # 每天轮转一次
+    daily
+
+    # 保留最近 30 天的日志
+    rotate 30
+
+    # 如果日志文件不存在，不报错
+    missingok
+
+    # 不轮转空文件
+    notifempty
+
+    # 压缩旧日志
+    compress
+
+    # 延迟压缩（保留最近一次的未压缩）
+    delaycompress
+
+    # 以日期为后缀（而不是数字）
+    dateext
+    dateformat -%Y%m%d
+
+    # 创建新日志文件的权限
+    create 0644 aicode aicode
+
+    # 共享脚本
+    sharedscripts
+
+    # 轮转后执行的命令
+    postrotate
+        # 通知应用重新打开日志文件（如果需要）
+        # systemctl reload aicodehub > /dev/null 2>&1 || true
+    endscript
+
+    # 如果文件大小超过 100MB，即使不到一天也轮转
+    size 100M
+
+    # 最多保留 3GB 日志
+    # maxsize 3G  # 某些版本的 logrotate 不支持此选项
+}
+
+# Nginx 访问日志
+/var/log/nginx/aicodehub_access.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        [ -f /var/run/nginx.pid ] && kill -USR1 `cat /var/run/nginx.pid`
+    endscript
+}
+
+# Nginx 错误日志
+/var/log/nginx/aicodehub_error.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        [ -f /var/run/nginx.pid ] && kill -USR1 `cat /var/run/nginx.pid`
+    endscript
+}
+
+# OpenResty 日志（如果使用 OpenResty）
+/var/log/openresty/aicodehub_*.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        [ -f /usr/local/openresty/nginx/logs/nginx.pid ] && \
+        kill -USR1 `cat /usr/local/openresty/nginx/logs/nginx.pid`
+    endscript
+}

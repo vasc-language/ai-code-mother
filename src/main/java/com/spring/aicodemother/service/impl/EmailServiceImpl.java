@@ -82,7 +82,7 @@ public class EmailServiceImpl extends ServiceImpl<EmailVerificationCodeMapper, E
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(email);
-            message.setSubject("【AI Code Mother 官网】验证码");
+            message.setSubject("【AICodeHub 官网】验证码");
             message.setText(buildEmailContent(code, type));
 
             mailSender.send(message);
@@ -149,7 +149,7 @@ public class EmailServiceImpl extends ServiceImpl<EmailVerificationCodeMapper, E
         return String.format("""
                         尊敬的用户你好 ( ^_^ )ノ
 
-                        感谢你信任 AI Code Mother！
+                        感谢你信任 AICodeHub！
                         当前正在进行的操作类型是:【%s】
 
                         你的验证码为:%s
@@ -165,7 +165,7 @@ public class EmailServiceImpl extends ServiceImpl<EmailVerificationCodeMapper, E
                         如非本人操作,请忽略此邮件,我们一直在守护你的安全 \\(^_^)/
 
                         ---
-                        AI Code Mother 团队
+                        AICodeHub 团队
                         """,
                 purpose, code, CODE_EXPIRE_MINUTES);
     }

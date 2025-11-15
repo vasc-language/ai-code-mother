@@ -25,6 +25,7 @@ public class PointsMetricsCollector {
     private final ConcurrentMap<String, Counter> pointsExpiredCountersCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Counter> invalidGenerationCountersCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Counter> refundFailureCountersCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Counter> pointsDeductionFailureCountersCache = new ConcurrentHashMap<>();
 
     /**
      * 记录积分发放（按类型统计）
@@ -129,5 +130,23 @@ public class PointsMetricsCollector {
         );
         counter.increment();
         log.warn("[Metrics] 积分返还失败: userId={}, appId={}", userId, appId);
+    }
+
+    /**
+     * 记录积分扣费失败次数（用于告警和事后对账）
+     * @param userId 用户ID
+     * @param appId 应用ID
+     */
+    public void recordPointsDeductionFailure(String userId, String appId) {
+        String key = userId + "_" + appId;
+        Counter counter = pointsDeductionFailureCountersCache.computeIfAbsent(key, k ->
+                Counter.builder("ai_code_points_deduction_failure_total")
+                        .description("积分扣费失败次数")
+                        .tag("user_id", userId)
+                        .tag("app_id", appId)
+                        .register(meterRegistry)
+        );
+        counter.increment();
+        log.error("[Metrics] 积分扣费失败: userId={}, appId={}", userId, appId);
     }
 }

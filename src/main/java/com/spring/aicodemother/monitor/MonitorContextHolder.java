@@ -74,6 +74,21 @@ public class MonitorContextHolder {
     }
 
     /**
+     * ✅ 更新Context到全局缓存（用于积分扣费失败标记等）
+     * @param userId 用户ID
+     * @param appId 应用ID
+     * @param context 更新后的Context
+     */
+    public static void updateContext(String userId, String appId, MonitorContext context) {
+        if (userId == null || appId == null || context == null) {
+            return;
+        }
+        String cacheKey = buildCacheKey(userId, appId);
+        GLOBAL_CONTEXT_CACHE.put(cacheKey, context);
+        log.debug("[Context更新] 更新全局缓存: {}", cacheKey);
+    }
+
+    /**
      * 清除监控上下文（同时清除全局缓存）
      */
     public static void clearContext() {

@@ -79,6 +79,9 @@ import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
 import { LogoutOutlined, HomeOutlined, UserOutlined, AppstoreOutlined, GithubOutlined, WalletOutlined, CalendarOutlined, TeamOutlined, BookOutlined } from '@ant-design/icons-vue'
 import PointsDisplay from './PointsDisplay.vue'
+// 导入 SVG 图标
+import homeIcon from '@/assets/home.svg'
+import documentIcon from '@/assets/document.svg'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -93,13 +96,13 @@ router.afterEach((to, from, next) => {
 const originItems = [
   {
     key: '/',
-    icon: () => h('img', { src: '/src/assets/home.svg', style: 'width: 18px; height: 18px;' }),
+    icon: () => h('img', { src: homeIcon, style: 'width: 18px; height: 18px;' }),
     label: '主页',
     title: '主页',
   },
   {
     key: '/docs',
-    icon: () => h('img', { src: '/src/assets/document.svg', style: 'width: 18px; height: 18px;' }),
+    icon: () => h('img', { src: documentIcon, style: 'width: 18px; height: 18px;' }),
     label: '使用文档',
     title: '使用文档',
   },
