@@ -1,5 +1,5 @@
-# Clean full example config for ai-code-mother backend.
-# Copy this file to application.yml, then replace placeholders.
+# ai-code-mother 后端干净示例配置（全量）
+# 使用方式：复制为 application.yml 后，按实际环境替换占位符
 
 spring:
   application:
@@ -105,32 +105,32 @@ knife4j:
 
 langchain4j:
   open-ai:
-    # Fallback key used by DynamicAiModelFactory
+    # 兼容兜底 Key（与下方保持同一个 DeepSeek Key）
     chat-model:
-      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
-    # Main model used by dynamic model selection
+      api-key: ${DEEPSEEK_API_KEY:}
+    # 主生成模型（动态选模主要使用）
     streaming-chat-model:
-      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
-      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
-      model-name: ${OPENAI_STREAM_MODEL:deepseek-chat}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      api-key: ${DEEPSEEK_API_KEY:}
+      model-name: deepseek-chat
       max-tokens: 8192
       temperature: 0.7
       log-requests: true
       log-responses: true
-    # Planning and reasoning model
+    # 规划/推理模型
     reasoning-streaming-chat-model:
-      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
-      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
-      model-name: ${OPENAI_REASONING_MODEL:deepseek-reasoner}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      api-key: ${DEEPSEEK_API_KEY:}
+      model-name: deepseek-reasoner
       max-tokens: 4000
       temperature: 0.7
       log-requests: true
       log-responses: true
-    # Lightweight routing model
+    # 轻量路由模型
     routing-chat-model:
-      base-url: ${ROUTING_BASE_URL:${OPENAI_BASE_URL:https://api.deepseek.com}}
-      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
-      model-name: ${ROUTING_MODEL_NAME:deepseek-chat}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      api-key: ${DEEPSEEK_API_KEY:}
+      model-name: deepseek-chat
       max-tokens: 50
       temperature: 0.3
       log-requests: true
