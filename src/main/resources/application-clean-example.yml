@@ -1,0 +1,222 @@
+# Clean full example config for ai-code-mother backend.
+# Copy this file to application.yml, then replace placeholders.
+
+spring:
+  application:
+    name: ai-code-mother-backend
+  profiles:
+    active: local
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/ai_code_mother?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:change_me}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:3000ms}
+      ttl: ${REDIS_TTL_SECONDS:3600}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      jedis:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: 2000ms
+
+  session:
+    store-type: redis
+    timeout: 30d
+
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: false
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 100MB
+
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=1h
+
+server:
+  port: ${SERVER_PORT:8123}
+  servlet:
+    context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+    session:
+      cookie:
+        max-age: 2592000
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    max-connections: 10000
+    accept-count: 100
+    connection-timeout: 20000
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+  ssl:
+    enabled: ${SSL_ENABLED:false}
+    key-store: ${SSL_KEYSTORE_PATH:}
+    key-store-password: ${SSL_KEYSTORE_PASSWORD:}
+    key-store-type: PKCS12
+
+springdoc:
+  group-configs:
+    - group: default
+      packages-to-scan: com.spring.aicodemother.controller
+
+knife4j:
+  enable: ${API_DOC_ENABLED:true}
+  setting:
+    language: zh_cn
+  basic:
+    enable: false
+    username: ${API_DOC_USERNAME:admin}
+    password: ${API_DOC_PASSWORD:}
+
+langchain4j:
+  open-ai:
+    # Fallback key used by DynamicAiModelFactory
+    chat-model:
+      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
+    # Main model used by dynamic model selection
+    streaming-chat-model:
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
+      model-name: ${OPENAI_STREAM_MODEL:deepseek-chat}
+      max-tokens: 8192
+      temperature: 0.7
+      log-requests: true
+      log-responses: true
+    # Planning and reasoning model
+    reasoning-streaming-chat-model:
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
+      model-name: ${OPENAI_REASONING_MODEL:deepseek-reasoner}
+      max-tokens: 4000
+      temperature: 0.7
+      log-requests: true
+      log-responses: true
+    # Lightweight routing model
+    routing-chat-model:
+      base-url: ${ROUTING_BASE_URL:${OPENAI_BASE_URL:https://api.deepseek.com}}
+      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
+      model-name: ${ROUTING_MODEL_NAME:deepseek-chat}
+      max-tokens: 50
+      temperature: 0.3
+      log-requests: true
+      log-responses: true
+
+cos:
+  client:
+    host: ${COS_HOST:}
+    secretId: ${COS_SECRET_ID:}
+    secretKey: ${COS_SECRET_KEY:}
+    region: ${COS_REGION:ap-shanghai}
+    bucket: ${COS_BUCKET:}
+
+pexels:
+  api-key: ${PEXELS_API_KEY:}
+
+pixabay:
+  api-key: ${PIXABAY_API_KEY:}
+
+dashscope:
+  api-key: ${DASHSCOPE_API_KEY:}
+  image-model: ${DASHSCOPE_IMAGE_MODEL:wan2.2-t2i-flash}
+
+code:
+  deploy-host: ${DEPLOY_HOST:http://localhost}
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 30s
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+
+mybatis-flex:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    logic-delete-field: isDelete
+    logic-delete-value: 1
+    logic-not-delete-value: 0
+
+logging:
+  level:
+    root: INFO
+    com.spring.aicodemother: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    com.mybatisflex: WARN
+    org.springframework.data.redis: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] - %msg%n"
+  file:
+    name: ${LOG_FILE:./logs/ai-code-mother.log}
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB
+
+file:
+  temp-dir: ${TEMP_DIR:./tmp}
+  cleanup:
+    enabled: true
+    max-age: 24h
+
+security:
+  password-salt: ${PASSWORD_SALT:Join2049}
+  jwt:
+    secret: ${JWT_SECRET:}
+    expiration: 86400
