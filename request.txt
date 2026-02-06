@@ -1,0 +1,324 @@
+2026-02-06T19:19:36.246+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-9] d.l.http.client.log.LoggingHttpClient    : HTTP response:
+- status code: 200
+- headers: [vary: Origin,Access-Control-Request-Method,Access-Control-Request-Headers, Accept-Encoding], [x-request-id: 6c7d5bdb-d002-9f1d-a119-1eb03968030a], [x-dashscope-call-gateway: true], [content-type: application/json], [req-cost-time: 282], [req-arrive-time: 1770376775728], [resp-start-time: 1770376776011], [x-envoy-upstream-service-time: 282], [date: Fri, 06 Feb 2026 11:19:35 GMT], [server: istio-envoy], [transfer-encoding: chunked]
+- body: {"choices":[{"finish_reason":"stop","index":0,"message":{"content":"清简博客","role":"assistant"}}],"created":1770376775,"id":"chatcmpl-6c7d5bdb-d002-9f1d-a119-1eb03968030a","model":"qwen-turbo","object":"chat.completion","usage":{"completion_tokens":3,"prompt_tokens":286,"prompt_tokens_details":{"cached_tokens":0},"total_tokens":289}}
+
+2026-02-06T19:19:36.286+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-9] c.s.a.service.impl.AppServiceImpl        : AI生成应用名称成功: 清简博客
+2026-02-06T19:19:36.287+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-9] c.s.a.service.impl.AppServiceImpl        : 使用VUE项目类型
+2026-02-06T19:19:36.303+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-9] c.s.a.service.impl.AppServiceImpl        : 应用创建成功，ID: 377341047122505728, 名称: 清简博客, 类型: Vue 工程模式, 模型: deepseek-r1
+2026-02-06T19:19:36.461+08:00  INFO 32044 --- [ai-code-mother-backend] [io-8123-exec-10] c.s.a.controller.AppController           : 开始获取应用详情，应用ID: 377341047122505728
+2026-02-06T19:19:36.464+08:00  INFO 32044 --- [ai-code-mother-backend] [io-8123-exec-10] c.s.a.controller.AppController           : 数据库查询结果，应用ID: 377341047122505728，查询结果: 找到应用
+2026-02-06T19:19:36.464+08:00  INFO 32044 --- [ai-code-mother-backend] [io-8123-exec-10] c.s.a.controller.AppController           : 应用详情 - ID: 377341047122505728, 名称: 清简博客, 创建者: 377294239314804736, 创建时间: 2026-02-06T19:19:36
+2026-02-06T19:19:36.466+08:00  INFO 32044 --- [ai-code-mother-backend] [io-8123-exec-10] c.s.a.controller.AppController           : 成功获取应用详情，应用ID: 377341047122505728
+2026-02-06T19:19:36.576+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-1] c.s.a.controller.AppController           : 开始获取应用详情，应用ID: 377341047122505728
+2026-02-06T19:19:36.579+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-1] c.s.a.controller.AppController           : 数据库查询结果，应用ID: 377341047122505728，查询结果: 找到应用
+2026-02-06T19:19:36.580+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-1] c.s.a.controller.AppController           : 应用详情 - ID: 377341047122505728, 名称: 清简博客, 创建者: 377294239314804736, 创建时间: 2026-02-06T19:19:36
+2026-02-06T19:19:36.581+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-1] c.s.a.controller.AppController           : 成功获取应用详情，应用ID: 377341047122505728
+2026-02-06T19:19:36.736+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] c.s.a.controller.AppController           : [SSE-START] runId=f7e9cf0b-df52-46bf-97a2-99dc3a742da3, appId=377341047122505728, userId=377294239314804736, modelKey=deepseek-r1
+2026-02-06T19:19:36.743+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] c.s.a.service.impl.AppServiceImpl        : 用户 377294239314804736 选择模型: DeepSeek R1 (deepseek-r1), 等级: HARD, 费用: 8/1K tokens
+2026-02-06T19:19:36.748+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] c.s.a.service.impl.AppServiceImpl        : 用户 377294239314804736 开始生成应用 377341047122505728，当前积分充足（>= 50）
+2026-02-06T19:19:36.760+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] c.s.a.monitor.MonitorContextHolder       : [Context缓存] 存储到全局缓存: 377294239314804736:377341047122505728
+2026-02-06T19:19:36.760+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] c.s.a.core.AiCodeGeneratorFacade         : 使用动态模型创建AI服务 - appId: 377341047122505728, codeGenType: VUE_PROJECT, modelKey: deepseek-r1
+2026-02-06T19:19:36.763+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] c.s.a.ai.AiCodeGeneratorServiceFactory   : 创建AI服务实例 - appId: 377341047122505728, codeGenType: VUE_PROJECT, modelKey: deepseek-r1
+2026-02-06T19:19:36.770+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] c.s.a.ai.DynamicAiModelFactory           : 创建StreamingChatModel实例 - modelKey: deepseek-r1, modelName: DeepSeek R1, provider: iflow, baseUrl: https://api.deepseek.com
+2026-02-06T19:19:36.883+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] c.s.a.monitor.AiModelMonitorListener     : [AI请求-主流程] userId:377294239314804736, appId:377341047122505728, model:deepseek-r1
+2026-02-06T19:19:36.897+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-2] d.l.http.client.log.LoggingHttpClient    : HTTP request:
+- method: POST
+- url: https://api.deepseek.com/chat/completions
+- headers: [Authorization: Beare...d4], [User-Agent: langchain4j-openai], [Content-Type: application/json]
+- body: {
+  "model" : "deepseek-r1",
+  "messages" : [ {
+    "role" : "system",
+    "content" : "你是一位资深的 Vue3 前端架构师，精通现代前端工程化开发、组合式 API、组件化设计和企业级应用架构。\n\n你的任务是根据用户提供的项目描述，创建一个完整的、可运行的 Vue3 工程项目\n\n## ⚠️ 绝对禁止事项（最高优先级）⚠️\n\n**以下行为严格禁止，违反将导致生成失败：**\n\n1. ❌ **禁止生成原生 HTML 项目**\n   - 禁止创建 `styles/` 目录（CSS 应该放在 `src/styles/` 或组件中）\n   - 禁止创建 `scripts/` 目录（JS 应该放在 `src/` 目录中）\n   - 禁止在根目录创建 `.css` 或 `.js` 文件\n   - 禁止生成包含内联 `<style>` 和 `<script>` 的 HTML 文件\n\n2. ❌ **禁止跳过核心配置文件**\n   - 第一个文件必须是 `package.json`\n   - 第二个文件必须是 `vite.config.js`\n   - 第三个文件必须是 `index.html`\n   - 这三个文件创建后，必须调用【项目结构验证工具】确认方向正确\n\n3. ❌ **禁止缺少必需依赖**\n   - `package.json` 必须包含 `vue` 和 `@vitejs/plugin-vue`\n   - 如果使用路由，必须包含 `vue-router`\n   - 依赖版本必须完整且兼容\n\n4. ❌ **禁止错误的项目结构**\n   - 所有 Vue 组件必须放在 `src/` 目录下\n   - 路由文件必须在 `src/router/` 目录\n   - 页面组件必须在 `src/pages/` 或 `src/views/` 目录\n\n**✅ 强制执行顺序（不可打乱）：**\n1. 创建 `package.json`\n2. 创建 `vite.config.js`\n3. 创建 `index.html`\n4. 🔍 **调用【项目结构验证工具】进行自检**（必须执行！）\n5. 创建 `src/main.js`\n6. 创建 `src/App.vue`\n7. 创建 `src/router/index.js`（如需路由）\n8. 创建其他页面和组件\n\n**🚨 自检提醒：**\n如果你发现自己正在创建以下内容，立即停止并重新思考：\n- `styles/style.css` → 错误！应该是 `src/styles/main.css`\n- `scripts/app.js` → 错误！应该是 `src/main.js`\n- `<script>` 标签在 index.html 中引入多个 JS 文件 → 错误！Vue 项目只需引入一个入口\n- 没有 `package.json` 就开始创建组件 → 错误！必须先创建配置文件\n\n## 核心技术栈\n\n- Vue 3.x（组合式 API）\n- Vite\n- Vue Router 4.x\n- Node.js 18+ 兼容\n\n## 项目结构\n\n项目根目录/\n├── index.html                 # 入口 HTML 文件\n├── package.json              # 项目依赖和脚本\n├── vite.config.js           # Vite 配置文件\n├── src/\n│   ├── main.js             # 应用入口文件\n│   ├── App.vue             # 根组件\n│   ├── router/\n│   │   └── index.js        # 路由配置\n│   ├── components/\t\t\t\t # 组件\n│   ├── pages/             # 页面\n│   ├── utils/             # 工具函数（如果需要）\n│   ├── assets/            # 静态资源（如果需要）\n│   └── styles/            # 样式文件\n└── public/                # 公共静态资源（如果需要）\n\n## 开发约束\n\n1）组件设计：严格遵循单一职责原则，组件具有良好的可复用性和可维护性\n2）API 风格：优先使用 Composition API，合理使用 `<script setup>` 语法糖\n3）样式规范：使用原生 CSS 实现响应式设计，支持桌面端、平板端、移动端的响应式适配\n4）代码质量：代码简洁易读，避免过度注释，优先保证功能完整和样式美观\n5）禁止使用任何状态管理库、类型校验库、代码格式化库\n6）将可运行作为项目生成的第一要义，尽量用最简单的方式满足需求，避免使用复杂的技术或代码逻辑\n\n## 参考配置\n\n1）vite.config.js 必须配置 base 路径以支持子路径部署、需要支持通过 @ 引入文件、不要配置端口号\n\nimport { defineConfig } from 'vite'\nimport vue from '@vitejs/plugin-vue'\n\nexport default defineConfig({\n  base: './',\n  plugins: [vue()],\n  resolve: {\n    alias: {\n      '@': fileURLToPath(new URL('./src', import.meta.url))\n    }\n  }\n})\n\n\n2）路由配置必须使用 hash 模式，避免服务器端路由配置问题\n\nimport { createRouter, createWebHashHistory } from 'vue-router'\n\nconst router = createRouter({\n  history: createWebHashHistory(),\n  routes: [\n    // 路由配置\n  ]\n})\n\n\n3）package.json 文件参考：\n\n{\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"vite build\"\n  },\n  \"dependencies\": {\n    \"vue\": \"^3.3.4\",\n    \"vue-router\": \"^4.2.4\"\n  },\n  \"devDependencies\": {\n    \"@vitejs/plugin-vue\": \"^4.2.3\",\n    \"vite\": \"^4.4.5\"\n  }\n}\n\n\n## 网站内容要求\n\n- 基础布局：各个页面统一布局，必须有导航栏，尤其是主页内容必须丰富\n- 文本内容：使用真实、有意义的中文内容\n- 图片资源：使用 `https://picsum.photos` 服务或其他可靠的占位符\n- 示例数据：提供真实场景的模拟数据，便于演示\n\n## 严格执行流程\n\n### 第一步：生成计划并等待确认 ⚠️ 重要\n**⚠️ 执行条件：仅当项目目录为空或不存在核心文件时才执行此步骤**\n\n1）首先输出简单的网站生成计划，使用生动的表达方式，可以适当添加表情符号 🎯📋✨ 等，让沟通更友好（计划内容不超过3行）\n2）**必须明确询问用户：\"您觉得这个计划合适吗？\"或\"可以开始生成代码吗？\"**\n3）**停止输出，等待用户回复（如\"可以\"、\"没问题\"、\"开始吧\"等确认消息）**\n4）只有收到用户明确确认后，才能进入第二步\n\n**⚠️ 跳过条件：如果项目核心文件已存在（package.json、src/App.vue等），直接跳过此步骤，进入修改模式或完成流程**\n\n### 第二步：文件生成（仅在用户确认后执行）\n\n**⚠️ 严格按照以下顺序执行，不可跳过任何步骤！**\n\n**阶段 2.1：创建核心配置文件**\n1）使用【文件写入工具】创建 `package.json`\n   - 必须包含完整的 dependencies 和 devDependencies\n   - 必须包含 vue、@vitejs/plugin-vue、vite\n   - 如果需要路由，必须包含 vue-router\n\n2）使用【文件写入工具】创建 `vite.config.js`\n   - 必须包含正确的 Vue 插件配置\n   - 必须配置 base: './' 用于子路径部署\n   - 必须配置 @ 别名指向 src 目录\n\n3）使用【文件写入工具】创建 `index.html`\n   - 必须包含 `<div id=\"app\"></div>`\n   - 必须引入 `/src/main.js` 作为模块入口\n   - 不得引入其他 script 或 link 标签\n\n**🔍 阶段 2.2：强制自检（必须执行！）**\n4）**立即调用【项目结构验证工具】(validateVueProjectStructure)**\n   - 不需要参数，工具会自动检查当前项目\n   - 该工具会检查前3个文件是否符合 Vue 项目标准\n   - 如果验证失败，根据提示修复后重新验证\n   - **只有验证通过后才能继续下一步！**\n\n**阶段 2.3：创建源代码文件**\n5）使用【文件写入工具】创建 `src/main.js`\n   - 必须导入 Vue 和 App.vue\n   - 必须创建 Vue 应用实例\n   - 如果有路由，必须正确导入和使用\n\n6）使用【文件写入工具】创建 `src/App.vue`\n   - 必须使用 `<script setup>` 语法\n   - 必须包含 `<router-view>` 或页面内容\n   - 样式可以使用 `<style scoped>`\n\n7）如果需要路由，使用【文件写入工具】创建 `src/router/index.js`\n   - 必须使用 createWebHashHistory 模式\n   - 必须正确配置路由规则\n\n8）创建页面组件和其他组件\n   - 页面组件放在 `src/pages/` 或 `src/views/`\n   - 通用组件放在 `src/components/`\n   - 样式文件放在 `src/styles/`（如果需要）\n\n**重要规则：**\n- 每个文件只能创建一次，绝对禁止重复创建相同路径的文件\n- 若目标文件已存在且内容完全一致，必须跳过；如需调整请使用【文件修改工具】\n- 如发生任何异常或检测到重复写入趋势，应立即停止后续写入并进入\"第四步：结束流程\"\n- 在文件生成过程中，使用生动的表达方式描述当前操作（如：✅ 📝 🎨 ⚙️ 🚀）\n\n### 第三步：代码质量检查（推荐）\n1）所有文件创建完成后，强烈建议调用【验证代码工具】检查代码质量\n   - 使用 validateCode 工具，参数 projectPath 设为 \".\"\n   - 该工具会自动检查语法错误、未定义变量、未使用的导入等问题\n2）如果发现错误：\n   - 仔细阅读错误信息（包含文件路径、行号、错误描述）\n   - 使用【文件修改工具】或【文件写入工具】修复错误\n   - 修复后再次调用【验证代码工具】确认问题已解决\n3）验证步骤最多进行2次，避免陷入修复循环\n4）无论验证结果如何（通过、失败或跳过），都继续下一步\n\n### 第四步：结束流程（必须执行）\n1）输出友好的完成提示，使用以下格式：\n\n✨已创建[应用名称]应用！\n\n**实现的功能：**\n- [功能点1]\n- [功能点2]\n- [功能点3]\n\n**What's next?**\n- [后续建议1]\n- [后续建议2]\n- [后续建议3]\n\n2）输出完成提示后，**立即调用【退出工具】(exit)**，这是流程的最后一步\n3）绝对禁止在调用退出工具后继续任何操作\n4）全流程工具调用次数不得超过 20 次\n\n**⚠️ 关键防重复规则：**\n- 一旦项目文件生成完成并经过构建，绝对禁止再次输出任何计划确认内容\n- 禁止在项目完成后询问\"可以开始生成代码吗？\"等确认性问题\n- 如果项目已经完成（文件已生成且构建成功），直接进入第四步输出完成提示并退出\n- 项目完成的标志：package.json、vite.config.js、src/main.js、src/App.vue等核心文件已创建且构建无误\n\n**重要提醒：【退出工具】必须且只能在所有工作完成后调用，这是整个流程的最后一步！**\n\n## 防循环保护机制\n\n**重要警告：严格禁止以下行为**\n- 重复创建已存在的文件\n- 在项目完成后继续生成文件\n- 忘记调用退出工具\n- 生成超过30个文件\n- 输出超过20000个token\n- 多次重复调用验证代码工具（最多2次）\n\n**如果检测到以下情况，必须立即调用【退出工具】：**\n- 尝试创建已存在的文件路径\n- 文件数量接近30个\n- 输出内容过长\n- 代码验证已进行2次仍有错误\n\n## 输出风格要求\n\n**友好交互原则：**\n- 使用生动、友好的表达方式与用户沟通\n- 添加表情符号（如：✨🎯📝🎨⚙️🚀✅💡等）增强表达力\n- 保持专业的同时，让沟通更加亲切自然\n\n**严格禁止输出以下内容：**\n- 安装运行步骤\n- 技术栈说明\n- 项目特点描述\n- 任何形式的使用指导\n- 提示词相关内容\n- 文件创建过程的详细说明\n\n## 质量检验标准\n\n确保生成的项目能够：\n1. 通过 `npm install` 成功安装所有依赖\n2. 通过 `npm run dev` 启动开发服务器并正常运行\n3. 通过 `npm run build` 成功构建生产版本\n4. 构建后的项目能够在任意子路径下正常部署和访问\n\n## 可用工具列表\n\n- 【文件写入工具】(writeFile)：创建新文件或完全覆盖现有文件\n- 【文件修改工具】(modifyFile)：修改现有文件的部分内容\n- 【文件读取工具】(readFile)：读取文件内容\n- 【文件删除工具】(deleteFile)：删除文件\n- 【目录读取工具】(readDirectory)：查看目录结构\n- 【项目结构验证工具】(validateVueProjectStructure)：**必须在创建前3个文件后调用！**检查 package.json、vite.config.js、index.html 是否符合 Vue 项目标准\n- 【验证代码工具】(validateCode)：检查Vue项目代码质量，发现语法错误和代码问题\n- 【退出工具】(exit)：结束工具调用，必须在任务完成后调用\n\n## 修改模式说明\n\n当用户提出修改要求时：\n1）首先使用【目录读取工具】了解当前项目结构\n2）使用【文件读取工具】查看需要修改的文件内容\n3）根据用户需求，使用对应的工具进行精确修改：\n   - 【文件修改工具】：修改现有文件的部分内容\n   - 【文件写入工具】：创建新文件或完全重写文件\n   - 【文件删除工具】：删除不需要的文件\n4）修改完成后，可选择调用【验证代码工具】检查修改是否引入错误\n5）输出修改完成的提示信息\n6）**最后调用【退出工具】结束整个流程**\n\n**重要：无论是创建项目还是修改项目，【退出工具】都必须是最后一步！这是防止循环的关键！**\n"
+  }, {
+    "role" : "user",
+    "content" : "生成一个简单的个人博客页面，不超过200行代码"
+  } ],
+  "temperature" : 0.0,
+  "stream" : true,
+  "stream_options" : {
+    "include_usage" : true
+  },
+  "max_tokens" : 8192,
+  "tools" : [ {
+    "type" : "function",
+    "function" : {
+      "name" : "validateCode",
+      "description" : "验证Vue项目代码质量，检查语法错误、未定义变量等问题。建议在完成所有文件编写后调用此工具进行检查。",
+      "parameters" : {
+        "type" : "object",
+        "properties" : {
+          "projectPath" : {
+            "type" : "string",
+            "description" : "要验证的项目相对路径，通常为当前项目根目录，传入 '.' 即可"
+          }
+        },
+        "required" : [ "projectPath" ]
+      }
+    }
+  }, {
+    "type" : "function",
+    "function" : {
+      "name" : "exit",
+      "description" : "当任务已完成或无需继续调用工具时，使用此工具退出操作，防止循环",
+      "parameters" : {
+        "type" : "object",
+        "properties" : { },
+        "required" : [ ]
+      }
+    }
+  }, {
+    "type" : "function",
+    "function" : {
+      "name" : "deleteFile",
+      "description" : "删除指定路径的文件",
+      "parameters" : {
+        "type" : "object",
+        "properties" : {
+          "relativeFilePath" : {
+            "type" : "string",
+            "description" : "文件的相对路径"
+          }
+        },
+        "required" : [ "relativeFilePath" ]
+      }
+    }
+  }, {
+    "type" : "function",
+    "function" : {
+      "name" : "readDir",
+      "description" : "读取目录结构，获取指定目录下的所有文件和子目录信息",
+      "parameters" : {
+        "type" : "object",
+        "properties" : {
+          "relativeDirPath" : {
+            "type" : "string",
+            "description" : "目录的相对路径，为空则读取整个项目结构"
+          }
+        },
+        "required" : [ "relativeDirPath" ]
+      }
+    }
+  }, {
+    "type" : "function",
+    "function" : {
+      "name" : "modifyFile",
+      "description" : "修改文件内容，用新内容替换指定的旧内容",
+      "parameters" : {
+        "type" : "object",
+        "properties" : {
+          "relativeFilePath" : {
+            "type" : "string",
+            "description" : "文件的相对路径"
+          },
+          "oldContent" : {
+            "type" : "string",
+            "description" : "要替换的旧内容"
+          },
+          "newContent" : {
+            "type" : "string",
+            "description" : "替换后的新内容"
+          }
+        },
+        "required" : [ "relativeFilePath", "oldContent", "newContent" ]
+      }
+    }
+  }, {
+    "type" : "function",
+    "function" : {
+      "name" : "readFile",
+      "description" : "读取指定路径的文件内容",
+      "parameters" : {
+        "type" : "object",
+        "properties" : {
+          "relativeFilePath" : {
+            "type" : "string",
+            "description" : "文件的相对路径"
+          }
+        },
+        "required" : [ "relativeFilePath" ]
+      }
+    }
+  }, {
+    "type" : "function",
+    "function" : {
+      "name" : "writeFile",
+      "description" : "写入文件到指定路径",
+      "parameters" : {
+        "type" : "object",
+        "properties" : {
+          "relativeFilePath" : {
+            "type" : "string",
+            "description" : "文件的相对路径"
+          },
+          "content" : {
+            "type" : "string",
+            "description" : "要写入文件的内容"
+          }
+        },
+        "required" : [ "relativeFilePath", "content" ]
+      }
+    }
+  }, {
+    "type" : "function",
+    "function" : {
+      "name" : "validateVueProjectStructure",
+      "description" : "验证 Vue 项目结构是否符合标准，必须在创建 package.json、vite.config.js、index.html 这三个文件后立即调用",
+      "parameters" : {
+        "type" : "object",
+        "properties" : { },
+        "required" : [ ]
+      }
+    }
+  } ]
+}
+
+2026-02-06T19:19:37.076+08:00  INFO 32044 --- [ai-code-mother-backend] [lTaskExecutor-1] c.s.a.monitor.AiModelMonitorListener     : [错误监控] userId:377294239314804736, appId:377341047122505728, model:deepseek-r1, error:{"error":{"message":"Model Not Exist","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+2026-02-06T19:19:37.076+08:00 ERROR 32044 --- [ai-code-mother-backend] [lTaskExecutor-1] c.s.a.core.AiCodeGeneratorFacade         : TokenStream处理出现错误: {"error":{"message":"Model Not Exist","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+
+dev.langchain4j.exception.InvalidRequestException: {"error":{"message":"Model Not Exist","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+	at dev.langchain4j.internal.ExceptionMapper$DefaultExceptionMapper.mapHttpStatusCode(ExceptionMapper.java:71) ~[langchain4j-core-1.1.0.jar:na]
+	at dev.langchain4j.internal.ExceptionMapper$DefaultExceptionMapper.mapException(ExceptionMapper.java:44) ~[langchain4j-core-1.1.0.jar:na]
+	at dev.langchain4j.model.openai.OpenAiStreamingChatModel.lambda$doChat$5(OpenAiStreamingChatModel.java:146) ~[classes/:na]
+	at dev.langchain4j.model.openai.internal.StreamingRequestExecutor$2.onError(StreamingRequestExecutor.java:125) ~[langchain4j-open-ai-1.1.0.jar:na]
+	at dev.langchain4j.http.client.log.LoggingHttpClient$1.onError(LoggingHttpClient.java:75) ~[langchain4j-http-client-1.1.0.jar:na]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$1(SpringRestClient.java:102) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at dev.langchain4j.http.client.sse.ServerSentEventListenerUtils.ignoringExceptions(ServerSentEventListenerUtils.java:14) ~[langchain4j-http-client-1.1.0.jar:na]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$3(SpringRestClient.java:102) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchangeInternal(DefaultRestClient.java:586) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchange(DefaultRestClient.java:540) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.client.RestClient$RequestHeadersSpec.exchange(RestClient.java:680) ~[spring-web-6.2.9.jar:6.2.9]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$6(SpringRestClient.java:94) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: dev.langchain4j.exception.HttpException: {"error":{"message":"Model Not Exist","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$3(SpringRestClient.java:101) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	... 7 common frames omitted
+
+2026-02-06T19:19:37.078+08:00 ERROR 32044 --- [ai-code-mother-backend] [lTaskExecutor-1] c.s.a.core.AiCodeGeneratorFacade         : Flux流处理错误，尝试恢复: {"error":{"message":"Model Not Exist","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+2026-02-06T19:19:37.097+08:00  WARN 32044 --- [ai-code-mother-backend] [lTaskExecutor-1] .s.a.s.i.GenerationValidationServiceImpl : [无效生成] 生成内容过短: 18 字符
+2026-02-06T19:19:37.097+08:00  WARN 32044 --- [ai-code-mother-backend] [lTaskExecutor-1] c.s.a.service.impl.AppServiceImpl        : 用户 377294239314804736 生成应用 377341047122505728 的结果未通过有效性校验（内容为空或未生成代码文件）
+2026-02-06T19:19:37.100+08:00 ERROR 32044 --- [ai-code-mother-backend] [lTaskExecutor-1] d.l.s.AiServiceStreamingResponseHandler  : While handling the following error...
+
+dev.langchain4j.exception.InvalidRequestException: {"error":{"message":"Model Not Exist","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+	at dev.langchain4j.internal.ExceptionMapper$DefaultExceptionMapper.mapHttpStatusCode(ExceptionMapper.java:71) ~[langchain4j-core-1.1.0.jar:na]
+	at dev.langchain4j.internal.ExceptionMapper$DefaultExceptionMapper.mapException(ExceptionMapper.java:44) ~[langchain4j-core-1.1.0.jar:na]
+	at dev.langchain4j.model.openai.OpenAiStreamingChatModel.lambda$doChat$5(OpenAiStreamingChatModel.java:146) ~[classes/:na]
+	at dev.langchain4j.model.openai.internal.StreamingRequestExecutor$2.onError(StreamingRequestExecutor.java:125) ~[langchain4j-open-ai-1.1.0.jar:na]
+	at dev.langchain4j.http.client.log.LoggingHttpClient$1.onError(LoggingHttpClient.java:75) ~[langchain4j-http-client-1.1.0.jar:na]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$1(SpringRestClient.java:102) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at dev.langchain4j.http.client.sse.ServerSentEventListenerUtils.ignoringExceptions(ServerSentEventListenerUtils.java:14) ~[langchain4j-http-client-1.1.0.jar:na]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$3(SpringRestClient.java:102) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchangeInternal(DefaultRestClient.java:586) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchange(DefaultRestClient.java:540) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.client.RestClient$RequestHeadersSpec.exchange(RestClient.java:680) ~[spring-web-6.2.9.jar:6.2.9]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$6(SpringRestClient.java:94) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: dev.langchain4j.exception.HttpException: {"error":{"message":"Model Not Exist","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$3(SpringRestClient.java:101) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	... 7 common frames omitted
+
+2026-02-06T19:19:37.100+08:00 ERROR 32044 --- [ai-code-mother-backend] [lTaskExecutor-1] d.l.s.AiServiceStreamingResponseHandler  : ...the following error happened
+
+java.lang.NullPointerException: t is null in sink.next(t)
+	at java.base/java.util.Objects.requireNonNull(Objects.java:259) ~[na:na]
+	at reactor.core.publisher.SinkManySerialized.tryEmitNext(SinkManySerialized.java:92) ~[reactor-core-3.7.8.jar:3.7.8]
+	at com.spring.aicodemother.core.control.GenerationControlRegistry$GenerationControl.cancel(GenerationControlRegistry.java:30) ~[classes/:na]
+	at reactor.core.publisher.FluxCreate$SinkDisposable.dispose(FluxCreate.java:1120) ~[reactor-core-3.7.8.jar:3.7.8]
+	at reactor.core.publisher.FluxCreate$BaseSink.disposeResource(FluxCreate.java:501) ~[reactor-core-3.7.8.jar:3.7.8]
+	at reactor.core.publisher.FluxCreate$BaseSink.error(FluxCreate.java:482) ~[reactor-core-3.7.8.jar:3.7.8]
+	at reactor.core.publisher.FluxCreate$BufferAsyncSink.drain(FluxCreate.java:868) ~[reactor-core-3.7.8.jar:3.7.8]
+	at reactor.core.publisher.FluxCreate$BufferAsyncSink.error(FluxCreate.java:813) ~[reactor-core-3.7.8.jar:3.7.8]
+	at reactor.core.publisher.FluxCreate$SerializedFluxSink.drainLoop(FluxCreate.java:239) ~[reactor-core-3.7.8.jar:3.7.8]
+	at reactor.core.publisher.FluxCreate$SerializedFluxSink.drain(FluxCreate.java:215) ~[reactor-core-3.7.8.jar:3.7.8]
+	at reactor.core.publisher.FluxCreate$SerializedFluxSink.error(FluxCreate.java:191) ~[reactor-core-3.7.8.jar:3.7.8]
+	at com.spring.aicodemother.core.AiCodeGeneratorFacade.lambda$processTokenStream$5(AiCodeGeneratorFacade.java:281) ~[classes/:na]
+	at dev.langchain4j.service.AiServiceStreamingResponseHandler.onError(AiServiceStreamingResponseHandler.java:260) ~[classes/:na]
+	at dev.langchain4j.model.chat.StreamingChatModel$1.onError(StreamingChatModel.java:75) ~[classes/:na]
+	at dev.langchain4j.model.openai.OpenAiStreamingChatModel.lambda$doChat$4(OpenAiStreamingChatModel.java:147) ~[classes/:na]
+	at dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions(InternalStreamingChatResponseHandlerUtils.java:14) ~[langchain4j-core-1.1.0.jar:na]
+	at dev.langchain4j.model.openai.OpenAiStreamingChatModel.lambda$doChat$5(OpenAiStreamingChatModel.java:147) ~[classes/:na]
+	at dev.langchain4j.model.openai.internal.StreamingRequestExecutor$2.onError(StreamingRequestExecutor.java:125) ~[langchain4j-open-ai-1.1.0.jar:na]
+	at dev.langchain4j.http.client.log.LoggingHttpClient$1.onError(LoggingHttpClient.java:75) ~[langchain4j-http-client-1.1.0.jar:na]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$1(SpringRestClient.java:102) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at dev.langchain4j.http.client.sse.ServerSentEventListenerUtils.ignoringExceptions(ServerSentEventListenerUtils.java:14) ~[langchain4j-http-client-1.1.0.jar:na]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$3(SpringRestClient.java:102) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchangeInternal(DefaultRestClient.java:586) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchange(DefaultRestClient.java:540) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.client.RestClient$RequestHeadersSpec.exchange(RestClient.java:680) ~[spring-web-6.2.9.jar:6.2.9]
+	at dev.langchain4j.http.client.spring.restclient.SpringRestClient.lambda$execute$6(SpringRestClient.java:94) ~[langchain4j-http-client-spring-restclient-1.1.0-beta7.jar:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-02-06T19:19:38.120+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-4] c.s.a.controller.AppController           : 开始获取应用详情，应用ID: 377341047122505728
+2026-02-06T19:19:38.121+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-4] c.s.a.controller.AppController           : 数据库查询结果，应用ID: 377341047122505728，查询结果: 找到应用
+2026-02-06T19:19:38.121+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-4] c.s.a.controller.AppController           : 应用详情 - ID: 377341047122505728, 名称: 清简博客, 创建者: 377294239314804736, 创建时间: 2026-02-06T19:19:36
+2026-02-06T19:19:38.123+08:00  INFO 32044 --- [ai-code-mother-backend] [nio-8123-exec-4] c.s.a.controller.AppController           : 成功获取应用详情，应用ID: 377341047122505728
+2026-02-06T19:19:38.150+08:00 ERROR 32044 --- [ai-code-mother-backend] [nio-8123-exec-6] c.s.a.exception.GlobalExceptionHandler   : BusinessException
+
+com.spring.aicodemother.exception.BusinessException: 代码文件不存在，请先生成代码
+	at com.spring.aicodemother.controller.CodePreviewController.listCodeFiles(CodePreviewController.java:72) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564) ~[tomcat-embed-core-10.1.43.jar:6.0]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885) ~[spring-webmvc-6.2.9.jar:6.2.9]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658) ~[tomcat-embed-core-10.1.43.jar:6.0]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51) ~[tomcat-embed-websocket-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.springframework.session.web.http.SessionRepositoryFilter.doFilterInternal(SessionRepositoryFilter.java:142) ~[spring-session-core-3.5.1.jar:3.5.1]
+	at org.springframework.session.web.http.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:82) ~[spring-session-core-3.5.1.jar:3.5.1]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:362) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:278) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:110) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.9.jar:6.2.9]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:116) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:398) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1769) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1189) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63) ~[tomcat-embed-core-10.1.43.jar:10.1.43]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+

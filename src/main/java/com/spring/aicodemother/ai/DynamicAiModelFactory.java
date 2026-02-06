@@ -87,13 +87,18 @@ public class DynamicAiModelFactory {
         log.info("创建StreamingChatModel实例 - modelKey: {}, modelName: {}, provider: {}, baseUrl: {}",
                 modelKey, modelConfig.getModelName(), modelConfig.getProvider(), modelConfig.getBaseUrl());
 
+        String requestModelName = resolveRequestModelName(modelConfig, modelKey);
+        if (!modelKey.equals(requestModelName)) {
+            log.warn("模型名兼容映射生效 - modelKey: {} -> requestModelName: {}", modelKey, requestModelName);
+        }
+
         // 动态创建OpenAiStreamingChatModel
         // 使用统一的API密钥，支持所有55个模型
         // ✅ 注意：OpenAI的流式API会在最后一条消息中返回完整的Token usage统计（包括工具调用的Token）
         //    监听器会在 onResponse 中自动收集这些Token，并通过全局缓存累加
         return OpenAiStreamingChatModel.builder()
                 .apiKey(unifiedApiKey)  // 使用统一的API密钥
-                .modelName(modelKey)     // 使用modelKey作为模型名称
+                .modelName(requestModelName) // 向上游实际发送的模型名称（可能经过兼容映射）
                 .baseUrl(modelConfig.getBaseUrl())
                 .maxTokens(8192)         // 默认最大token数
                 .temperature(0.0)        // 降低温度以提升工具调用稳定性
@@ -101,6 +106,33 @@ public class DynamicAiModelFactory {
                 .logResponses(true)
                 .listeners(java.util.List.of(aiModelMonitorListener))  // ✅ 注册监听器，监控Token使用
                 .build();
+    }
+
+    /**
+     * 解析不同供应商/端点下的实际模型名，避免配置漂移导致上游报 Model Not Exist
+     */
+    private String resolveRequestModelName(AiModelConfig modelConfig, String modelKey) {
+        if (modelConfig == null || modelKey == null) {
+            return modelKey;
+        }
+        String normalizedModelKey = modelKey.trim().toLowerCase();
+        String provider = modelConfig.getProvider() == null ? "" : modelConfig.getProvider().trim().toLowerCase();
+        String baseUrl = modelConfig.getBaseUrl() == null ? "" : modelConfig.getBaseUrl().trim().toLowerCase();
+
+        // 官方 DeepSeek 兼容接口：常见可用模型是 deepseek-chat / deepseek-reasoner
+        boolean officialDeepSeekEndpoint = "deepseek".equals(provider) || baseUrl.contains("api.deepseek.com");
+        if (officialDeepSeekEndpoint) {
+            if ("deepseek-r1".equals(normalizedModelKey) || "deepseek-r1-0528-free".equals(normalizedModelKey)) {
+                return "deepseek-reasoner";
+            }
+            if ("deepseek-v3".equals(normalizedModelKey)
+                    || "deepseek-v3.1".equals(normalizedModelKey)
+                    || "deepseek-v3.2".equals(normalizedModelKey)) {
+                return "deepseek-chat";
+            }
+        }
+
+        return modelKey;
     }
 
     /**

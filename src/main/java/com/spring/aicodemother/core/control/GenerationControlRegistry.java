@@ -16,19 +16,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class GenerationControlRegistry {
 
     public static class GenerationControl {
-        private final Sinks.Many<Void> cancelSink = Sinks.many().replay().latest();
+        private final Sinks.Many<Integer> cancelSink = Sinks.many().replay().latest();
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
         private volatile String ownerUserId;
         private volatile Long appId;
 
-        public reactor.core.publisher.Flux<Void> cancelFlux() {
+        public reactor.core.publisher.Flux<Integer> cancelFlux() {
             return cancelSink.asFlux();
         }
 
         public void cancel() {
-            cancelled.set(true);
-            cancelSink.tryEmitNext(null);
-            cancelSink.tryEmitComplete();
+            if (cancelled.compareAndSet(false, true)) {
+                // 不能向 Reactor sink 发射 null，否则会触发 NPE
+                cancelSink.tryEmitNext(1);
+                cancelSink.tryEmitComplete();
+            }
         }
 
         public boolean isCancelled() {
