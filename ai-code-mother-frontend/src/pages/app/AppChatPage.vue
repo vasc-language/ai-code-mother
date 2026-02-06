@@ -210,7 +210,7 @@ const activeFileKey = computed({
 })
 
 // ========== AI 模型选择 ==========
-const selectedModelKey = ref<string>('codex-mini-latest')
+const selectedModelKey = ref<string>('deepseek-chat')
 const selectedModel = ref<API.AiModelConfig | null>(null)
 
 const handleModelChange = (modelKey: string, model: API.AiModelConfig) => {

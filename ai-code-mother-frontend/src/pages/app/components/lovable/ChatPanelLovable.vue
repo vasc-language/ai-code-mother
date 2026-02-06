@@ -201,7 +201,7 @@ const props = withDefaults(defineProps<Props>(), {
   isGenerating: false,
   primaryActionDisabled: false,
   primaryActionTitle: '发送',
-  defaultModelKey: 'codex-mini-latest',
+  defaultModelKey: 'deepseek-chat',
 })
 
 const emit = defineEmits<{

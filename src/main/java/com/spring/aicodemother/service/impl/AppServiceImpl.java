@@ -125,8 +125,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     // New entry with cancellation control
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser,
                                       com.spring.aicodemother.core.control.GenerationControlRegistry.GenerationControl control) {
-        // Delegate to modelKey version with default model (使用轻量级编程模型)
-        return chatToGenCode(appId, message, loginUser, control, "codex-mini-latest");
+        // Delegate to modelKey version with default model
+        return chatToGenCode(appId, message, loginUser, control, "deepseek-chat");
     }
 
     // New entry with dynamic model selection
@@ -218,11 +218,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
 
-        // 记录本次生成（用于后续重复检测，管理员免记录）
-        if (!isAdmin) {
-            generationValidationService.recordGeneration(loginUser.getId(), message);
-        }
-
         // 5.1 若为 Vue 工程模式，尝试命中预置模板并进行首次目录拷贝，同时为当前轮拼接模板说明
         // [已禁用] VUE模板功能暂时不使用
         String finalMessage = message;
@@ -275,6 +270,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                             boolean valid = generationValidationService.validateGenerationResult(
                                     normalizedContent, appId, codeGenTypeEnum.getValue());
                             if (!valid) {
+                                boolean isUpstreamOrSystemFailure = isUpstreamOrSystemFailureContent(normalizedContent);
+                                if (isUpstreamOrSystemFailure) {
+                                    log.warn("用户 {} 生成应用 {} 因上游/系统错误未产出有效代码，跳过警告惩罚",
+                                            loginUser.getId(), appId);
+                                    pointsMetricsCollector.recordInvalidGeneration(loginUser.getId().toString(), "upstream_error");
+                                    return;
+                                }
                                 log.warn("用户 {} 生成应用 {} 的结果未通过有效性校验（内容为空或未生成代码文件）", loginUser.getId(), appId);
                                 pointsMetricsCollector.recordInvalidGeneration(loginUser.getId().toString(), "no_code_files");
                                 // 惩罚机制：AI只输出计划未生成实际代码时扣除额外积分（管理员免罚）
@@ -299,6 +301,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                                     // 注意：此时用户已看到生成结果，无法撤回，需要事后对账
                                     // 监控指标已在监听器中记录，此处仅记录警告日志
                                     return; // 不发放首次生成奖励
+                                }
+
+                                // 仅在生成结果有效时记录本次需求哈希，避免上游失败触发“重复生成”误判
+                                if (!isAdmin) {
+                                    generationValidationService.recordGeneration(loginUser.getId(), message);
                                 }
 
                                 // 记录Token消耗到Redis统计（管理员免统计）
@@ -394,6 +401,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         String withoutMarkers = content.replaceAll("\\[(CODE_BLOCK_START|CODE_BLOCK_END|CODE_STREAM|MULTI_FILE_[^\\]]+)\\]", "");
         return withoutMarkers.trim();
+    }
+
+    /**
+     * 判断当前无效结果是否由上游模型/系统异常导致，避免误惩罚用户
+     */
+    private boolean isUpstreamOrSystemFailureContent(String normalizedContent) {
+        if (StrUtil.isBlank(normalizedContent)) {
+            return false;
+        }
+        String content = normalizedContent.toLowerCase();
+        return content.contains("[错误]")
+                || content.contains("authentication fails")
+                || content.contains("invalid api key")
+                || content.contains("invalid_request_error")
+                || content.contains("access denied")
+                || content.contains("arrearage")
+                || content.contains("处理过程中遇到问题")
+                || content.contains("工具调用参数解析失败");
     }
 
     /**

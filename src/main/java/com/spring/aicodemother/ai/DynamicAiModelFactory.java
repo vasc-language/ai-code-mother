@@ -32,10 +32,29 @@ public class DynamicAiModelFactory {
     private com.spring.aicodemother.monitor.AiModelMonitorListener aiModelMonitorListener;
 
     /**
-     * 统一的API密钥（从配置文件读取）
+     * 首选：流式模型配置中的 API Key
      */
-    @Value("${langchain4j.open-ai.streaming-chat-model.api-key}")
-    private String unifiedApiKey;
+    @Value("${langchain4j.open-ai.streaming-chat-model.api-key:}")
+    private String streamingApiKey;
+
+    /**
+     * 兼容：普通 chat-model 配置中的 API Key
+     */
+    @Value("${langchain4j.open-ai.chat-model.api-key:}")
+    private String chatModelApiKey;
+
+    /**
+     * 环境变量（OpenAI 兼容）
+     */
+    @Value("${OPENAI_API_KEY:}")
+    private String openAiApiKeyFromEnv;
+
+    /**
+     * 环境变量（DeepSeek 官方）
+     */
+    @Value("${DEEPSEEK_API_KEY:}")
+    private String deepSeekApiKeyFromEnv;
+
 
     /**
      * StreamingChatModel 缓存
@@ -80,12 +99,18 @@ public class DynamicAiModelFactory {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "模型配置不存在: " + modelKey);
         }
 
+        String apiKeySource = resolveApiKeySource();
+        String resolvedApiKey = resolveApiKey(apiKeySource);
+
         if (modelConfig.getIsEnabled() == null || modelConfig.getIsEnabled() != 1) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "模型已禁用: " + modelKey);
         }
 
         log.info("创建StreamingChatModel实例 - modelKey: {}, modelName: {}, provider: {}, baseUrl: {}",
                 modelKey, modelConfig.getModelName(), modelConfig.getProvider(), modelConfig.getBaseUrl());
+        if (!"langchain4j.open-ai.streaming-chat-model.api-key".equals(apiKeySource)) {
+            log.info("DynamicAiModelFactory API Key 回退来源: {}", apiKeySource);
+        }
 
         String requestModelName = resolveRequestModelName(modelConfig, modelKey);
         if (!modelKey.equals(requestModelName)) {
@@ -97,7 +122,7 @@ public class DynamicAiModelFactory {
         // ✅ 注意：OpenAI的流式API会在最后一条消息中返回完整的Token usage统计（包括工具调用的Token）
         //    监听器会在 onResponse 中自动收集这些Token，并通过全局缓存累加
         return OpenAiStreamingChatModel.builder()
-                .apiKey(unifiedApiKey)  // 使用统一的API密钥
+                .apiKey(resolvedApiKey)  // 使用解析后的 API Key（支持多来源回退）
                 .modelName(requestModelName) // 向上游实际发送的模型名称（可能经过兼容映射）
                 .baseUrl(modelConfig.getBaseUrl())
                 .maxTokens(8192)         // 默认最大token数
@@ -106,6 +131,38 @@ public class DynamicAiModelFactory {
                 .logResponses(true)
                 .listeners(java.util.List.of(aiModelMonitorListener))  // ✅ 注册监听器，监控Token使用
                 .build();
+    }
+
+    private String resolveApiKeySource() {
+        if (isNotBlank(streamingApiKey)) {
+            return "langchain4j.open-ai.streaming-chat-model.api-key";
+        }
+        if (isNotBlank(chatModelApiKey)) {
+            return "langchain4j.open-ai.chat-model.api-key";
+        }
+        if (isNotBlank(openAiApiKeyFromEnv)) {
+            return "OPENAI_API_KEY";
+        }
+        if (isNotBlank(deepSeekApiKeyFromEnv)) {
+            return "DEEPSEEK_API_KEY";
+        }
+        return "";
+    }
+
+    private String resolveApiKey(String source) {
+        return switch (source) {
+            case "langchain4j.open-ai.streaming-chat-model.api-key" -> streamingApiKey.trim();
+            case "langchain4j.open-ai.chat-model.api-key" -> chatModelApiKey.trim();
+            case "OPENAI_API_KEY" -> openAiApiKeyFromEnv.trim();
+            case "DEEPSEEK_API_KEY" -> deepSeekApiKeyFromEnv.trim();
+            default -> throw new BusinessException(
+                    ErrorCode.OPERATION_ERROR,
+                    "未配置 API Key，无法调用 AI 模型（已检查: streaming-chat-model/chat-model/OPENAI_API_KEY/DEEPSEEK_API_KEY）");
+        };
+    }
+
+    private boolean isNotBlank(String value) {
+        return value != null && !value.isBlank();
     }
 
     /**

@@ -49,12 +49,12 @@ public class AiPlanningService {
      * @return 开发计划VO
      */
     public DevelopmentPlanVO generatePlan(String userRequirement, String codeGenType) {
-        // 使用轻量级模型（qwen-turbo）降低成本
+        // 优先使用轻量级模型（qwen-turbo）降低成本
         AiModelConfig lightModel = aiModelConfigService.getByModelKey("qwen-turbo");
         if (lightModel == null || lightModel.getIsEnabled() != 1) {
-            // 如果qwen-turbo不可用，使用默认模型
-            log.warn("轻量级模型qwen-turbo不可用，使用默认模型");
-            lightModel = aiModelConfigService.getByModelKey("codex-mini-latest");
+            // 如果 qwen-turbo 不可用，回退到 deepseek-chat
+            log.warn("轻量级模型 qwen-turbo 不可用，回退到 deepseek-chat");
+            lightModel = aiModelConfigService.getByModelKey("deepseek-chat");
         }
         if (lightModel == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "无可用的规划模型");

@@ -62,27 +62,27 @@ langchain4j:
   open-ai:
     # 推理 AI 模型配置（用于复杂的推理任务）
     reasoning-streaming-chat-model:
-      base-url: https://204992.xyz/v1
-      api-key: sk-6d9175726392996b969a9ded28fe2a47dce1884c2023f28fc3cb666d22db57d8
-      model-name: gpt-5-codex-medium
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
+      model-name: ${OPENAI_REASONING_MODEL:deepseek-reasoner}
       max-tokens: 4000
       temperature: 0.7
       log-requests: true
       log-responses: true
     # 智能路由 AI 模型配置（用于简单的分类任务）
     routing-chat-model:
-      base-url: https://204992.xyz/v1
-      api-key: sk-6d9175726392996b969a9ded28fe2a47dce1884c2023f28fc3cb666d22db57d8
-      model-name: gpt-5-low  # 使用MEDIUM级别模型（3积分/1K tokens），稳定可靠
+      base-url: ${ROUTING_BASE_URL:${OPENAI_BASE_URL:https://api.deepseek.com}}
+      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
+      model-name: ${ROUTING_MODEL_NAME:deepseek-chat}
       max-tokens: 50
       temperature: 0.3
       log-requests: true
       log-responses: true
     # 流式聊天模型配置（用于动态模型选择，DynamicAiModelFactory需要此配置）
     streaming-chat-model:
-      base-url: https://204992.xyz/v1
-      api-key: sk-6d9175726392996b969a9ded28fe2a47dce1884c2023f28fc3cb666d22db57d8
-      model-name: gpt-5-low
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+      api-key: ${OPENAI_API_KEY:${DEEPSEEK_API_KEY:}}
+      model-name: ${OPENAI_STREAM_MODEL:deepseek-chat}
       max-tokens: 8192
       temperature: 0.7
       log-requests: true

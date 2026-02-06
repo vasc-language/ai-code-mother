@@ -82,7 +82,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  defaultModelKey: 'codex-mini-latest',
+  defaultModelKey: 'deepseek-chat',
   disabled: false
 })
 
@@ -95,6 +95,8 @@ const emit = defineEmits<{
 const loading = ref(false)
 const models = ref<API.AiModelConfig[]>([])
 const selectedModelKey = ref<string>(props.defaultModelKey)
+const ALLOWED_MODEL_KEYS = ['deepseek-chat', 'deepseek-reasoner']
+const ALLOWED_MODEL_KEY_SET = new Set(ALLOWED_MODEL_KEYS)
 
 // Computed
 const currentModel = computed(() => {
@@ -137,9 +139,26 @@ const loadModels = async () => {
     const response = await listEnabledModels()
     const res = response.data // axios响应需要访问.data
     if (res.code === 0 && res.data) {
-      models.value = res.data
+      const filteredModels = res.data
+        .filter((model) => ALLOWED_MODEL_KEY_SET.has((model.modelKey || '').toLowerCase()))
+        .sort((a, b) => {
+          const aIndex = ALLOWED_MODEL_KEYS.indexOf((a.modelKey || '').toLowerCase())
+          const bIndex = ALLOWED_MODEL_KEYS.indexOf((b.modelKey || '').toLowerCase())
+          return aIndex - bIndex
+        })
+
+      models.value = filteredModels
+
+      if (models.value.length === 0) {
+        message.error('当前未配置可用的 DeepSeek 模型（deepseek-chat / deepseek-reasoner）')
+        selectedModelKey.value = ''
+        return
+      }
+
       // 如果默认模型不在列表中,选择第一个
-      const hasDefault = models.value.some(m => m.modelKey === selectedModelKey.value)
+      const hasDefault = models.value.some(
+        m => (m.modelKey || '').toLowerCase() === selectedModelKey.value.toLowerCase(),
+      )
       if (!hasDefault && models.value.length > 0) {
         selectedModelKey.value = models.value[0].modelKey || ''
       }

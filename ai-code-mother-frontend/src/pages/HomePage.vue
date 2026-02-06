@@ -23,7 +23,7 @@ const creating = ref(false)
 
 // AI模型选择相关
 const modelSelectorRef = ref()
-const selectedModelKey = ref('codex-mini-latest')
+const selectedModelKey = ref('deepseek-chat')
 const showModelSelector = ref(false) // 控制模型选择器显示
 const popupStyle = ref({}) // 弹出框动态样式
 let hoverTimeout: number | null = null
