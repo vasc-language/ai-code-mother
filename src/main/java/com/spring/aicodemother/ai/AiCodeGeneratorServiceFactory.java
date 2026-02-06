@@ -229,4 +229,16 @@ public class AiCodeGeneratorServiceFactory {
         return appId + "_" + codeGenType.getValue();
     }
 
+    /**
+     * 失效指定 appId 的所有 AI 服务缓存实例（所有 codeGenType / modelKey）。
+     * 用于在会话上下文异常时强制重建服务并重新加载历史消息。
+     */
+    public void invalidateByAppId(long appId) {
+        String prefix = appId + "_";
+        int before = serviceCache.asMap().size();
+        serviceCache.asMap().keySet().removeIf(key -> key != null && key.startsWith(prefix));
+        int after = serviceCache.asMap().size();
+        log.warn("已失效 appId={} 的 AI 服务缓存，移除 {} 个实例", appId, Math.max(0, before - after));
+    }
+
 }

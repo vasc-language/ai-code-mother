@@ -136,9 +136,13 @@ class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler 
             return;
         }
         AiMessage aiMessage = completeResponse.aiMessage();
-        addToMemory(aiMessage);
 
         if (aiMessage.hasToolExecutionRequests()) {
+            // Collect tool execution results first.
+            // Persisting assistant tool_calls without corresponding tool results can poison chat memory.
+            List<ToolExecutionResultMessage> toolExecutionResultMessages = new ArrayList<>();
+            List<ToolExecution> executedTools = new ArrayList<>();
+
             for (ToolExecutionRequest toolExecutionRequest : aiMessage.toolExecutionRequests()) {
                 if (isCancelled()) {
                     return;
@@ -148,7 +152,7 @@ class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler 
                 String toolExecutionResult = toolExecutor.execute(toolExecutionRequest, memoryId);
                 ToolExecutionResultMessage toolExecutionResultMessage =
                         ToolExecutionResultMessage.from(toolExecutionRequest, toolExecutionResult);
-                addToMemory(toolExecutionResultMessage);
+                toolExecutionResultMessages.add(toolExecutionResultMessage);
 
                 if (toolExecutionHandler != null) {
                     if (isCancelled()) {
@@ -158,13 +162,29 @@ class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler 
                             .request(toolExecutionRequest)
                             .result(toolExecutionResult)
                             .build();
-                    toolExecutionHandler.accept(toolExecution);
+                    executedTools.add(toolExecution);
                 }
             }
 
             if (isCancelled()) {
                 return;
             }
+
+            // Persist the assistant message and all tool results together.
+            addToMemory(aiMessage);
+            for (ToolExecutionResultMessage resultMessage : toolExecutionResultMessages) {
+                addToMemory(resultMessage);
+            }
+
+            if (toolExecutionHandler != null) {
+                for (ToolExecution toolExecution : executedTools) {
+                    if (isCancelled()) {
+                        return;
+                    }
+                    toolExecutionHandler.accept(toolExecution);
+                }
+            }
+
             ChatRequest chatRequest = ChatRequest.builder()
                     .messages(messagesToSend(memoryId))
                     .toolSpecifications(toolSpecifications)
@@ -190,6 +210,7 @@ class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler 
 
             context.streamingChatModel.chat(chatRequest, handler);
         } else {
+            addToMemory(aiMessage);
             if (completeResponseHandler != null) {
                 if (isCancelled()) {
                     return;

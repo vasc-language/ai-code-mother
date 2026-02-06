@@ -263,6 +263,10 @@ public class AiCodeGeneratorFacade {
                         })
                         .onError((Throwable error) -> {
                             log.error("TokenStream处理出现错误: {}", error.getMessage(), error);
+                            if (isToolCallsContextIncompleteError(error)) {
+                                log.warn("检测到 tool_calls 上下文不完整，失效 appId={} 的 AI 服务缓存并触发自愈", appId);
+                                aiCodeGeneratorServiceFactory.invalidateByAppId(appId);
+                            }
                             
                             // 特殊处理JSON解析错误
                             if (error.getCause() instanceof com.fasterxml.jackson.core.JsonParseException) {
@@ -295,6 +299,26 @@ public class AiCodeGeneratorFacade {
         })
         // 确保返回类型为 Flux<String>
         .cast(String.class);
+    }
+
+    private boolean isToolCallsContextIncompleteError(Throwable error) {
+        if (error == null) {
+            return false;
+        }
+        String message = error.getMessage();
+        if (message != null) {
+            String lower = message.toLowerCase();
+            if (lower.contains("tool_calls")
+                    && (lower.contains("insufficient tool messages")
+                    || lower.contains("tool_call_id"))) {
+                return true;
+            }
+        }
+        Throwable cause = error.getCause();
+        if (cause != null && cause != error) {
+            return isToolCallsContextIncompleteError(cause);
+        }
+        return false;
     }
 
 

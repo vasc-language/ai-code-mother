@@ -2001,7 +2001,12 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理done事件
     newEventSource.addEventListener('done', async function () {
-      if (currentRunId.value !== myRunId) return
+      if (currentRunId.value !== myRunId) {
+        try {
+          newEventSource.close()
+        } catch (e) {}
+        return
+      }
       if (streamCompleted || !isGenerating.value) return
 
       // 先刷新剩余内容
@@ -2020,6 +2025,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
       streamCompleted = true
       isGenerating.value = false
+      try {
+        newEventSource.close()
+      } catch (e) {}
       // 标记本轮生成已完成，切换到预览模式
       generationFinished.value = true
       appGenerationStore.finishGeneration()
@@ -2059,7 +2067,12 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理interrupted事件（手动停止）
     newEventSource.addEventListener('interrupted', async function () {
-      if (currentRunId.value !== myRunId) return
+      if (currentRunId.value !== myRunId) {
+        try {
+          newEventSource.close()
+        } catch (e) {}
+        return
+      }
       if (streamCompleted) return
       // 先刷新剩余内容
       flushToUi()
@@ -2095,6 +2108,12 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理business-error事件（后端限流等错误）
     newEventSource.addEventListener('business-error', function (event: MessageEvent) {
+      if (currentRunId.value !== myRunId) {
+        try {
+          newEventSource.close()
+        } catch (e) {}
+        return
+      }
       if (streamCompleted) return
 
       try {
@@ -2109,6 +2128,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
         streamCompleted = true
         isGenerating.value = false
+        try {
+          newEventSource.close()
+        } catch (e) {}
         appGenerationStore.stopGeneration()
       } catch (parseError) {
         console.error('解析错误事件失败:', parseError, '原始数据:', event.data)
@@ -2119,7 +2141,12 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理错误
     newEventSource.onerror = async function () {
-      if (currentRunId.value !== myRunId) return
+      if (currentRunId.value !== myRunId) {
+        try {
+          newEventSource.close()
+        } catch (e) {}
+        return
+      }
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
       if (appGenerationStore.eventSource?.readyState === EventSource.CONNECTING) {

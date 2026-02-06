@@ -86,9 +86,20 @@ export const useAppGenerationStore = defineStore('appGeneration', () => {
    * 完成生成
    */
   function finishGeneration() {
+    // 生成完成后必须主动关闭 EventSource，避免浏览器自动重连造成重复请求
+    if (eventSource.value) {
+      try {
+        eventSource.value.close()
+      } catch (e) {
+        console.error('关闭 EventSource 失败:', e)
+      }
+      eventSource.value = null
+    }
+
     isGenerating.value = false
     generationFinished.value = true
-    // 保留 appId 和 runId，以便追踪历史
+    generatingAppId.value = null
+    currentRunId.value = null
   }
 
   /**
