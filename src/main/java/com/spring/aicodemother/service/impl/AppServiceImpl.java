@@ -686,7 +686,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String deployKey = app.getDeployKey();
         // 没有则生成 6 位 deployKey（大小写字母 + 数字）
         if (StrUtil.isBlank(deployKey)) {
-            deployKey = RandomUtil.randomString(6);
+            deployKey = generateDeployKey();
         }
         // 5. 获取代码生成类型，构建源目录路径
         String codeGenType = app.getCodeGenType();
@@ -740,7 +740,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
         // 10. 返回可访问的 URL
-        // String appDeployKey = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
         String appDeployKey = String.format("%s/%s/", deployHost, deployKey);
         // 11. 保存版本（部署成功后保存代码版本）
         try {
@@ -1062,5 +1061,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             log.error("注入计划内容失败: {}", e.getMessage(), e);
             return originalMessage;
         }
+    }
+
+    /**
+     * 生成 deployKey：6 位字母数字，且至少包含 1 个大写字母或数字。
+     * 这样可与前端常见纯小写路由（如 /assets、/points）区分，便于 Nginx 短链路由匹配。
+     */
+    private String generateDeployKey() {
+        String key;
+        do {
+            key = RandomUtil.randomString(6);
+        } while (!key.matches(".*[A-Z0-9].*"));
+        return key;
     }
 }
