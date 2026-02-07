@@ -51,6 +51,8 @@ public class ReasoningStreamingChatModelConfig {
             .modelName(modelName)
             .maxTokens(maxTokens)
             .temperature(temperature)
+            .returnThinking(true)
+            .sendThinking(true)
             .timeout(Duration.ofMinutes(5)) // 增加超时时间到 5 分钟，避免推理任务超时
             .logRequests(logRequests)
             .logResponses(logResponses)
@@ -69,4 +71,3 @@ public class ReasoningStreamingChatModelConfig {
         }
     }
 }
-

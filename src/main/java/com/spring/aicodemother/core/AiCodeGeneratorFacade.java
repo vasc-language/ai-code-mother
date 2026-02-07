@@ -105,12 +105,6 @@ public class AiCodeGeneratorFacade {
             }
             case VUE_PROJECT -> {
                 TokenStream codeTokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-                // 如果是我们内置的实现，注入取消感知，便于在停止后阻断工具执行
-                try {
-                    if (codeTokenStream instanceof dev.langchain4j.service.AiServiceTokenStream stream) {
-                        stream.withCancellation(() -> control != null && control.isCancelled());
-                    }
-                } catch (Throwable ignored) {}
                 yield processTokenStream(codeTokenStream, appId, control);
             }
             default -> {
@@ -148,19 +142,38 @@ public class AiCodeGeneratorFacade {
             final java.util.concurrent.atomic.AtomicInteger confirmationAttempts = new java.util.concurrent.atomic.AtomicInteger(0);
             try {
                 java.util.concurrent.atomic.AtomicBoolean completed = new java.util.concurrent.atomic.AtomicBoolean(false);
+                java.util.concurrent.atomic.AtomicReference<dev.langchain4j.model.chat.response.StreamingHandle> streamingHandleRef =
+                        new java.util.concurrent.atomic.AtomicReference<>();
                 // 当下游取消或释放时，触发控制器取消，以便上层尽早停止
                 if (control != null) {
-                    sink.onCancel(control::cancel);
-                    sink.onDispose(control::cancel);
+                    sink.onCancel(() -> {
+                        control.cancel();
+                        dev.langchain4j.model.chat.response.StreamingHandle handle = streamingHandleRef.get();
+                        if (handle != null && !handle.isCancelled()) {
+                            handle.cancel();
+                        }
+                    });
+                    sink.onDispose(() -> {
+                        control.cancel();
+                        dev.langchain4j.model.chat.response.StreamingHandle handle = streamingHandleRef.get();
+                        if (handle != null && !handle.isCancelled()) {
+                            handle.cancel();
+                        }
+                    });
                 }
-                tokenStream.onPartialResponse((String partialResponse) -> {
+                tokenStream.onPartialResponseWithContext((partialResponse, responseContext) -> {
                             try {
+                                streamingHandleRef.compareAndSet(null, responseContext.streamingHandle());
                                 if (control != null && control.isCancelled()) {
+                                    if (!responseContext.streamingHandle().isCancelled()) {
+                                        responseContext.streamingHandle().cancel();
+                                    }
                                     if (completed.compareAndSet(false, true)) {
                                         sink.complete();
                                     }
                                     return;
                                 }
+                                String partialResponseText = partialResponse.text();
                                 
                                 // 检查项目是否已完成
                                 if (!projectCompleted.get() && isProjectCompleted(appId)) {
@@ -169,10 +182,10 @@ public class AiCodeGeneratorFacade {
                                 }
                                 
                                 // 如果项目已完成，检查并过滤确认性内容
-                                if (projectCompleted.get() && containsConfirmationContent(partialResponse)) {
+                                if (projectCompleted.get() && containsConfirmationContent(partialResponseText)) {
                                     int attempts = confirmationAttempts.incrementAndGet();
                                     log.warn("[UX优化] 项目已完成，过滤AI的确认性输出 (第{}次), 内容: {}", attempts, 
-                                            partialResponse.length() > 100 ? partialResponse.substring(0, 100) + "..." : partialResponse);
+                                            partialResponseText.length() > 100 ? partialResponseText.substring(0, 100) + "..." : partialResponseText);
                                     
                                     // 如果是第一次检测到确认性内容，发送一个替代消息
                                     if (attempts == 1) {
@@ -182,19 +195,23 @@ public class AiCodeGeneratorFacade {
                                     return; // 跳过原始的确认性内容
                                 }
                                 
-                                AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+                                AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponseText);
                                 sink.next(JSONUtil.toJsonStr(aiResponseMessage));
                             } catch (Exception e) {
                                 log.error("处理AI响应消息失败: {}", e.getMessage());
                                 // 继续处理，不中断流
                             }
                         })
-                        .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
+                        .onPartialToolCallWithContext((partialToolCall, toolCallContext) -> {
                             try {
+                                streamingHandleRef.compareAndSet(null, toolCallContext.streamingHandle());
                                 if (control != null && control.isCancelled()) {
+                                    if (!toolCallContext.streamingHandle().isCancelled()) {
+                                        toolCallContext.streamingHandle().cancel();
+                                    }
                                     return;
                                 }
-                                ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
+                                ToolRequestMessage toolRequestMessage = new ToolRequestMessage(partialToolCall);
                                 sink.next(JSONUtil.toJsonStr(toolRequestMessage));
                             } catch (Exception e) {
                                 log.error("处理工具请求消息失败: {}", e.getMessage());

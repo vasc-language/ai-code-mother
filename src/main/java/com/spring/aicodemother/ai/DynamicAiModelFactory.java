@@ -127,6 +127,8 @@ public class DynamicAiModelFactory {
                 .baseUrl(modelConfig.getBaseUrl())
                 .maxTokens(8192)         // 默认最大token数
                 .temperature(0.0)        // 降低温度以提升工具调用稳定性
+                .returnThinking(true)    // 读取推理字段，写入 AiMessage.thinking
+                .sendThinking(true)      // 在后续 tool-calls 请求中回传 reasoning_content
                 .logRequests(true)
                 .logResponses(true)
                 .listeners(java.util.List.of(aiModelMonitorListener))  // ✅ 注册监听器，监控Token使用
